@@ -1,6 +1,8 @@
 package com.recipe.service;
 
 import com.recipe.domain.entity.ApplicationRunTest;
+import com.recipe.domain.entity.Gender;
+import com.recipe.domain.entity.Role;
 import com.recipe.repository.ApplicationRunTestRepository;
 import lombok.extern.log4j.Log4j2;
 import org.assertj.core.api.Assertions;
@@ -33,4 +35,5 @@ class ApplicationRunServiceTest {
         log.info("Find By Id >>> {}",result2);
         Assertions.assertThat(result).isEqualTo(result);
     }
+
 }
