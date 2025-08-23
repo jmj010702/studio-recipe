@@ -14,4 +14,5 @@ public class Recipe {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "recipe_id")
     private Long recipeId;
+
 }

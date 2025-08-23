@@ -1,4 +1,4 @@
-package com.recipe.domain.entity;
+package com.recipe.domain.entity.enums;
 
 import lombok.Getter;
 

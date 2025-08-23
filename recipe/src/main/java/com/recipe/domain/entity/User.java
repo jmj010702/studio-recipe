@@ -1,8 +1,9 @@
 package com.recipe.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.recipe.domain.entity.enums.Gender;
+import com.recipe.domain.entity.enums.Role;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 @ToString
 @Getter
 //TODO DTO에 NOT NULL을 사용할지
-public class Users {
+public class User {
     @Id@GeneratedValue
     @Column(name = "user_id")
     private Long userId;

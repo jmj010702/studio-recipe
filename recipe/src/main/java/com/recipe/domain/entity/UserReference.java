@@ -1,6 +1,7 @@
 package com.recipe.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.recipe.domain.entity.enums.PreferenceType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -23,8 +24,14 @@ public class UserReference {
     @Column(name = "preference_id")
     private Long preferenceId;
 
-    //ENUM
+    @Column(name = "preference_type")
+    @Enumerated(EnumType.STRING)
+    private PreferenceType preference;
+
+
     //RATING
+
+
     @Column(name = "preference_date")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy:MM:dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy:MM:dd HH:mm:ss")
