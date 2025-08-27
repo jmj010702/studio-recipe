@@ -10,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "RECIPECOMPLETIONS")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -19,20 +20,20 @@ import java.time.LocalDateTime;
 public class RecipeCompletions {
     @Id
     @GeneratedValue
-    @Column(name = "completion_id")
+    @Column(name = "COMPLETION_ID")
     private Long completionId;
 
-    @Column(name = "completion_date")
+    @Column(name = "COMPLETION_DATE")
     @JsonFormat(shape=JsonFormat.Shape.STRING ,pattern = "yyyy.MM.dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy:MM:dd HH:mm:ss")
     @CreatedDate
     private LocalDateTime completionDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "USER_ID")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipe_id")
+    @JoinColumn(name = "RECIPE_ID")
     private Recipe recipe;
 }

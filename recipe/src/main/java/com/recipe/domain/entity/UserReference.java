@@ -12,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "USERREFERENCE")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,10 +22,10 @@ import java.time.LocalDateTime;
 public class UserReference {
     @Id
     @GeneratedValue
-    @Column(name = "preference_id")
+    @Column(name = "PREFERENCE_ID")
     private Long preferenceId;
 
-    @Column(name = "preference_type")
+    @Column(name = "PREFERENCE_TYPE")
     @Enumerated(EnumType.STRING)
     private PreferenceType preference;
 

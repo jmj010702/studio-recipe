@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "likes",
+@Table(name = "LIKES",
         uniqueConstraints = {
         @UniqueConstraint(name = "UQ_RECIPE_LIKE", columnNames = {"user_id", "recipe_id"})
         })
@@ -16,14 +16,14 @@ import lombok.*;
 public class Likes {
     @Id
     @GeneratedValue
-    @Column(name = "like_id")
+    @Column(name = "LIKE_ID")
     private Long likeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "USER_ID")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipe_id")
+    @JoinColumn(name = "RECIPE_ID")
     private Recipe recipe;
 }
