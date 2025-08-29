@@ -8,10 +8,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "RECIPE")
 @Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
+@AllArgsConstructor
 @ToString
 @Getter
+@Setter
 public class Recipe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,8 +41,9 @@ public class Recipe {
     private String ckgKndActoNm;
 
     //파싱
+    @Lob
     @Column(name = "CKG_MTRL_CN")
-    private String ckgMtrlCnt;
+    private String ckgMtrlCn;
 
     @Column(name = "CKG_INBUN_NM")
     private String ckgInbunNm;

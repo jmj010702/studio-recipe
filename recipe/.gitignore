@@ -39,6 +39,7 @@ out/
 #환경 설정 파일
 application.yml
 .env
+/data/**
 
 #QueryDSL
 #target/generated-sources/

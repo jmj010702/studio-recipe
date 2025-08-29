@@ -40,6 +40,8 @@ dependencies {
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
 
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
     //	Test Log 어노테이션
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
