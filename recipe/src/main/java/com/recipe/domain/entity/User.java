@@ -26,20 +26,25 @@ public class User {
     @Column(name = "USER_ID")
     private Long userId;
 
-    @Column(unique = true) //nullable = false은 SQL 쿼리를 보내는 시점에 예외 발생 -> @NotNull 사용
+    @Column(name = "ID",unique = true) //nullable = false은 SQL 쿼리를 보내는 시점에 예외 발생 -> @NotNull 사용
     private String id;
+    @Column(name="PWD")
     private String pwd;
+    @Column(name="NAME")
     private String name;
-    @Column(unique = true)
+    @Column(name="NICKNAME" ,unique = true)
     private String nickname;
-    @Column(unique = true)
+    @Column(name="EMAIL",unique = true)
     private String email;
+    @Column(name="AGE")
     private short age;
 
     @Enumerated(EnumType.STRING)
+    @Column(name="GENDER")
     private Gender gender;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "ROLE")
     private Role role;
 
     @Column(name = "CREATE_DATE")

@@ -33,7 +33,7 @@ public class UserReference {
     //RATING
 
 
-    @Column(name = "preference_date")
+    @Column(name = "PREFERENCE_DATE")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy:MM:dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy:MM:dd HH:mm:ss")
     @CreatedDate

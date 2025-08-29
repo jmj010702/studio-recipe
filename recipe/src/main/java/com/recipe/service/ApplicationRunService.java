@@ -1,6 +1,5 @@
 package com.recipe.service;
 
-import com.recipe.domain.entity.ApplicationRunTest;
 import com.recipe.repository.ApplicationRunTestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
