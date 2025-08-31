@@ -12,28 +12,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@RequiredArgsConstructor
-@Log4j2
-public class RecommendedApplication implements ApplicationRunner {
-
-    private final JobLauncher jobLauncher;
-    private final Job recipeDataMigrationJob;
-
+public class RecommendedApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(RecommendedApplication.class, args);
 	}
-
-
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
-        //Job 실행 시 Job 인스턴스 구분하기 위한 고유 값
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addString("jobId", String.valueOf(System.currentTimeMillis()))
-                .toJobParameters();
-        try {
-            jobLauncher.run(recipeDataMigrationJob,  jobParameters);
-        } catch (Exception e) {
-            log.error("Batch Job Error", e);
-        }
-    }
 }

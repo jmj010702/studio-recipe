@@ -2,10 +2,7 @@ package com.recipe.domain.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +12,7 @@ import org.springframework.data.domain.Sort;
 @AllArgsConstructor
 @Getter
 @Setter
+@ToString
 public class PageRequestDTO {
     @Builder.Default
     @Min(0)
