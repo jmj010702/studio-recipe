@@ -111,8 +111,7 @@ public class SingleBatchConfig {
 
             if (item[17] != null && !item[17].isEmpty()) {
                 try {
-                    // 예시 포맷: "yyyy-MM-dd HH:mm:ss"
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
                     recipe.setFirstRegDt(LocalDateTime.parse(item[17], formatter));
                 } catch (Exception e) {
                     log.warn("FIRST_REG_DT 파싱 오류: {}", item[17], e);

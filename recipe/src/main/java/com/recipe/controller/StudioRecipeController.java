@@ -1,58 +1,72 @@
 package com.recipe.controller;
 
-import com.recipe.domain.entity.Recipe;
+import com.recipe.domain.dto.PageRequestDTO;
+import com.recipe.domain.dto.RecipeDTO;
+import com.recipe.domain.dto.SortBy;
+import com.recipe.service.RecipeService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name ="레시피", description = "레시피에 대한 API 명세서")
+@Tag(name = "레시피", description = "레시피에 대한 API 명세서")
 @RestController
 @RequestMapping("/studio-recipe")
 @RequiredArgsConstructor
 @Log4j2
 public class StudioRecipeController {
 
+    private final RecipeService service;
+
     @GetMapping("/main-pages")
     @Operation(summary = "메인 페이지",
-                         description = "전체 레시피와 추천 레시피 조회",
-                         responses = {
-                                @ApiResponse(responseCode = "200", description = "조회 성공")
-    })
-    public ResponseEntity<Void> mainPage(){
+            description = "전체 레시피 조건에 따라 페이지 반환",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공")
+            })
+    public ResponseEntity<?> mainPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(defaultValue = "CREATED_AT") String sortBy) {
 
-        return ResponseEntity.ok().build();
+        PageRequestDTO requestPage = PageRequestDTO.builder()
+                .page(page)
+                .size(size)
+                .direction(direction)
+                .sortBy(SortBy.formString(sortBy))
+                .build();
+
+        Pageable pageable = requestPage.getPageable();
+        Page<RecipeDTO> recipePage = service.readRecipePage(pageable);
+
+        return ResponseEntity.ok(recipePage);
     }
 
-    @Operation(summary="FindConditionPage", description = "조건에 따라 레시피를 정렬 반환합니다.")
-    @GetMapping("/main-pages/{condition}")
-    public ResponseEntity<Void> findPageCondition(
-            @Parameter(name="조회수, 좋아요 순, 최신순", example="조회수") //날짜 순, 역순?
-            @PathVariable("condition") String condition) {
-
+    @GetMapping("/recommend-recipes")
+    public ResponseEntity<Void> recommendRecipes() {
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "레시피 상세 페이지", description = "레시피 상세 페이지 반환",
-    responses = {
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "404", description = "레시피 Not Found")
-    })
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "레시피 Not Found")
+            })
     @GetMapping("/details/{recipeId}")
-    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId){
+    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId) {
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "레시피 좋아요",
             description = "레시피 좋아요 정보와 사용자 좋아요 기록을 업데이트.")
     @PatchMapping("/details")
-    public ResponseEntity<Void> likeToRecipe(/*@RequestBody*/){
+    public ResponseEntity<Void> likeToRecipe(/*@RequestBody*/) {
         return ResponseEntity.ok().build();
     }
 
