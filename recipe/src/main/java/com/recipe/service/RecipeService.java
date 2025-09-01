@@ -2,6 +2,7 @@ package com.recipe.service;
 
 import com.recipe.domain.dto.RecipeDTO;
 import com.recipe.domain.entity.Recipe;
+import com.recipe.exceptions.recipe.RecipeExceptions;
 import com.recipe.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -22,6 +23,12 @@ public class RecipeService {
     public Page<RecipeDTO> readRecipePage(Pageable pageable) {
         log.info("Service readRecipePage");
         Page<Recipe> recipePage = recipeRepository.findAll(pageable);
+        if(recipePage.getNumberOfElements() <= 0){
+            log.info("Request Page page >>>>> {}", recipePage.getTotalElements());
+            log.info("Request Page size >>>>> {}", recipePage.getSize());
+            log.info("Response Page Total Count >>>>> {}", recipePage.getNumberOfElements());
+            throw RecipeExceptions.BAD_REQUEST.getRecipeException();
+        }
         return recipePage.map(RecipeDTO::fromEntity);
     }
 }

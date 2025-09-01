@@ -27,7 +27,8 @@ public class StudioRecipeController {
     @Operation(summary = "메인 페이지",
             description = "전체 레시피 조건에 따라 페이지 반환",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "조회 성공")
+                    @ApiResponse(responseCode = "200", description = "조회 성공"),
+                    @ApiResponse(responseCode = "400", description = "잘못된 Page or Size 전달로 조회된 데이터 없음")
             })
     public ResponseEntity<?> mainPage(
             @RequestParam(defaultValue = "0") int page,

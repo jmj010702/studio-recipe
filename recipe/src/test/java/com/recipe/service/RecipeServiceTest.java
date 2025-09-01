@@ -1,10 +1,11 @@
 package com.recipe.service;
 
-import com.recipe.domain.dto.PageRequestDTO;
-import com.recipe.domain.entity.Recipe;
-import com.recipe.repository.RecipeRepository;
-import lombok.RequiredArgsConstructor;
+import com.recipe.domain.dto.RecipeDTO;
+import com.recipe.domain.dto.SortBy;
+import com.recipe.exceptions.recipe.RecipeException;
+import com.recipe.exceptions.recipe.RecipeExceptions;
 import lombok.extern.log4j.Log4j2;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,34 +15,50 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Log4j2
 class RecipeServiceTest {
 
-    private final RecipeRepository repository;
+    private final RecipeService service;
 
     @Autowired
-   public RecipeServiceTest(RecipeRepository repository) {
-        this.repository = repository;
+   public RecipeServiceTest(RecipeService service) {
+        this.service = service;
+    }
+
+
+    @Test
+    @DisplayName("Page 정상 반환 검증")
+    public void readPageRecipe(){
+        //given
+        Pageable pageable = PageRequest.of(0, 10,
+                Sort.by(Sort.Order.asc(SortBy.CREATED_AT.getFieldName())));
+
+        //when
+        Page<RecipeDTO> response = service.readRecipePage(pageable);
+        log.info(response.getContent().toString());
+        //then
+        assertNotNull(response);
     }
 
     @Test
-    @DisplayName("PageRequestDTO Exception Check")
-    public void pagingRecipe() throws IOException {
-        StringBuilder sb = new StringBuilder();
-        PageRequestDTO request = PageRequestDTO.builder()
-                .page(0)
-                .size(10).build();
-        log.info("Request -> Page Count >>>>>>>> {}", request.getPage());
-        log.info("Request >>>>>>>> {}", request);
-        Page<Recipe> page = repository.findAll(request.getPageable());
-        page.stream().forEach(i -> sb.append(i + "\n"));
-        log.info("PAGE DATA >>>>>>>>>>>>>> {}", sb.toString());
+    @DisplayName("Page 및 Size 잘못된 개수를 입력하여 가져온 데이터가 없을 때 NotFoundException 검증")
+    public void pagingRecipeNotFoundException() {
+        //given
+        Pageable pageable = PageRequest.of(1000000, 10,
+                Sort.by(SortBy.CREATED_AT.getFieldName()).descending());
+
+        //when
+        //then
+        RecipeException recipeException = assertThrows(RecipeException.class,
+                () -> {
+                    service.readRecipePage(pageable);
+                }
+        );
+        org.assertj.core.api.Assertions.assertThat(recipeException.getCode())
+                .isEqualTo(RecipeExceptions.BAD_REQUEST.getRecipeException().getCode());
     }
+
 }

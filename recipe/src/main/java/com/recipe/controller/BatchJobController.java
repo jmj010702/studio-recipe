@@ -22,7 +22,6 @@ public class BatchJobController {
 
     private final JobLauncher jobLauncher; // Spring Batch Job을 실행하는 핵심 컴포넌트
     private final Job recipeDataMigrationJob; // BatchConfig에서 @Bean으로 정의한 Job Bean
-    private final JobExplorer jobExplorer; // Job의 실행 상태를 조회하는 컴포넌트 (선택 사항)
 
     @GetMapping("/run-recipe-csv")
     public ResponseEntity<String> runRecipeCsv() {
