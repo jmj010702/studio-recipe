@@ -6,24 +6,24 @@ import lombok.*;
 @Entity
 @Table(name = "LIKES",
         uniqueConstraints = {
-        @UniqueConstraint(name = "UQ_RECIPE_LIKE", columnNames = {"user_id", "recipe_id"})
+        @UniqueConstraint(name = "UQ_RECIPE_LIKE", columnNames = {"USER_ID", "RCE_SNO"})
         })
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString
 @Getter
-public class Likes {
+public class Like extends CreateTime{
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "LIKE_ID")
     private Long likeId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false,  cascade = CascadeType.REMOVE)
     @JoinColumn(name = "USER_ID")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RECIPE_ID")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false,  cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "RCP_SNO")
     private Recipe recipe;
 }

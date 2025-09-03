@@ -5,7 +5,6 @@ import com.recipe.domain.dto.SortBy;
 import com.recipe.exceptions.recipe.RecipeException;
 import com.recipe.exceptions.recipe.RecipeExceptions;
 import lombok.extern.log4j.Log4j2;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +57,24 @@ class RecipeServiceTest {
                 }
         );
         org.assertj.core.api.Assertions.assertThat(recipeException.getCode())
-                .isEqualTo(RecipeExceptions.BAD_REQUEST.getRecipeException().getCode());
+                .isEqualTo(RecipeExceptions.NOT_FOUND.getRecipeException().getCode());
     }
 
+    @Test
+    @DisplayName("레시피 단건 조회")
+    public void findOneRecipe() {
+        RecipeDTO findByResult = service.findOneRecipe(1L);
+        log.info("FindByResult >>>>> {}", findByResult);
+    }
+
+    @Test
+    @DisplayName("잘못된 RECIPE ID 조회")
+    public void findOneException(){
+        RecipeException recipeException = assertThrows(RecipeException.class, () -> {
+            service.findOneRecipe(1000000000L);
+        });
+
+        org.assertj.core.api.Assertions.assertThat(recipeException.getCode())
+                .isEqualTo(RecipeExceptions.NOT_FOUND.getRecipeException().getCode());
+    }
 }

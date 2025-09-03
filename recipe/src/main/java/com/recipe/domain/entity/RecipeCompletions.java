@@ -10,30 +10,25 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "RECIPECOMPLETIONS")
+@Table(name = "RECIPE_COMPLETIONS")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 @ToString
 @Getter
-public class RecipeCompletions {
+public class RecipeCompletions extends CreateTime{
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COMPLETION_ID")
     private Long completionId;
 
-    @Column(name = "COMPLETION_DATE")
-    @JsonFormat(shape=JsonFormat.Shape.STRING ,pattern = "yyyy.MM.dd HH:mm:ss")
-    @DateTimeFormat(pattern = "yyyy:MM:dd HH:mm:ss")
-    @CreatedDate
-    private LocalDateTime completionDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, optional = false)
     @JoinColumn(name = "USER_ID")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RECIPE_ID")
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, optional = false)
+    @JoinColumn(name = "RCP_SNO")
     private Recipe recipe;
 }

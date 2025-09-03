@@ -4,6 +4,7 @@ import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.RecipeDTO;
 import com.recipe.domain.dto.SortBy;
 import com.recipe.service.RecipeService;
+import com.recipe.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,9 +20,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/studio-recipe")
 @RequiredArgsConstructor
 @Log4j2
-public class StudioRecipeController {
+public class RecipeController {
 
-    private final RecipeService service;
+    private final RecipeService recipeService;
+    private final UserService userService;
 
     @GetMapping("/main-pages")
     @Operation(summary = "메인 페이지",
@@ -44,7 +46,7 @@ public class StudioRecipeController {
                 .build();
 
         Pageable pageable = requestPage.getPageable();
-        Page<RecipeDTO> recipePage = service.readRecipePage(pageable);
+        Page<RecipeDTO> recipePage = recipeService.readRecipePage(pageable);
 
         return ResponseEntity.ok(recipePage);
     }
@@ -61,6 +63,11 @@ public class StudioRecipeController {
             })
     @GetMapping("/details/{recipeId}")
     public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId) {
+
+        //해당 레시피 단건 조회
+//        recipeService.findOneRecipe(recipeId);
+        //UserReference에 View 반영
+        //UserPeference에 조회 및 반영하기 위한 USER_ID도 필요
         return ResponseEntity.ok().build();
     }
 

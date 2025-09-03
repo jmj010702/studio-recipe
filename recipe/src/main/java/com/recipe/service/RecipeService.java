@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 @RequiredArgsConstructor
 @Log4j2
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
+    private final UserReferencesService referenceService;
 
     @Transactional
     public Page<RecipeDTO> readRecipePage(Pageable pageable) {
@@ -27,8 +29,20 @@ public class RecipeService {
             log.info("Request Page page >>>>> {}", recipePage.getTotalElements());
             log.info("Request Page size >>>>> {}", recipePage.getSize());
             log.info("Response Page Total Count >>>>> {}", recipePage.getNumberOfElements());
-            throw RecipeExceptions.BAD_REQUEST.getRecipeException();
+            throw RecipeExceptions.NOT_FOUND.getRecipeException();
         }
         return recipePage.map(RecipeDTO::fromEntity);
+    }
+
+    public RecipeDTO findOneRecipe(Long recipeId) {
+        log.info("Service findOneRecipe");
+
+        Recipe findRecipe = recipeRepository.findById(recipeId).orElseThrow(
+                () -> RecipeExceptions.NOT_FOUND.getRecipeException()
+        );
+
+
+
+        return RecipeDTO.fromEntity(findRecipe);
     }
 }

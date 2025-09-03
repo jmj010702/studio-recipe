@@ -20,34 +20,34 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString
 @Getter
-//TODO DTO에 NOT NULL을 사용할지
-public class User {
+public class User extends CreateTime{
     @Id@GeneratedValue
     @Column(name = "USER_ID")
     private Long userId;
 
-    @Column(name = "ID",unique = true) //nullable = false은 SQL 쿼리를 보내는 시점에 예외 발생 -> @NotNull 사용
+    @Column(name = "ID",unique = true,nullable = false)
     private String id;
-    @Column(name="PWD")
+    @Column(name="PWD", nullable = false)
     private String pwd;
-    @Column(name="NAME")
+    @Column(name="NAME", nullable = false)
     private String name;
-    @Column(name="NICKNAME" ,unique = true)
+    @Column(name="NICKNAME" ,unique = true, nullable = false)
     private String nickname;
-    @Column(name="EMAIL",unique = true)
+    @Column(name="EMAIL",unique = true, nullable = false)
     private String email;
     @Column(name="AGE")
-    private short age;
+    private int age;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="GENDER")
+    @Column(name="GENDER", nullable = false,
+    columnDefinition = "ENUM('F', 'M')")
     private Gender gender;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ROLE")
+    @Column(name = "ROLE", columnDefinition = "ENUM('ADMIN', 'GUEST')")
     private Role role;
 
-    @Column(name = "CREATE_DATE")
+    @Column(name = "CREATED_AT")
     @CreatedDate
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy.MM.dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
@@ -56,6 +56,6 @@ public class User {
     @LastModifiedDate
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy.MM.dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy.MM.dd HH:mm:ss")
-    @Column(name=  "MODIFIED_DATE")
+    @Column(name=  "MODIFIED_AT")
     private LocalDateTime modifiedDate;
 }

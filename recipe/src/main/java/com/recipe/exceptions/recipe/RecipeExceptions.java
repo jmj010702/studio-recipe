@@ -9,8 +9,8 @@ public enum RecipeExceptions {
 
     private RecipeException recipeException;
 
-    RecipeExceptions(String msg, int code){
-        recipeException = new RecipeException(msg, code);
+    RecipeExceptions(String massage, int code){
+        recipeException = new RecipeException(massage, code);
     }
     
     public RecipeException getRecipeException(){
