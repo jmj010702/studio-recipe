@@ -27,6 +27,9 @@ jwt:
   access-token-validity-in-seconds: ${ACCESS_TOKEN_SECONDS}
   refresh-token-validity-in-seconds: ${REFRESH_TOKEN_SECONDS}
 
+front:
+  url: ${FRONT_URL}
+
 logging.level:
    org.hibernate.SQL: debug
    org.hibernate.orm.jdbc.bind: TRACE
