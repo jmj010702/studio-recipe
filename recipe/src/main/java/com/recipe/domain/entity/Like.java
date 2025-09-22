@@ -13,7 +13,7 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString
 @Getter
-public class Like extends CreateTime{
+public class Like extends BaseEntityTime {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "LIKE_ID")

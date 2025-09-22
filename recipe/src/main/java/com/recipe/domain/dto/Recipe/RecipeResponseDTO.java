@@ -1,4 +1,4 @@
-package com.recipe.domain.dto;
+package com.recipe.domain.dto.Recipe;
 
 import com.recipe.domain.entity.Recipe;
 import lombok.*;
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class RecipeDTO {
+public class RecipeResponseDTO {
     private Long rcpSno;
     private String rcpTtl;
     private String ckgNm;
@@ -26,8 +26,8 @@ public class RecipeDTO {
     private String rcpImgUrl;
 
     // 엔티티 -> DTO 변환을 위한 정적 팩토리 메서드
-    public static RecipeDTO fromEntity(Recipe recipe) {
-        return RecipeDTO.builder()
+    public static RecipeResponseDTO fromEntity(Recipe recipe) {
+        return RecipeResponseDTO.builder()
                 .rcpSno(recipe.getRcpSno())
                 .rcpTtl(recipe.getRcpTtl())
                 .ckgNm(recipe.getCkgNm())

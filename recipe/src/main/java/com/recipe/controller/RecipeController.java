@@ -1,10 +1,10 @@
 package com.recipe.controller;
 
 import com.recipe.domain.dto.PageRequestDTO;
-import com.recipe.domain.dto.RecipeDTO;
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.SortBy;
 import com.recipe.service.RecipeService;
-import com.recipe.service.UserService;
+import com.recipe.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class RecipeController {
 
     private final RecipeService recipeService;
-    private final UserService userService;
+    private final AuthService authService;
 
     @GetMapping("/main-pages")
     @Operation(summary = "메인 페이지",
@@ -46,7 +46,7 @@ public class RecipeController {
                 .build();
 
         Pageable pageable = requestPage.getPageable();
-        Page<RecipeDTO> recipePage = recipeService.readRecipePage(pageable);
+        Page<RecipeResponseDTO> recipePage = recipeService.readRecipePage(pageable);
 
         return ResponseEntity.ok(recipePage);
     }
@@ -61,13 +61,12 @@ public class RecipeController {
                     @ApiResponse(responseCode = "200", description = "조회 성공"),
                     @ApiResponse(responseCode = "404", description = "레시피 Not Found")
             })
-    @GetMapping("/details/{recipeId}")
+    @GetMapping("/recipes/{recipeId}")
     public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId) {
 
         //해당 레시피 단건 조회
-//        recipeService.findOneRecipe(recipeId);
-        //UserReference에 View 반영
-        //UserPeference에 조회 및 반영하기 위한 USER_ID도 필요
+        recipeService.findOneRecipe(recipeId);
+
         return ResponseEntity.ok().build();
     }
 

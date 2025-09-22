@@ -1,6 +1,6 @@
 package com.recipe.service;
 
-import com.recipe.domain.dto.RecipeDTO;
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.entity.Recipe;
 import com.recipe.exceptions.recipe.RecipeExceptions;
 import com.recipe.repository.RecipeRepository;
@@ -22,7 +22,7 @@ public class RecipeService {
     private final UserReferencesService referenceService;
 
     @Transactional
-    public Page<RecipeDTO> readRecipePage(Pageable pageable) {
+    public Page<RecipeResponseDTO> readRecipePage(Pageable pageable) {
         log.info("Service readRecipePage");
         Page<Recipe> recipePage = recipeRepository.findAll(pageable);
         if(recipePage.getNumberOfElements() <= 0){
@@ -31,18 +31,21 @@ public class RecipeService {
             log.info("Response Page Total Count >>>>> {}", recipePage.getNumberOfElements());
             throw RecipeExceptions.NOT_FOUND.getRecipeException();
         }
-        return recipePage.map(RecipeDTO::fromEntity);
+        return recipePage.map(RecipeResponseDTO::fromEntity);
     }
 
-    public RecipeDTO findOneRecipe(Long recipeId) {
+    public RecipeResponseDTO findOneRecipe(Long recipeId) {
         log.info("Service findOneRecipe");
 
         Recipe findRecipe = recipeRepository.findById(recipeId).orElseThrow(
                 () -> RecipeExceptions.NOT_FOUND.getRecipeException()
         );
 
+        //UserReference에 View 반영
+//        referenceService.
+        //UserReference에 조회 및 반영하기 위한 USER_ID도 필요
 
 
-        return RecipeDTO.fromEntity(findRecipe);
+        return RecipeResponseDTO.fromEntity(findRecipe);
     }
 }

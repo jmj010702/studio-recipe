@@ -1,13 +1,8 @@
 package com.recipe.domain.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "RECIPE_COMPLETIONS")
@@ -17,7 +12,7 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @ToString
 @Getter
-public class RecipeCompletions extends CreateTime{
+public class RecipeCompletions extends BaseEntityTime {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COMPLETION_ID")

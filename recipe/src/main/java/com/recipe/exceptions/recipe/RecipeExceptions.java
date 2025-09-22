@@ -4,8 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum RecipeExceptions {
-    NOT_FOUND("NOT_FOUND", 404),
-    BAD_REQUEST("BAD_REQUEST", 400);
+    NOT_FOUND("해당 레시피를 찾을 수 없습니다.", 404),
+    BAD_REQUEST("요청 값이 잘못되었습니다.", 400);
 
     private RecipeException recipeException;
 

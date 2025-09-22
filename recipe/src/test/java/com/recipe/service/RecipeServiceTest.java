@@ -1,6 +1,6 @@
 package com.recipe.service;
 
-import com.recipe.domain.dto.RecipeDTO;
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.SortBy;
 import com.recipe.exceptions.recipe.RecipeException;
 import com.recipe.exceptions.recipe.RecipeExceptions;
@@ -36,7 +36,7 @@ class RecipeServiceTest {
                 Sort.by(Sort.Order.asc(SortBy.CREATED_AT.getFieldName())));
 
         //when
-        Page<RecipeDTO> response = service.readRecipePage(pageable);
+        Page<RecipeResponseDTO> response = service.readRecipePage(pageable);
         log.info(response.getContent().toString());
         //then
         assertNotNull(response);
@@ -63,7 +63,7 @@ class RecipeServiceTest {
     @Test
     @DisplayName("레시피 단건 조회")
     public void findOneRecipe() {
-        RecipeDTO findByResult = service.findOneRecipe(1L);
+        RecipeResponseDTO findByResult = service.findOneRecipe(1L);
         log.info("FindByResult >>>>> {}", findByResult);
     }
 
