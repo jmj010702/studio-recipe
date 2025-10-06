@@ -3,6 +3,7 @@ package com.recipe.controller;
 import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.SortBy;
+import com.recipe.domain.dto.autho.CustomerDetails;
 import com.recipe.service.RecipeService;
 import com.recipe.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "레시피", description = "레시피에 대한 API 명세서")
@@ -62,10 +64,12 @@ public class RecipeController {
                     @ApiResponse(responseCode = "404", description = "레시피 Not Found")
             })
     @GetMapping("/recipes/{recipeId}")
-    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId) {
+    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId,
+                                              @AuthenticationPrincipal CustomerDetails customer) {
 
-        //해당 레시피 단건 조회
-        recipeService.findOneRecipe(recipeId);
+        Long userId = customer.getUserId();
+        log.info("UserId: {}", userId);
+        recipeService.findOneRecipe(recipeId, userId);
 
         return ResponseEntity.ok().build();
     }

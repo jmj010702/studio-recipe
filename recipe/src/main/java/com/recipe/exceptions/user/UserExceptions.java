@@ -4,15 +4,22 @@ import lombok.Getter;
 
 @Getter
 public enum UserExceptions {
-    NOT_FOUND("NOT_FOUND", 404);
+    NOT_FOUND("NOT_FOUND", 404),
+    CONFLICT("CONFLICT", 409);
 
-    private UserException userException;
+    private String message;
+    private int code;
 
     UserExceptions(String message, int code) {
-        userException = new UserException(message, code);
+        this.message = message;
+        this.code = code;
     }
 
     public UserException getUserException() {
-        return userException;
+        return new UserException(message, code);
+    }
+
+    public UserException getUserException(String changeMessage) {
+        return new UserException(changeMessage, code);
     }
 }

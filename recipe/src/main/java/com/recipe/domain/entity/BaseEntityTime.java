@@ -26,4 +26,8 @@ public class BaseEntityTime {
     @LastModifiedDate
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy.MM.dd HH:mm:ss")
     private LocalDateTime modifiedDate;
+
+    public void updateModifiedDate(){
+        modifiedDate = LocalDateTime.now();
+    }
 }

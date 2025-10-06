@@ -50,6 +50,7 @@ public class JwtTokenProvider {
 
         CustomerDetails customerDetails = (CustomerDetails) authentication.getPrincipal();
         String userIdStr = customerDetails.getUserId().toString();
+        String username = authentication.getName();
 
         long now = (new Date()).getTime();
         Date validityDate = new Date(now + validity);
@@ -57,6 +58,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(userIdStr) //토큰의 주체를 DB PK 값으로 했음
                 .claim("auth", authorities) //권한 정보
+                .claim("username", username)
                 .setIssuedAt(new Date(now)) //토큰 발행 시간
                 .setExpiration(validityDate) // 토큰 만료 시간
                 .signWith(key, SignatureAlgorithm.HS256) //서명
@@ -85,6 +87,8 @@ public class JwtTokenProvider {
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
+        log.debug("User Principal: {}, Authorities: {}", claims.getSubject(), authorities);
+
         Long userId = Long.valueOf(claims.getSubject());
         String username = claims.get("username").toString();
         String loginId = (String) claims.get("username");
@@ -100,6 +104,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try{
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("잘못된 JWT 서명입니다.");
         } catch (ExpiredJwtException e) {

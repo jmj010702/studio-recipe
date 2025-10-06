@@ -12,14 +12,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "USERREFERENCE")
+@Table(name = "USER_REFERENCE")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @ToString
-public class UserReferences {
+public class UserReferences extends BaseEntityTime{
     @Id
     @GeneratedValue
     @Column(name = "PREFERENCE_ID")
@@ -41,11 +41,4 @@ public class UserReferences {
     private PreferenceType preference;
 
     //RATING
-
-    @Column(name = "PREFERENCE_DATE")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy:MM:dd HH:mm:ss")
-    @DateTimeFormat(pattern = "yyyy:MM:dd HH:mm:ss")
-    @CreatedDate
-    @LastModifiedDate
-    private LocalDateTime date;
 }
