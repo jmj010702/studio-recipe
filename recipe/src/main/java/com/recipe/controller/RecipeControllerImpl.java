@@ -1,5 +1,6 @@
 package com.recipe.controller;
 
+import com.recipe.controller.inter.RecipeController;
 import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.SortBy;
@@ -17,29 +18,37 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "레시피", description = "레시피에 대한 API 명세서")
 @RestController
 @RequestMapping("/studio-recipe")
 @RequiredArgsConstructor
 @Log4j2
-public class RecipeController {
+public class RecipeControllerImpl implements RecipeController {
 
     private final RecipeService recipeService;
     private final AuthService authService;
 
+    @GetMapping("/recommend-recipes")
+    public ResponseEntity<Void> recommendRecipes() {
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/recipes/{recipeId}")
+    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId,
+                                              @AuthenticationPrincipal CustomerDetails customer) {
+        Long userId = customer.getUserId();
+        log.info("UserId: {}", userId);
+        recipeService.findOneRecipe(recipeId, userId);
+
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/main-pages")
-    @Operation(summary = "메인 페이지",
-            description = "전체 레시피 조건에 따라 페이지 반환",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "조회 성공"),
-                    @ApiResponse(responseCode = "400", description = "잘못된 Page or Size 전달로 조회된 데이터 없음")
-            })
-    public ResponseEntity<?> mainPage(
+    public ResponseEntity<Page<RecipeResponseDTO>> mainPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "asc") String direction,
-            @RequestParam(defaultValue = "CREATED_AT") String sortBy) {
-
+            @RequestParam(defaultValue = "CREATED_AT") String sortBy
+    ){
         PageRequestDTO requestPage = PageRequestDTO.builder()
                 .page(page)
                 .size(size)
@@ -51,27 +60,6 @@ public class RecipeController {
         Page<RecipeResponseDTO> recipePage = recipeService.readRecipePage(pageable);
 
         return ResponseEntity.ok(recipePage);
-    }
-
-    @GetMapping("/recommend-recipes")
-    public ResponseEntity<Void> recommendRecipes() {
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "레시피 상세 페이지", description = "레시피 상세 페이지 반환",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "조회 성공"),
-                    @ApiResponse(responseCode = "404", description = "레시피 Not Found")
-            })
-    @GetMapping("/recipes/{recipeId}")
-    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId,
-                                              @AuthenticationPrincipal CustomerDetails customer) {
-
-        Long userId = customer.getUserId();
-        log.info("UserId: {}", userId);
-        recipeService.findOneRecipe(recipeId, userId);
-
-        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "레시피 좋아요",

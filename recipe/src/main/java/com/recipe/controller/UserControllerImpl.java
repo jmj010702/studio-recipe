@@ -1,5 +1,7 @@
 package com.recipe.controller;
 
+import com.recipe.controller.inter.AuthController;
+import com.recipe.controller.inter.UserController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,11 +13,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("studio-recipe/auth")
-@Tag(name = "User", description = "사용자 관련 API")
-public class UserController {
+public class UserControllerImpl implements UserController{
 
-    @Operation(summary = "회원 상세 페이지",
-            description = "회원 자신의 정보를 볼 수 있다.(사용자 정보, 찜한 목록, 사용자 목록)")
     @GetMapping("/my-pages/{userId}")
     public ResponseEntity<Void> myPage(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok().build();
