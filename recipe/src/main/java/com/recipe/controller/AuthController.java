@@ -57,7 +57,7 @@ public class AuthController {
             @RequestParam String nickname){
 
         boolean isAvailable = authService.checkExistsNickname(nickname);
-        String message = isAvailable ? "사용 가능한 닉네임입니다." : "현재 사용중인 닉네임입니다.";
+        String message = isAvailable ?  "현재 사용중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
         NicknameAvailabilityResponse response = NicknameAvailabilityResponse.builder()
                 .isAvailable(isAvailable)
                 .message(message)

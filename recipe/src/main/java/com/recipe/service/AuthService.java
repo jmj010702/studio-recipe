@@ -7,6 +7,8 @@ import com.recipe.domain.dto.user.UserLoginRequestDTO;
 import com.recipe.domain.dto.user.UserRegisterRequestDTO;
 import com.recipe.domain.entity.User;
 import com.recipe.domain.entity.enums.Role;
+import com.recipe.exceptions.user.UserException;
+import com.recipe.exceptions.user.UserExceptions;
 import com.recipe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -32,7 +34,18 @@ public class AuthService {
 
     @Transactional
     public void registerUser(UserRegisterRequestDTO request) {
-        //아이디, 이메일, 닉네임 중복을 프론트에서 검증하고 또 해야 하는지
+
+        //닉네임 중복
+        if(checkExistsNickname(request.getNickname()))
+            throw UserExceptions.CONFLICT.getUserException("닉네임이 중복됩니다.");
+
+        //아이디 중복
+        if(checkExistsId(request.getId()))
+            throw UserExceptions.CONFLICT.getUserException("아이디가 중복됩니다.");
+
+        if(checkExistsEmail(request.getEmail()))
+            throw UserExceptions.CONFLICT.getUserException("이메일이 중복됩니다.");
+
         String password = encoder.encode(request.getPassword());
 
         User user = User.builder()
@@ -41,9 +54,9 @@ public class AuthService {
                 .name(request.getName())
                 .nickname(request.getNickname())
                 .email(request.getEmail())
-                .birth(request.getBirth()) // 생년월일
+                .birth(request.getBirth())
                 .gender(request.getGender())
-                .role(Role.GUEST) // 기본 역할은 GUEST
+                .role(Role.GUEST)
                 .build();
 
         userRepository.save(user);
@@ -80,7 +93,15 @@ public class AuthService {
     }
 
     public boolean checkExistsNickname(String nickname){
-        return !userRepository.existsByNickname(nickname);
+        return userRepository.existsByNickname(nickname);
+    }
+
+    public boolean checkExistsId(String id){
+        return userRepository.existsById(id);
+    }
+
+    public boolean checkExistsEmail(String email){
+        return userRepository.existsByEmail(email);
     }
 
     //Refresh Token 재발급

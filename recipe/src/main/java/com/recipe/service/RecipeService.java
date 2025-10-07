@@ -2,6 +2,7 @@ package com.recipe.service;
 
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.entity.Recipe;
+import com.recipe.domain.entity.User;
 import com.recipe.exceptions.recipe.RecipeExceptions;
 import com.recipe.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final UserReferencesService referenceService;
+    private final UserService userService;
 
     @Transactional
     public Page<RecipeResponseDTO> readRecipePage(Pageable pageable) {
@@ -34,7 +36,8 @@ public class RecipeService {
         return recipePage.map(RecipeResponseDTO::fromEntity);
     }
 
-    public RecipeResponseDTO findOneRecipe(Long recipeId) {
+    @Transactional
+    public RecipeResponseDTO findOneRecipe(Long recipeId, Long userId) {
         log.info("Service findOneRecipe");
 
         Recipe findRecipe = recipeRepository.findById(recipeId).orElseThrow(
@@ -42,9 +45,7 @@ public class RecipeService {
         );
 
         //UserReference에 View 반영
-//        referenceService.
-        //UserReference에 조회 및 반영하기 위한 USER_ID도 필요
-
+        referenceService.userRecipeView(findRecipe, userId);
 
         return RecipeResponseDTO.fromEntity(findRecipe);
     }
