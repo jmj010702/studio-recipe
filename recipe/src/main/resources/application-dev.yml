@@ -1,9 +1,9 @@
 spring:
   # H2 관련 자동 구성 제외
-   autoconfigure:
-     exclude:
-       - org.springframework.boot.autoconfigure.h2.H2ConsoleAutoConfiguration # H2 콘솔 자동 구성
-       - org.springframework.boot.autoconfigure.jdbc.h2.H2AutoConfiguration # H2 JDBC 자동 구성 
+#   autoconfigure:
+#     exclude:
+#       - org.springframework.boot.autoconfigure.h2.H2ConsoleAutoConfiguration # H2 콘솔 자동 구성
+#       - org.springframework.boot.autoconfigure.jdbc.h2.H2AutoConfiguration # H2 JDBC 자동 구성
 
    datasource:
       driver-class-name: org.mariadb.jdbc.Driver

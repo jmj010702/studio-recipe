@@ -1,16 +1,13 @@
 spring:
-   profiles:
-      active: local
    datasource:
      driver-class-name: ${DRIVER_NAME}
-#     url: jdbc:h2:mem:recipedb
      url: ${DRIVER_URL}
      username: ${DRIVER_USER_NAME}
      password: ${DRIVER_PASSWORD}
 
    jpa:
       hibernate:
-         ddl-auto: update
+         ddl-auto: create
       properties:
          hibernate:
             format_sql: true
@@ -23,9 +20,15 @@ spring:
          enabled: false # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
 
 jwt:
-  secret: ${JWT_SECRET}
-  access-token-validity-in-seconds: ${ACCESS_TOKEN_SECONDS}
-  refresh-token-validity-in-seconds: ${REFRESH_TOKEN_SECONDS}
+  secret: ${JWT_SECRET_KEY}
+  access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
+  refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS}
+
+server:
+  port: 8080
+  servlet:
+    context-path: /studio-recipe
+
 
 front:
   url: ${FRONT_URL}
