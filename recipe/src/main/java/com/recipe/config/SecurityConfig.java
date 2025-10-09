@@ -52,6 +52,7 @@ public class SecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.setAllowedOriginPatterns(List.of(frontUrl));
+	corsConfiguration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
@@ -74,7 +75,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize ->
                         authorize
                                 .requestMatchers(
-                                        // 인증 관련 API
+                                        "/**",
                                         "/studio-recipe/auth/register",
                                         "/studio-recipe/auth/login",
                                         "/studio-recipe/auth/reissue",
