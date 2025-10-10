@@ -78,7 +78,7 @@ public class SingleBatchConfig {
     }
 
     // ItemProcessor 정의 (CSV 데이터 가공 및 엔티티 변환)
-    // String[] 타입으로 읽은 CSV 데이터를 Recipe 엔티티로 변환합니다.
+    // String[] 타입으로 읽은 CSV 데이터를 Recipe 엔티티로 변환
     // FIRST_REG_DT 파싱 로직 추가.
     @Bean
     public ItemProcessor<String[], Recipe> recipeItemProcessor() {

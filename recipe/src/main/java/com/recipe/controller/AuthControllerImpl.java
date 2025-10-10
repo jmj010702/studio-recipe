@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @Log4j2
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("studio-recipe/auth")
+@RequestMapping("/auth")
 public class AuthControllerImpl implements AuthController {
 
     private final AuthService authService;

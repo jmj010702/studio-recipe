@@ -1,0 +1,43 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: recipe-mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+
+    #데이터 지속성을 위한 볼륨
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck: # DB 준비 상태를 확인하는 헬스체크
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: . #Dokcerifle 경로
+      dockerfile: Dockerfile
+    container_name: studio-recipe
+    ports:
+      - "8080:8080"
+    environment:
+      #Docker Compose network
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/${DB_DATABASE_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET_KEY}
+      JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
+      JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS: ${JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  mariadb_data:

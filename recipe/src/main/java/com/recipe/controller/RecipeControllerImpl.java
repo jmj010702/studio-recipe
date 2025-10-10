@@ -19,7 +19,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/studio-recipe")
 @RequiredArgsConstructor
 @Log4j2
 public class RecipeControllerImpl implements RecipeController {
