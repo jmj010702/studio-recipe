@@ -96,8 +96,7 @@ public class SingleBatchConfig {
             String rawIngredients = item[13];
             String ingredients = rawIngredients.trim()
                     .replaceAll("^\\[.+?]\\s*", "")
-                    //CSV 파일에 공백이 로 되어 공백으로 바꿈
-                    .replaceAll("\u0007", " ")
+                    //CSV 파일에 공백이 로 되어 공백으로 바꿈
                     .replaceAll("\\s(\\d+)\\s", "_$1")
                     .replaceAll("\\s*\\|\\s", "/")
                     .replaceAll(" ", "");
@@ -133,3 +132,4 @@ public class SingleBatchConfig {
     }
 
 }
+

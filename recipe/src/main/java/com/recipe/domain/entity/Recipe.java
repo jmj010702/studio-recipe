@@ -42,7 +42,7 @@ public class Recipe {
 
     //파싱
     @Lob
-    @Column(name = "CKG_MTRL_CN")
+    @Column(name = "CKG_MTRL_CN",  columnDefinition = "TEXT")
     private String ckgMtrlCn;
 
     @Column(name = "CKG_INBUN_NM")
