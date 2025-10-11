@@ -42,3 +42,5 @@ out/
 
 #QueryDSL
 #target/generated-sources/
+
+.swp
