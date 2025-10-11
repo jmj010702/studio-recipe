@@ -22,9 +22,9 @@ $ docker compose logs -f backend #backend는 docker compose에 설정한 그룹(
 
 # 트러블 슈팅
 <details>
-
  <summary>리눅스 CSV Batch 작업</summary>
   - CSV 파일 인코딩 확인 후 변환
+ 
   ```bash
  #파일이 UTF-8로 인코딩 되어 있는지 확인
  file -i recipe_data_241226.csv
