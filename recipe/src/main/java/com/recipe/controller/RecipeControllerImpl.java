@@ -32,13 +32,13 @@ public class RecipeControllerImpl implements RecipeController {
     }
 
     @GetMapping("/recipes/{recipeId}")
-    public ResponseEntity<Void> detailsRecipe(@PathVariable("recipeId") Long recipeId,
+    public ResponseEntity<RecipeResponseDTO> detailsRecipe(@PathVariable("recipeId") Long recipeId,
                                               @AuthenticationPrincipal CustomerDetails customer) {
         Long userId = customer.getUserId();
         log.info("UserId: {}", userId);
-        recipeService.findOneRecipe(recipeId, userId);
+        RecipeResponseDTO recipe = recipeService.findOneRecipe(recipeId, userId);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(recipe);
     }
 
     @GetMapping("/main-pages")
