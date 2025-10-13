@@ -75,6 +75,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize ->
                         authorize
                                 .requestMatchers(
+					"/batch/run-recipe-csv",
                                         "/auth/register",
                                         "/auth/login",
                                         "/auth/reissue",
