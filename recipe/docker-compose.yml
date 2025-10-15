@@ -1,6 +1,6 @@
 services:
   mariadb:
-    image: mariadb:latest
+    image: mariadb:10.11.14
     container_name: recipe-mariadb
     ports:
       - "3306:3306"

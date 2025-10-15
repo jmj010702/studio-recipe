@@ -44,3 +44,4 @@ out/
 #target/generated-sources/
 
 .swp
+resources/application-local.yaml
