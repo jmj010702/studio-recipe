@@ -1,6 +1,7 @@
 package com.recipe.service;
 
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
+import com.recipe.domain.dto.ResponseLikeStatus;
 import com.recipe.domain.entity.Recipe;
 import com.recipe.domain.entity.User;
 import com.recipe.exceptions.recipe.RecipeExceptions;
@@ -22,6 +23,7 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final UserReferencesService referenceService;
     private final UserService userService;
+    private final LikeService likeService;
 
     @Transactional
     public Page<RecipeResponseDTO> readRecipePage(Pageable pageable) {
@@ -40,13 +42,31 @@ public class RecipeService {
     public RecipeResponseDTO findOneRecipe(Long recipeId, Long userId) {
         log.info("Service findOneRecipe");
 
-        Recipe findRecipe = recipeRepository.findById(recipeId).orElseThrow(
-                () -> RecipeExceptions.NOT_FOUND.getRecipeException()
-        );
+        Recipe findRecipe = findByRecipeId(recipeId);
 
         //UserReference에 View 반영
         referenceService.userRecipeView(findRecipe, userId);
 
         return RecipeResponseDTO.fromEntity(findRecipe);
+    }
+
+    @Transactional
+    public ResponseLikeStatus likeToRecipe(Long recipeId, Long userId) {
+        Recipe findRecipe = findByRecipeId(recipeId);
+        User findUser = userService.findByUser(userId);
+
+        likeService.userLikeToRecipe(findUser, findRecipe);
+        findRecipe.likeToCountUp();
+
+        return ResponseLikeStatus.builder()
+                .liked(true)
+                .likeCount(findRecipe.getRcmmCnt())
+                .build();
+    }
+
+    public Recipe findByRecipeId(Long recipeId) {
+        return recipeRepository.findById(recipeId).orElseThrow(
+                () -> RecipeExceptions.NOT_FOUND.getRecipeException()
+        );
     }
 }

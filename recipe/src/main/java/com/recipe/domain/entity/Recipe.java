@@ -59,4 +59,8 @@ public class Recipe {
 
     @Column(name = "RCP_IMG_URL")
     private String rcpImgUrl;
+
+    public void likeToCountUp(){
+        rcmmCnt++;
+    }
 }
