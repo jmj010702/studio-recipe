@@ -24,7 +24,7 @@ $ docker compose logs -f backend #backend는 docker compose에 설정한 그룹(
 # MariaDB
 - Version: 10.11.14
 - MariaDB 버전과 부가 정보 보기
-   * SHOW VARIABLES LIKE '%VERSION%';
+* SHOW VARIABLES LIKE '%VERSION%';
 
 
 
