@@ -3,6 +3,7 @@ package com.recipe.controller;
 import com.recipe.controller.inter.RecipeController;
 import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
+import com.recipe.domain.dto.ResponseLikeStatus;
 import com.recipe.domain.dto.SortBy;
 import com.recipe.domain.dto.autho.CustomerDetails;
 import com.recipe.service.RecipeService;
@@ -61,12 +62,17 @@ public class RecipeControllerImpl implements RecipeController {
         return ResponseEntity.ok(recipePage);
     }
 
-    @Operation(summary = "레시피 좋아요",
-            description = "레시피 좋아요 정보와 사용자 좋아요 기록을 업데이트.")
-    @PatchMapping("/details")
-    public ResponseEntity<Void> likeToRecipe(/*@RequestBody*/) {
-        return ResponseEntity.ok().build();
+    @PatchMapping("/details/{recipeId}/recipe")
+    public ResponseEntity<ResponseLikeStatus> likeToRecipe(
+            @PathVariable("recipeId") Long recipeId,
+            @AuthenticationPrincipal CustomerDetails customer) {
+        Long userId = customer.getUserId();
+        ResponseLikeStatus likeStatus = recipeService.likeToRecipe(recipeId, userId);
+
+        return ResponseEntity.ok().body(likeStatus);
     }
+
+    //사용자 좋아요 기록 반환
 
     @Operation(
             summary = "사용자 레시피 사용",
@@ -76,5 +82,10 @@ public class RecipeControllerImpl implements RecipeController {
     public ResponseEntity<Void> recipeCompletion(/*@RequestBody*/) {
         return ResponseEntity.ok().build();
     }
+
+    //사용자 사용 기록 반환 C
+    //사용자 사용 기록 삭제
+
+    //냉장고 재료 등록
 
 }
