@@ -6,11 +6,9 @@ import lombok.*;
 @Entity
 @Table(name = "LIKES",
         uniqueConstraints = {
-        @UniqueConstraint(name = "UQ_RECIPE_LIKE", columnNames = {"USER_ID", "RCE_SNO"})
+        @UniqueConstraint(name = "UQ_RECIPE_LIKE", columnNames = {"USER_ID", "RCP_SNO"})
         })
-@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString
 @Getter
 public class Like extends BaseEntityTime {
@@ -19,11 +17,17 @@ public class Like extends BaseEntityTime {
     @Column(name = "LIKE_ID")
     private Long likeId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false,  cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false/*,  cascade = CascadeType.REMOVE*/)
     @JoinColumn(name = "USER_ID")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false,  cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false/*,  cascade = CascadeType.REMOVE*/)
     @JoinColumn(name = "RCP_SNO")
     private Recipe recipe;
+
+    @Builder
+    protected Like(User user, Recipe recipe) {
+        this.user = user;
+        this.recipe = recipe;
+    }
 }

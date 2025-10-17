@@ -3,6 +3,8 @@ package com.recipe.controller.advice;
 import com.recipe.exceptions.recipe.RecipeException;
 import com.recipe.exceptions.user.UserException;
 import lombok.extern.log4j.Log4j2;
+import org.apache.coyote.Response;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -47,5 +49,18 @@ public class ControllerAdvice {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         });
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        }
+
+        @ExceptionHandler(IllegalStateException.class)
+        public ResponseEntity<?> handleIllegalStateEx(IllegalStateException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
+        }
+
+        @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex){
+        if(ex.getMessage() != null && ex.getMessage().contains("UQ_RECIPE_LIKE")){
+            return new ResponseEntity<>("이미 좋아요를 눌렀습니다.", HttpStatus.CONFLICT); //409
+        }
+        return new ResponseEntity<>("데이터베이스 제약 조건 위반",  HttpStatus.SERVICE_UNAVAILABLE); //500
         }
 }
