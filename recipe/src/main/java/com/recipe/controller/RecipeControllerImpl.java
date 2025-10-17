@@ -62,7 +62,7 @@ public class RecipeControllerImpl implements RecipeController {
         return ResponseEntity.ok(recipePage);
     }
 
-    @PatchMapping("/details/{recipeId}/recipe")
+    @PatchMapping("/like/{recipeId}/recipe")
     public ResponseEntity<ResponseLikeStatus> likeToRecipe(
             @PathVariable("recipeId") Long recipeId,
             @AuthenticationPrincipal CustomerDetails customer) {
@@ -72,7 +72,7 @@ public class RecipeControllerImpl implements RecipeController {
         return ResponseEntity.ok().body(likeStatus);
     }
 
-    //사용자 좋아요 기록 반환
+    
 
     @Operation(
             summary = "사용자 레시피 사용",
