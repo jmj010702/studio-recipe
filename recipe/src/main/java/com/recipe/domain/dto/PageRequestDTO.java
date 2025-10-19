@@ -10,7 +10,7 @@ import org.springframework.data.domain.Sort;
 @Builder
 @AllArgsConstructor
 @Getter
-@Setter
+//@Setter
 @ToString
 public class PageRequestDTO {
     @Builder.Default
