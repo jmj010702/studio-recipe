@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @Log4j2
@@ -62,18 +64,6 @@ public class RecipeControllerImpl implements RecipeController {
         return ResponseEntity.ok(recipePage);
     }
 
-    @PatchMapping("/details/{recipeId}/recipe")
-    public ResponseEntity<ResponseLikeStatus> likeToRecipe(
-            @PathVariable("recipeId") Long recipeId,
-            @AuthenticationPrincipal CustomerDetails customer) {
-        Long userId = customer.getUserId();
-        ResponseLikeStatus likeStatus = recipeService.likeToRecipe(recipeId, userId);
-
-        return ResponseEntity.ok().body(likeStatus);
-    }
-
-    //사용자 좋아요 기록 반환
-
     @Operation(
             summary = "사용자 레시피 사용",
             description = "사용된 레시피를 사용 기록에 저장합니다."
@@ -83,6 +73,7 @@ public class RecipeControllerImpl implements RecipeController {
         return ResponseEntity.ok().build();
     }
 
+    //사용자 기록 추가
     //사용자 사용 기록 반환 C
     //사용자 사용 기록 삭제
 

@@ -20,12 +20,6 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "회원 상세 페이지 좋아요 기록 삭제",
-            description = "회원이 좋아요 눌렀던 기록 삭제(좋아요 기록, 레시피 좋아요 카운트--")
-    @DeleteMapping("/my-pages")
-    public ResponseEntity<Void> deleteLikeInMyPage(/*@RequestBody*/) {
-        return ResponseEntity.ok().build();
-    }
 
     @Operation(summary = "회원 상세 페이지 수정",
             description = "회원이 수정한 데이터로 회원 테이블 수정")
@@ -33,4 +27,7 @@ public class UserControllerImpl implements UserController{
     public ResponseEntity<Void> updateMyPage(/*@RequestBody*/) {
         return ResponseEntity.ok().build();
     }
+
+    //탈퇴
+    
 }
