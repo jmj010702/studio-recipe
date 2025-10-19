@@ -10,7 +10,6 @@ public class RecipeScoreCalculator {
 
     /**
      * 사용자의 로그 데이터를 기반으로 레시피 점수를 계산.
-     * 단순히 예시로서,
      * - LIKE : +3점
      * - VIEW : +1점
      * - FAVORITE : +5점
