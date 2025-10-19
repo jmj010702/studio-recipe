@@ -23,7 +23,6 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final UserReferencesService referenceService;
     private final UserService userService;
-    private final LikeService likeService;
 
     @Transactional
     public Page<RecipeResponseDTO> readRecipePage(Pageable pageable) {
@@ -48,20 +47,6 @@ public class RecipeService {
         referenceService.userRecipeView(findRecipe, userId);
 
         return RecipeResponseDTO.fromEntity(findRecipe);
-    }
-
-    @Transactional
-    public ResponseLikeStatus likeToRecipe(Long recipeId, Long userId) {
-        Recipe findRecipe = findByRecipeId(recipeId);
-        User findUser = userService.findByUser(userId);
-
-        likeService.userLikeToRecipe(findUser, findRecipe);
-        findRecipe.likeToCountUp();
-
-        return ResponseLikeStatus.builder()
-                .liked(true)
-                .likeCount(findRecipe.getRcmmCnt())
-                .build();
     }
 
     public Recipe findByRecipeId(Long recipeId) {
