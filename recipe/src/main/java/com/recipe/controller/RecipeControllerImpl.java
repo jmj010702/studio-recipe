@@ -72,11 +72,4 @@ public class RecipeControllerImpl implements RecipeController {
     public ResponseEntity<Void> recipeCompletion(/*@RequestBody*/) {
         return ResponseEntity.ok().build();
     }
-
-    //사용자 기록 추가
-    //사용자 사용 기록 반환 C
-    //사용자 사용 기록 삭제
-
-    //냉장고 재료 등록
-
 }

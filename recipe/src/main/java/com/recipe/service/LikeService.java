@@ -25,6 +25,7 @@ public class LikeService {
     private final LikeRepository likeRepository;
     private final UserService userService;
     private final RecipeService recipeService;
+    private final UserReferencesService referencesService;
 
     @Transactional
     public ResponseLikeStatus likeToRecipe(Long userId, Long recipeId) {
@@ -37,6 +38,8 @@ public class LikeService {
         if(checkTheLike.isPresent()) {
             throw new IllegalStateException("이미 좋아요를 눌렀습니다.");
         }
+
+        referencesService.userLikeToRecipe(recipe, user);
 
         Like like = Like.builder()
                 .user(user)
@@ -69,6 +72,8 @@ public class LikeService {
 
         Like like = likeRepository.findByUserAndRecipe(user, recipe)
                 .orElseThrow(() -> new IllegalStateException("삭제할 기록이 없습니다."));
+
+        referencesService.deleteByReference(recipe, user);
         likeRepository.delete(like);
 
         recipe.likeToCountDown();
