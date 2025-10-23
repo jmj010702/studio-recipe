@@ -7,5 +7,6 @@ import java.util.List;
 
 @Repository
 public interface UserRecipeLogRepository extends JpaRepository<UserRecipeLogEntity, Long> {
-    List<UserRecipeLogEntity> findByUserId(Long userId);
+    // UserRecipeLogEntity 안의 user는 User 타입이므로 user.userId로 접근해야 함
+    List<UserRecipeLogEntity> findByUser_UserId(Long userId);
 }

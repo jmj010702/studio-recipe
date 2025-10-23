@@ -1,9 +1,8 @@
 package com.recipe.controller;
 
 import com.recipe.domain.entity.Recipe;
-import com.recipe.repository.UserRepository;
+import com.recipe.domain.dto.ApiResponse;
 import com.recipe.service.RecipeRecommendService;
-import com.recipe.exceptions.user.UserExceptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -18,21 +17,25 @@ import java.util.List;
 public class RecipeRecommendController {
 
     private final RecipeRecommendService recommendService;
-    private final UserRepository userRepository;
 
+    /**
+     * 특정 사용자에게 추천 레시피 목록을 반환
+     */
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getRecommendations(@PathVariable Long userId) {
-
-        userRepository.findById(userId)
-                .orElseThrow(() -> UserExceptions.NOT_FOUND.getUserException("해당 사용자를 찾을 수 없습니다."));
-
+    public ResponseEntity<ApiResponse<List<Recipe>>> getRecommendations(@PathVariable Long userId) {
+        // 기존 서비스 호출 그대로 유지
         List<Recipe> recommendations = recommendService.getRecommendedRecipes(userId);
 
-        if (recommendations.isEmpty()) {
-            return ResponseEntity.ok("추천 가능한 레시피가 없습니다.");
-        }
+        log.info("[추천 요청] userId={} → 추천된 레시피 수={}", userId, recommendations.size());
 
-        log.info("User {} 에게 추천된 레시피 개수: {}", userId, recommendations.size());
-        return ResponseEntity.ok(recommendations);
+        // 응답 구조만 개선
+        ApiResponse<List<Recipe>> response = ApiResponse.success(
+                recommendations,
+                recommendations.isEmpty()
+                        ? "추천 가능한 레시피가 없습니다."
+                        : "추천 레시피 조회 성공"
+        );
+
+        return ResponseEntity.ok(response);
     }
 }

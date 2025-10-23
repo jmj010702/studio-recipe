@@ -23,7 +23,8 @@ public class RecipeRecommendAlgorithm {
      */
     public List<RecommendationResult> recommendRecipes(Long userId) {
         // 사용자 로그 가져오기
-        List<UserRecipeLogEntity> userLogs = userRecipeLogRepository.findByUserId(userId);
+        List<UserRecipeLogEntity> userLogs = userRecipeLogRepository.findByUser_UserId(userId);
+
         if (userLogs.isEmpty()) {
             // 만약 로그가 없다면 전체 인기 레시피 TOP 10 반환 (기본 추천)
             return recipeRepository.findTop10ByOrderByLikeCountDesc().stream()

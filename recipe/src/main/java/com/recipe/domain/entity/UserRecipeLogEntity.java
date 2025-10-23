@@ -1,34 +1,55 @@
-package com.recipe.domain.entity; // ✅ 경로 수정
+package com.recipe.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
+@Table(name = "USER_RECIPE_LOGS",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UQ_USER_RECIPE_LOG", columnNames = {"USER_ID", "RCP_SNO"})
+        })
 @Getter
-@Setter
-@Table(name = "user_recipe_log")
-public class UserRecipeLogEntity {
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(exclude = {"user", "recipe"})
+public class UserRecipeLogEntity extends BaseEntityTime {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "LOG_ID")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user; // ✅ com.recipe.domain.entity.User
+    // 사용자 정보 (N:1)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "USER_ID", nullable = false)
+    private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipe_id")
-    private Recipe recipe; // ✅ com.recipe.domain.entity.Recipe
+    // 레시피 정보 (N:1)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "RCP_SNO", nullable = false)
+    private Recipe recipe;
 
-    @Enumerated(EnumType.STRING)
-    private ActionType actionType;
+    // 사용자의 행동 기록
+    @Column(name = "LIKED", nullable = false)
+    private boolean liked;
 
-    private long timestamp;
+    @Column(name = "BOOKMARKED", nullable = false)
+    private boolean bookmarked;
 
-    public enum ActionType {
-        VIEW, LIKE, FAVORITE
+    @Column(name = "VIEW_COUNT", nullable = false)
+    private int viewCount;
+
+    // === 비즈니스 로직 ===
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+    public void toggleLike() {
+        this.liked = !this.liked;
+    }
+
+    public void toggleBookmark() {
+        this.bookmarked = !this.bookmarked;
     }
 }
