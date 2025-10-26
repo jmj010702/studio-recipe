@@ -14,9 +14,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RecipeRecommendAlgorithm {
 
-    private final UserRecipeLogRepository userRecipeLogRepository;
-    private final RecipeRepository recipeRepository;
-    private final RecipeScoreCalculator scoreCalculator;
+    private  final UserRecipeLogRepository userRecipeLogRepository;
+    private  final RecipeRepository recipeRepository;
+    private  RecipeScoreCalculator scoreCalculator;
 
     /**
      * 주어진 사용자 ID에 대한 추천 레시피 계산
@@ -27,7 +27,7 @@ public class RecipeRecommendAlgorithm {
 
         if (userLogs.isEmpty()) {
             // 만약 로그가 없다면 전체 인기 레시피 TOP 10 반환 (기본 추천)
-            return recipeRepository.findTop10ByOrderByLikeCountDesc().stream()
+            return recipeRepository.findTop10ByOrderByRcmmCntDesc().stream()
                     .map(recipe -> new RecommendationResult(recipe, 0.0))
                     .collect(Collectors.toList());
         }

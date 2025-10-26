@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
-    List<Recipe> findTop10ByOrderByLikeCountDesc();
+    List<Recipe> findTop10ByOrderByRcmmCntDesc();
 }
