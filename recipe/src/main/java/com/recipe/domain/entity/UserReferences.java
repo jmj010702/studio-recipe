@@ -41,4 +41,8 @@ public class UserReferences extends BaseEntityTime{
     private PreferenceType preference;
 
     //RATING
+
+    public void changePreference(PreferenceType preference) {
+        this.preference = preference;
+    }
 }
