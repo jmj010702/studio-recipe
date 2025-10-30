@@ -32,6 +32,9 @@ public class AuthControllerImpl implements AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@RequestBody @Valid UserRegisterRequestDTO request) {
+        log.info("================ register ================");
+        log.info("request = {}", request);
+
         authService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
