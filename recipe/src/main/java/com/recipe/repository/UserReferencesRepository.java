@@ -15,3 +15,4 @@ public interface UserReferencesRepository extends JpaRepository<UserReferences, 
     public Optional<UserReferences> findByUserAndRecipe(User user, Recipe recipe);
     Optional<UserReferences> findByUserAndRecipeAndPreference(User user, Recipe recipe, PreferenceType preference);
 }
+ 

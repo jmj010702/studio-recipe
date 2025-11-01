@@ -1,3 +1,5 @@
+/*
+
 package com.recipe.domain.entity;
 
 import jakarta.persistence.*;
@@ -53,3 +55,4 @@ public class UserRecipeLogEntity extends BaseEntityTime {
         this.bookmarked = !this.bookmarked;
     }
 }
+*/
