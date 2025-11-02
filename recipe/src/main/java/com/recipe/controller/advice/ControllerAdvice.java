@@ -7,6 +7,7 @@ import org.apache.coyote.Response;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -62,5 +63,10 @@ public class ControllerAdvice {
             return new ResponseEntity<>("이미 좋아요를 눌렀습니다.", HttpStatus.CONFLICT); //409
         }
         return new ResponseEntity<>("데이터베이스 제약 조건 위반",  HttpStatus.SERVICE_UNAVAILABLE); //500
+        }
+
+        @ExceptionHandler(HttpMessageConversionException.class)
+    public ResponseEntity<?> handleHttpMessageConversionException(HttpMessageConversionException ex){
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
         }
 }

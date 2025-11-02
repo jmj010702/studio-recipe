@@ -1,22 +1,17 @@
 package com.recipe.controller;
 
 import com.recipe.controller.inter.LikeController;
-import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.ResponseLikeStatus;
-import com.recipe.domain.dto.autho.CustomerDetails;
-import com.recipe.service.AuthService;
+import com.recipe.domain.dto.auth.CustomerDetails;
 import com.recipe.service.LikeService;
-import com.recipe.service.RecipeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
