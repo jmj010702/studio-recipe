@@ -76,10 +76,7 @@ public class SecurityConfig {
                         authorize
                                 .requestMatchers(
 					"/batch/run-recipe-csv",
-                                        "/auth/register",
-                                        "/auth/login",
-                                        "/auth/reissue",
-                                        "/auth/check-nickname",
+                                        "/auth/**",
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**",
                                         "/v3/api-docs",

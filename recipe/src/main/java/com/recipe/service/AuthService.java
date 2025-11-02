@@ -1,20 +1,17 @@
 package com.recipe.service;
 
 import com.recipe.config.JwtTokenProvider;
-import com.recipe.domain.dto.autho.CustomerDetails;
-import com.recipe.domain.dto.autho.TokenResponseDTO;
+import com.recipe.domain.dto.auth.TokenResponseDTO;
 import com.recipe.domain.dto.user.UserLoginRequestDTO;
 import com.recipe.domain.dto.user.UserRegisterRequestDTO;
 import com.recipe.domain.entity.User;
 import com.recipe.domain.entity.enums.Role;
-import com.recipe.exceptions.user.UserException;
 import com.recipe.exceptions.user.UserExceptions;
 import com.recipe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
