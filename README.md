@@ -28,6 +28,28 @@ $ docker compose logs -f backend #backend는 docker compose에 설정한 그룹(
   SHOW VARIABLES LIKE '%VERSION%';
   ```
 
+# Redis
+- 향후 AWS 스케일아웃 환경에서 SSE는 정상 작동하지 않고 메일 서버 인증과 확장성을 위해 도입
+- WSL Ubuntu 환경 설치 및 실행 가이드
+```bash
+# 설치
+$ curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+
+$ echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+
+$ sudo apt-get update
+$ sudo apt-get install redis
+
+# 실행
+$ redis-server --daemonize yes
+
+# Redis 연결
+$ redis-cli
+
+# 연결 테스트
+127.0.0.1:6379> ping
+PONG
+```
 
 
 # 트러블 슈팅
