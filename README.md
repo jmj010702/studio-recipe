@@ -132,12 +132,31 @@ studio-recipe   |  Caused by: org.springframework.beans.factory.BeanCreationExce
 
 - 정상 동작
 ```bash
+# ID 찾기
 $ curl -X POST \
 -H "Content-Type: application/json" \
 -d '{
 "email" : "dbsghks34@naver.com"
 }' http://localhost:8080/studio-recipe/auth/send-verification
-인증 번호 성공적으로 발송되었습니다.%                             
+인증 번호 성공적으로 발송되었습니다.%
+
+$ curl -X POST \
+> -H "Content-Type: application/json" \
+> -d '{
+quote> "email" : "dbsghks34@naver.com",
+quote> "verificationCode" : 243414,
+quote> "purpose" : "FIND_ID"
+quote> }' http://localhost:8080/studio-recipe/auth/verify-code
+{"message":"이메일 인증이 성공했습니다.","token":"28046c58-1aa4-42e4-b86d-a8e12c663c07"}%
+
+$ curl -X POST \
+-H "Content-Type: application/json" \
+-d '{
+"token" : "28046c58-1aa4-42e4-b86d-a8e12c663c07"
+}' http://localhost:8080/studio-recipe/auth/find-id
+springboot!%
+
+# 잘못된 토큰 신청 -> 토큰 만료 / 비밀번호 바꾸기 정상 동작                                                               
 ```
 
 - 그 외
