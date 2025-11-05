@@ -101,6 +101,46 @@ studio-recipe  | 2025-10-11T08:46:48.405Z  INFO 1 --- [nio-8080-exec-1] c.recipe
   @Lob // Lob으로 되어 있었지만 해당 컬럼의 크기 문제 때문에 TEXT 명시적으로 적용
     @Column(name = "ckg_mtrl_cn", columnDefinition = "TEXT") 
   ```
-
   
+</details>
+
+<details>
+ <summary>MailService & Redis 도입 후 테스트 서버 오류</summary>
+
+ ## 주요 에러들
+ ```bash
+ studio-recipe   | org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'authControllerImpl' defined in URL [jar:nested:/app.jar/!BOOT-INF/classes/!/com/recipe/controller/AuthControllerImpl.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'mailService': Injection of autowired dependencies failed
+ 
+studio-recipe   |  Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mailService': Injection of autowired dependencies failed
+ ```
+
+## 해결
+- 초반에는 env 파일에서 환경 변수를 읽지 못하는 점이였다.
+  초반에는 같은 방법으로 하였지만 해결이 되지 않아 리셋을 하였지만 구문 오류가 있었던 것 같다.
+```bash
+#environment에 환경 변수 추가
+====================================
+  SPRING_MAIL_HOST: ${MAIL_HOST}
+  SPRING_MAIL_PORT: ${MAIL_PORT}
+  MAIL_USERNAME: ${MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD}
+====================================
+          or
+  env_file:
+  ./.env # .env 파일의 모든 변수가 컨테이너로 주입된다.
+```
+
+- 정상 동작
+```bash
+$ curl -X POST \
+-H "Content-Type: application/json" \
+-d '{
+"email" : "dbsghks34@naver.com"
+}' http://localhost:8080/studio-recipe/auth/send-verification
+인증 번호 성공적으로 발송되었습니다.%                             
+```
+
+- 그 외
+   - 우분투 상에서 설치된 Redis와 포트 번호 충돌 -> Docker Compose에 레디스 서비스 포트 번호 변경 6378:6379
+ 
 </details>
