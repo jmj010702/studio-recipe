@@ -34,15 +34,15 @@ public class UserReferences extends BaseEntityTime{
     private Recipe recipe;
 
 
-    // VIEW, SAVE, SHARE, SEARCH 고려
-    @Enumerated(EnumType.STRING)
-    @Column(name = "PREFERENCE_TYPE", nullable = false,
-    columnDefinition = "ENUM ('VIEW', 'LIKE')")
-    private PreferenceType preference;
+// VIEW, SAVE, SHARE, SEARCH 고려
+@Enumerated(EnumType.STRING)
+@Column(name = "PREFERENCE_TYPE", nullable = false,
+        columnDefinition = "ENUM ('VIEW', 'LIKE')")
+private PreferenceType preference;
 
-    //RATING
+//RATING
 
-    public void changePreference(PreferenceType preference) {
-        this.preference = preference;
-    }
+public void changePreference(PreferenceType preference) {
+    this.preference = preference;
+}
 }

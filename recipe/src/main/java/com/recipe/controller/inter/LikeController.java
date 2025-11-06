@@ -2,16 +2,12 @@ package com.recipe.controller.inter;
 
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.ResponseLikeStatus;
-import com.recipe.domain.dto.autho.CustomerDetails;
+import com.recipe.domain.dto.auth.CustomerDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
 @Tag(name = "Like API", description = "좋아요 관련 API")
 public interface LikeController {

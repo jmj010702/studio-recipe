@@ -52,7 +52,7 @@ public class SecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.setAllowedOriginPatterns(List.of(frontUrl));
-	  corsConfiguration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
+//	   corsConfiguration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
@@ -76,10 +76,7 @@ public class SecurityConfig {
                         authorize
                                 .requestMatchers(
 					"/batch/run-recipe-csv",
-                                        "/auth/register",
-                                        "/auth/login",
-                                        "/auth/reissue",
-                                        "/auth/check-nickname",
+                                        "/auth/**",
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**",
                                         "/v3/api-docs",

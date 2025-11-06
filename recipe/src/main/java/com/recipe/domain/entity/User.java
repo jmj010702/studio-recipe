@@ -46,4 +46,8 @@ public class User extends BaseEntityTime {
     @Column(name = "ROLE", columnDefinition = "ENUM('ADMIN', 'GUEST') DEFAULT 'GUEST'")
     private Role role;
 
+    public void changePassword(String newPassword) {
+        this.pwd = newPassword;
+    }
+
 }

@@ -3,14 +3,11 @@ package com.recipe.controller;
 import com.recipe.controller.inter.RecipeController;
 import com.recipe.domain.dto.PageRequestDTO;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
-import com.recipe.domain.dto.ResponseLikeStatus;
 import com.recipe.domain.dto.SortBy;
-import com.recipe.domain.dto.autho.CustomerDetails;
+import com.recipe.domain.dto.auth.CustomerDetails;
 import com.recipe.service.RecipeService;
 import com.recipe.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -18,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor

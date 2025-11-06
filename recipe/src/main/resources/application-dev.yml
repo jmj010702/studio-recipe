@@ -24,6 +24,28 @@ spring:
       job:
          enabled: false # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
 
+   mail:
+     host: ${MAIL_HOST}
+     port: ${MAIL_PORT}
+     username: ${MAIL_USERNAME}
+     password: ${MAIL_PASSWORD}
+     properties:
+       mail.smtp.auth: true
+       mail.smtp.ssl.enable: true
+       mail.smtp.timeout: 5000               # 연결 타임아웃
+       mail.smtp.connectiontimeout: 5000     # 연결 타임아웃
+       mail.smtp.writetimeout: 5000          # 쓰기 타임아웃
+
+   data:
+     redis:
+       host: redis
+       prot: 6379
+
+   thymeleaf:
+     cache: false
+     prefix: classpath:/templates/
+     suffix: .html
+
 jwt:
   secret: ${JWT_SECRET_KEY} 
   access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
@@ -37,6 +59,7 @@ server:
 
 front:
   url: ${FRONT_URL}
+
 
 logging:
   level:

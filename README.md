@@ -28,6 +28,28 @@ $ docker compose logs -f backend #backend는 docker compose에 설정한 그룹(
   SHOW VARIABLES LIKE '%VERSION%';
   ```
 
+# Redis
+- 향후 AWS 스케일아웃 환경에서 SSE는 정상 작동하지 않고 메일 서버 인증과 확장성을 위해 도입
+- WSL Ubuntu 환경 설치 및 실행 가이드
+```bash
+# 설치
+$ curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+
+$ echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+
+$ sudo apt-get update
+$ sudo apt-get install redis
+
+# 실행
+$ redis-server --daemonize yes
+
+# Redis 연결
+$ redis-cli
+
+# 연결 테스트
+127.0.0.1:6379> ping
+PONG
+```
 
 
 # 트러블 슈팅
@@ -79,6 +101,65 @@ studio-recipe  | 2025-10-11T08:46:48.405Z  INFO 1 --- [nio-8080-exec-1] c.recipe
   @Lob // Lob으로 되어 있었지만 해당 컬럼의 크기 문제 때문에 TEXT 명시적으로 적용
     @Column(name = "ckg_mtrl_cn", columnDefinition = "TEXT") 
   ```
-
   
+</details>
+
+<details>
+ <summary>MailService & Redis 도입 후 테스트 서버 오류</summary>
+
+ ## 주요 에러들
+ ```bash
+ studio-recipe   | org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'authControllerImpl' defined in URL [jar:nested:/app.jar/!BOOT-INF/classes/!/com/recipe/controller/AuthControllerImpl.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'mailService': Injection of autowired dependencies failed
+ 
+studio-recipe   |  Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mailService': Injection of autowired dependencies failed
+ ```
+
+## 해결
+- 초반에는 env 파일에서 환경 변수를 읽지 못하는 점이였다.
+  초반에는 같은 방법으로 하였지만 해결이 되지 않아 리셋을 하였지만 구문 오류가 있었던 것 같다.
+```bash
+#environment에 환경 변수 추가
+====================================
+  SPRING_MAIL_HOST: ${MAIL_HOST}
+  SPRING_MAIL_PORT: ${MAIL_PORT}
+  MAIL_USERNAME: ${MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD}
+====================================
+          or
+  env_file:
+  ./.env # .env 파일의 모든 변수가 컨테이너로 주입된다.
+```
+
+- 정상 동작
+```bash
+# ID 찾기
+$ curl -X POST \
+-H "Content-Type: application/json" \
+-d '{
+"email" : "dbsghks34@naver.com"
+}' http://localhost:8080/studio-recipe/auth/send-verification
+인증 번호 성공적으로 발송되었습니다.%
+
+$ curl -X POST \
+> -H "Content-Type: application/json" \
+> -d '{
+quote> "email" : "dbsghks34@naver.com",
+quote> "verificationCode" : 243414,
+quote> "purpose" : "FIND_ID"
+quote> }' http://localhost:8080/studio-recipe/auth/verify-code
+{"message":"이메일 인증이 성공했습니다.","token":"28046c58-1aa4-42e4-b86d-a8e12c663c07"}%
+
+$ curl -X POST \
+-H "Content-Type: application/json" \
+-d '{
+"token" : "28046c58-1aa4-42e4-b86d-a8e12c663c07"
+}' http://localhost:8080/studio-recipe/auth/find-id
+springboot!%
+
+# 잘못된 토큰 신청 -> 토큰 만료 / 비밀번호 바꾸기 정상 동작                                                               
+```
+
+- 그 외
+   - 우분투 상에서 설치된 Redis와 포트 번호 충돌 -> Docker Compose에 레디스 서비스 포트 번호 변경 6378:6379
+ 
 </details>
