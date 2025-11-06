@@ -10,8 +10,8 @@ function SignupPage() {
     email: '',
     userid: '',
     password: '',
-    passwordConfirm: '',
     nickname: '',
+    number: ''
   });
 
   // 유효성 검사 및 에러 메시지 상태
