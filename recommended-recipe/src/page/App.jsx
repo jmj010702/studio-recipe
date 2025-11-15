@@ -7,8 +7,13 @@ import SignupPage from './SignupPage.jsx';
 import LoginPage from './LoginPage.jsx'; 
 import MyPage from './MyPage.jsx';
 import RecipeWritePage from './RecipeWritePage.jsx';
-// 1. (신규) RecipeDetailPage 컴포넌트를 import 합니다.
 import RecipeDetailPage from './RecipeDetailPage.jsx';
+import FindIdPage from './FindIdPage.jsx';
+import RecipeListPage from "./RecipeListPage";
+import FindPasswordPage from './FindPasswordPage.jsx';
+
+// ▼▼▼ [핵심] ProtectedRoute import 구문 "삭제" ▼▼▼
+// import ProtectedRoute from '../components/ProtectedRoute.jsx';
 
 import './App.css'; 
 
@@ -18,16 +23,19 @@ function App() {
       <Header />
       <main className="main-content">
         <Routes>
-          {                     /* 기존 라우트들 */}
+          {/* --- 모든 페이지를 일반 라우트로 변경 --- */}
           <Route path="/" element={<MainPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/find-id" element={<FindIdPage />} />
+          <Route path="/find-password" element={<FindPasswordPage />} />
+          <Route path="/recipe/:recipeId" element={<RecipeDetailPage />} />
+          <Route path="/recipes/:type" element={<RecipeListPage />} />
+          
+          {/* ▼▼▼ [핵심] ProtectedRoute 래퍼 "제거" ▼▼▼ */}
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/recipe/write" element={<RecipeWritePage />} />
-          
-          {}
-          {      }
-          <Route path="/recipe/:recipeId" element={<RecipeDetailPage />} />
+          {/* ▲▲▲ [핵심] ProtectedRoute 래퍼 "제거" ▲▲▲ */}
 
         </Routes>
       </main>

@@ -3,34 +3,18 @@
 /* 1. (배경) 100% 너비 */
 .recipe-section {
   width: 100%;
-  /* ▼▼▼ (수정) 상하 패딩은 흰색 박스가 직접 갖도록 제거 ▼▼▼ */
-  /* padding: 30px 0 20px 0; */
   box-sizing: border-box;
 }
 
-/* (수정) 배경색은 MainPage.css에서 관리하므로 제거 */
-/*
-.recipe-section:nth-of-type(even) {
-  background-color: #f9f9f9;
-}
-*/
-
-
 /* 2. (콘텐츠) ★흰색 박스★ + 중앙 정렬 */
 .recipe-section-content {
-  /* ▼▼▼ (수정) 좌우 꽉 채우기 해제 (max-width 사용) ▼▼▼ */
-  max-width: 1600px; /* (이전 1600px 설정으로 복구) */
+  max-width: 1600px;
   margin: 0 auto;
-  /* ▲▲▲ (수정) ▲▲▲ */
-  
-  /* ▼▼▼▼▼ (신규) 흰색 박스 디자인 ▼▼▼▼▼ */
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 30px; /* 박스 내부 여백 */
-  /* ▲▲▲▲▲ (신규) ▲▲▲▲▲ */
-
+  padding: 30px;
   box-sizing: border-box;
 }
 
@@ -39,7 +23,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px; /* 카드 목록과의 간격 */
+  margin-bottom: 25px;
   padding-bottom: 15px;
   border-bottom: 2px solid #f0f0f0;
 }
@@ -55,6 +39,50 @@
   gap: 20px;
 }
 
+/* 캐러셀 네비게이션 */
+.carousel-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.carousel-btn {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #555;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+  color: #000;
+}
+
+.carousel-btn:active {
+  transform: scale(0.95);
+}
+
+.page-indicator {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  min-width: 50px;
+  text-align: center;
+}
+
 .see-more-btn {
   background-color: #f5f5f5;
   border: 1px solid #ddd;
@@ -66,18 +94,18 @@
   cursor: pointer;
   transition: background-color 0.2s;
 }
+
 .see-more-btn:hover {
   background-color: #e0e0e0;
 }
 
-
+/* 레시피 목록 */
 .recipe-list {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-
-  
   column-gap: 20px; 
   row-gap: 30px;
+  min-height: 400px; /* 레시피 카드 높이에 따라 조정 */
 }
 
 .no-recipes {
@@ -87,6 +115,39 @@
   text-align: center;
 }
 
+/* 하단 페이지 인디케이터 (점 스타일) */
+.pagination-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.pagination-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ddd;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.pagination-dots .dot:hover {
+  background-color: #999;
+  transform: scale(1.2);
+}
+
+.pagination-dots .dot.active {
+  background-color: #555;
+  width: 24px;
+  border-radius: 5px;
+}
+
+/* 반응형 디자인 */
 @media (max-width: 1200px) {
   .recipe-list {
     grid-template-columns: repeat(3, 1fr);
@@ -96,6 +157,16 @@
 @media (max-width: 900px) {
   .recipe-list {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .carousel-navigation {
+    gap: 8px;
+  }
+  
+  .carousel-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 }
 
@@ -107,7 +178,21 @@
   .sort-filters {
     display: none;
   }
+  
   .section-header {
     margin-bottom: 20px;
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .header-right {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .carousel-navigation {
+    order: -1;
   }
 }

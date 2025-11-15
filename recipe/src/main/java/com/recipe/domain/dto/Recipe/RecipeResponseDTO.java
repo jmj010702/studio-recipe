@@ -1,5 +1,6 @@
 package com.recipe.domain.dto.Recipe;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.recipe.domain.entity.Recipe;
 import lombok.*;
 
@@ -22,7 +23,11 @@ public class RecipeResponseDTO {
     private String ckgInbunNm;
     private String ckgDodfNm;
     private String ckgTimeNm;
+    
+    // ✅ 이 애노테이션 추가!
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime firstRegDt;
+    
     private String rcpImgUrl;
 
     // 엔티티 -> DTO 변환을 위한 정적 팩토리 메서드
