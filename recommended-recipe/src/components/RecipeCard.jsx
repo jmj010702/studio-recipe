@@ -14,14 +14,14 @@ function RecipeCard({ recipe }) {
 
   return (
     <div className="recipe-card">
-      <Link to={`/details/${recipeId}`}>  {/* ✅ 올바른 경로로 수정 */}
+      <Link to={`/details/${recipeId}`}>
         <div className="image-container">
           <img 
             src={imageUrl} 
             alt={title} 
             className="recipe-image" 
             onError={(e) => {
-              e.target.src = '/default-recipe-image.jpg';  // ✅ 이미지 로드 실패 시 기본 이미지
+              e.target.src = '/default-recipe-image.jpg';
             }}
           />
         </div>
@@ -29,7 +29,6 @@ function RecipeCard({ recipe }) {
           <h3 className="recipe-title">{title}</h3>
           <p className="recipe-description">{description}</p>
           
-          {/* ✅ 조회수와 좋아요 수 표시 */}
           <div className="recipe-stats">
             <span className="stat-item">
               👁️ {viewCount.toLocaleString()}

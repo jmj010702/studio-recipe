@@ -101,7 +101,7 @@ public class RecipeService {
         return recipePage.map(RecipeResponseDTO::fromEntity);
     }
 
-    // ✅ [추가] 레시피 검색 (제목, 요리명, 재료로 검색)
+    // ✅ 레시피 검색 (제목, 요리명, 재료로 검색)
     public Page<RecipeResponseDTO> searchRecipes(String keyword, Pageable pageable) {
         log.info("Service searchRecipes - keyword: {}, page: {}, size: {}", 
                  keyword, pageable.getPageNumber(), pageable.getPageSize());

@@ -10,8 +10,6 @@ function RecipeSection({ title, recipes, sectionId }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 4;
 
-  // 키보드 이벤트 핸들러 삭제됨
-
   const handleNext = () => {
     if (!recipes || recipes.length === 0) return;
     

@@ -26,7 +26,7 @@ function App() {
           <Route path="/find-id" element={<FindIdPage />} />
           <Route path="/find-password" element={<FindPasswordPage />} />
           
-          {/* ✅ :id를 :recipeId로 변경 */}
+          {/* 레시피 상세 페이지 - recipeId 사용 */}
           <Route path="/details/:recipeId" element={<RecipeDetailPage />} />
           <Route path="/search" element={<SearchResultPage />} />
           <Route path="/recipes/:type" element={<RecipeListPage />} />

@@ -13,7 +13,7 @@ function RecipeDetailPage() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // 🔍 디버깅: useParams 확인
+  // 디버깅: useParams 확인
   useEffect(() => {
     console.log('🎯 현재 URL:', window.location.pathname);
     console.log('🎯 useParams 결과:', { recipeId });
