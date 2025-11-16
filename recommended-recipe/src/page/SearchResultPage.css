@@ -1,0 +1,33 @@
+/* src/page/SearchResultPage.css */
+
+.search-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.search-page h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.result-count {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.search-page.error {
+  text-align: center;
+  padding: 100px 20px;
+  color: #e74c3c;
+  font-size: 1.2rem;
+}
+
+.no-results {
+  text-align: center;
+  padding: 100px 20px;
+  font-size: 1.2rem;
+  color: #999;
+}

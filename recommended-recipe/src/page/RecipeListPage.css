@@ -1,0 +1,98 @@
+/* src/page/RecipeListPage.css */
+.recipe-list-page {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.recipe-list-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.list-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.list-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.recipe-count {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 20px 0;
+}
+
+.loading-container,
+.error-container,
+.no-recipes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 20px;
+}
+
+.error-container p,
+.no-recipes p {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.error-container button,
+.no-recipes button {
+  padding: 12px 24px;
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.error-container button:hover,
+.no-recipes button:hover {
+  background-color: #ff5252;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .list-title {
+    font-size: 1.5rem;
+  }
+
+  .recipe-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+}

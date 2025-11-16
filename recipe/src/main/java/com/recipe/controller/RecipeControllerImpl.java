@@ -11,58 +11,145 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @Log4j2
+@RequestMapping("/api")
 public class RecipeControllerImpl implements RecipeController {
 
     private final RecipeService recipeService;
     private final AuthService authService;
 
+    // /api/recommend-recipes
     @GetMapping("/recommend-recipes")
     public ResponseEntity<Void> recommendRecipes() {
         return ResponseEntity.ok().build();
     }
-
+    
+    // ========== ⭐ 1. 구체적인 경로들을 먼저 선언 ========== 
+    
+    @Override
+    @GetMapping("/recipes/recommended")
+    public ResponseEntity<?> getRecommendedRecipes() {
+        try {
+            log.info("GET /api/recipes/recommended - 추천 레시피 전체 조회");
+            List<RecipeResponseDTO> recipes = recipeService.getRecommendedRecipes(100);
+            
+            return ResponseEntity.ok(Map.of(
+                "data", recipes,
+                "total", recipes.size()
+            ));
+        } catch (Exception e) {
+            log.error("추천 레시피 조회 실패", e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "추천 레시피를 불러올 수 없습니다."));
+        }
+    }
+    
+    @Override
+    @GetMapping("/recipes/popular")
+    public ResponseEntity<?> getPopularRecipes() {
+        try {
+            log.info("GET /api/recipes/popular - 인기 레시피 전체 조회");
+            List<RecipeResponseDTO> recipes = recipeService.getTopRecipes(100);
+            
+            return ResponseEntity.ok(Map.of(
+                "data", recipes,
+                "total", recipes.size()
+            ));
+        } catch (Exception e) {
+            log.error("인기 레시피 조회 실패", e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "인기 레시피를 불러올 수 없습니다."));
+        }
+    }
+    
+    @Override
+    @GetMapping("/recipes/all")
+    public ResponseEntity<?> getAllRecipes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        try {
+            log.info("GET /api/recipes/all - 전체 레시피 조회 (page: {}, size: {})", page, size);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<RecipeResponseDTO> recipePage = recipeService.getAllRecipes(pageable);
+            
+            return ResponseEntity.ok(Map.of(
+                "data", recipePage.getContent(),
+                "total", recipePage.getTotalElements(),
+                "page", recipePage.getNumber(),
+                "totalPages", recipePage.getTotalPages()
+            ));
+        } catch (Exception e) {
+            log.error("전체 레시피 조회 실패", e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "레시피를 불러올 수 없습니다."));
+        }
+    }
+    
+    // ⭐ 검색 API
+    @GetMapping("/recipes/search")
+    public ResponseEntity<?> searchRecipes(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false, defaultValue = "5") Integer limit
+    ) {
+        try {
+            log.info("GET /api/recipes/search - 검색어: {}", keyword);
+            
+            // limit 파라미터가 있으면 해당 개수만큼만 반환
+            int actualSize = (limit != null && limit > 0) ? limit : size;
+            
+            Pageable pageable = PageRequest.of(page, actualSize);
+            Page<RecipeResponseDTO> recipePage = recipeService.searchRecipes(keyword, pageable);
+            
+            return ResponseEntity.ok(Map.of(
+                "data", recipePage.getContent(),
+                "keyword", keyword,
+                "total", recipePage.getTotalElements(),
+                "page", recipePage.getNumber(),
+                "totalPages", recipePage.getTotalPages()
+            ));
+        } catch (Exception e) {
+            log.error("레시피 검색 실패 - keyword: {}", keyword, e);
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "검색에 실패했습니다."));
+        }
+    }
+    
+    // ========== ⭐ 2. PathVariable은 가장 마지막에 선언 ========== 
+    
+    // /api/recipes/{recipeId}
     @GetMapping("/recipes/{recipeId}")
-    public ResponseEntity<RecipeResponseDTO> detailsRecipe(@PathVariable("recipeId") Long recipeId,
-                                              @AuthenticationPrincipal CustomerDetails customer) {
-        Long userId = customer.getUserId();
-        log.info("UserId: {}", userId);
+    public ResponseEntity<RecipeResponseDTO> detailsRecipe(
+            @PathVariable("recipeId") Long recipeId,
+            @AuthenticationPrincipal CustomerDetails customer) {
+        
+        // ✅ 비로그인 사용자도 조회 가능하도록 처리
+        Long userId = (customer != null) ? customer.getUserId() : null;
+        
+        log.info("레시피 상세 조회 - recipeId: {}, userId: {}", recipeId, userId);
         RecipeResponseDTO recipe = recipeService.findOneRecipe(recipeId, userId);
 
         return ResponseEntity.ok(recipe);
-    }
-
-    @GetMapping("/main-pages")
-    public ResponseEntity<Page<RecipeResponseDTO>> mainPage(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "asc") String direction,
-            @RequestParam(defaultValue = "CREATED_AT") String sortBy
-    ){
-        PageRequestDTO requestPage = PageRequestDTO.builder()
-                .page(page)
-                .size(size)
-                .direction(direction)
-                .sortBy(SortBy.formString(sortBy))
-                .build();
-
-        Pageable pageable = requestPage.getPageable();
-        Page<RecipeResponseDTO> recipePage = recipeService.readRecipePage(pageable);
-
-        return ResponseEntity.ok(recipePage);
     }
 
     @Operation(
             summary = "사용자 레시피 사용",
             description = "사용된 레시피를 사용 기록에 저장합니다."
     )
+    // /api/details
     @PostMapping("/details")
     public ResponseEntity<Void> recipeCompletion(/*@RequestBody*/) {
         return ResponseEntity.ok().build();

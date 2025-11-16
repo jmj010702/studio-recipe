@@ -1,0 +1,58 @@
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/recipe_db
+    username: root
+    password: 1234
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+  batch:
+    jdbc:
+      initialize-schema: always 
+    job:
+      enabled: false 
+  mail:
+    host: smtp.naver.com       
+    port: 465                  
+    username: stay_on_track@naver.com 
+    password: KVRG8UGYM9ZJ
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.timeout: 5000
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.writetimeout: 5000
+  data:
+    redis:
+      host: localhost
+      prot: 6379
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    
+jwt:
+  secret: VGhpc0lzQUR1bW15U2VjcmV0S2V5Rm9yTG9jYWxUZXN0aW5nMTIzNDU2Nzg5MEFCQ0RFRg==
+  access-token-validity-in-seconds: 3600
+  refresh-token-validity-in-seconds: 86400
+    
+server:
+  port: 8080
+  servlet:
+    context-path: /studio-recipe
+    
+front:
+  url: http://localhost:5173
+  
+logging.level:
+  org.hibernate.SQL: debug
+  org.hibernate.orm.jdbc.bind: TRACE
+  org.springframework.security.web: TRACE

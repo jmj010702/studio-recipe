@@ -4,9 +4,7 @@ import com.recipe.domain.entity.Recipe;
 import com.recipe.domain.entity.User;
 import com.recipe.domain.entity.UserReferences;
 import com.recipe.domain.entity.enums.PreferenceType;
-import com.recipe.exceptions.user.UserExceptions;
 import com.recipe.repository.UserReferencesRepository;
-import com.recipe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -15,52 +13,100 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Service
-@Log4j2
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
+@Log4j2
 public class UserReferencesService {
 
-    private final UserReferencesRepository referenceRepository;
-    private final UserService userService;
+    private final UserReferencesRepository userReferencesRepository;
 
     @Transactional
     public void userRecipeView(Recipe recipe, Long userId) {
-        User findUser = userService.findByUser(userId);
+        if (userId == null) {
+            log.info("비로그인 사용자 - 조회 기록 저장 생략");
+            return;
+        }
 
-        Optional<UserReferences> findRef =
-                referenceRepository.findByUser_UserIdAndRecipe_RcpSno(userId, recipe.getRcpSno());
-
-        if(findRef.isPresent()) {
-            //VIEW라면 날짜 업데이트 or LIKE라면 X(LIKE가 더 높은 레벨이라 생각하여 바꾸지 않는다.)
-            if(findRef.get().getPreference() ==  PreferenceType.VIEW) {
-                //Modified는 JpaAuditing이 있지만, DirtyChecking에 해당되지 않아 직접 바꿨습니다.
-                findRef.get().updateModifiedDate();
+        try {
+            // ✅ 이미 VIEW 기록이 있는지 확인 (중복 방지)
+            Optional<UserReferences> existing = userReferencesRepository
+                    .findFirstByUser_UserIdAndRecipe_RcpSnoAndPreference(
+                            userId, recipe.getRcpSno(), PreferenceType.VIEW);
+            
+            if (existing.isPresent()) {
+                log.info("이미 조회 기록이 존재함 - userId: {}, recipeId: {}", userId, recipe.getRcpSno());
+                return;
             }
-        }else{
-            UserReferences references = UserReferences.builder()
-                    .user(findUser)
+
+            // 새로운 VIEW 기록 생성
+            User user = User.builder().userId(userId).build();
+            
+            UserReferences reference = UserReferences.builder()
+                    .user(user)
                     .recipe(recipe)
                     .preference(PreferenceType.VIEW)
                     .build();
-            log.info("세이브 됨!!!!!!!!!!");
-            referenceRepository.save(references);
+            
+            userReferencesRepository.save(reference);
+            log.info("조회 기록 저장 완료 - userId: {}, recipeId: {}", userId, recipe.getRcpSno());
+            
+        } catch (Exception e) {
+            log.error("조회 기록 저장 실패 - userId: {}, recipeId: {}", userId, recipe.getRcpSno(), e);
         }
     }
 
-    // Like 좋아요는 중복으로 눌리지 않고 true, false로 구분 되기 때문에 update가 필요 없음
-    // 또한 LikeService에서 좋아요를 눌렀는지 검증하기에 검증 로직 따로 필요X
     @Transactional
     public void userLikeToRecipe(Recipe recipe, User user) {
-            UserReferences references = UserReferences.builder()
+        try {
+            // ✅ 중복 체크 추가
+            Optional<UserReferences> existing = userReferencesRepository
+                    .findFirstByUser_UserIdAndRecipe_RcpSnoAndPreference(
+                            user.getUserId(), recipe.getRcpSno(), PreferenceType.LIKE);
+            
+            if (existing.isPresent()) {
+                log.info("이미 좋아요 기록이 존재함 - userId: {}, recipeId: {}", 
+                        user.getUserId(), recipe.getRcpSno());
+                return;
+            }
+            
+            UserReferences reference = UserReferences.builder()
                     .user(user)
                     .recipe(recipe)
                     .preference(PreferenceType.LIKE)
                     .build();
-            referenceRepository.save(references);
-    } //리팩터링 고려 사항(View, Like Enum 타입을 넘겨주고 Enum Type를 가지고 판단 즉 두 개의 로직을 하나로
+            
+            userReferencesRepository.save(reference);
+            log.info("좋아요 기록 저장 완료 - userId: {}, recipeId: {}", 
+                    user.getUserId(), recipe.getRcpSno());
+                    
+        } catch (Exception e) {
+            log.error("좋아요 기록 저장 실패 - userId: {}, recipeId: {}", 
+                    user.getUserId(), recipe.getRcpSno(), e);
+            throw e; // 좋아요는 실패하면 예외 던지기
+        }
+    }
 
+    @Transactional
     public void deleteByReference(Recipe recipe, User user) {
-        Optional<UserReferences> userReferences =
-                referenceRepository.findByUserAndRecipeAndPreference(user, recipe, PreferenceType.LIKE);
-        userReferences.ifPresent(referenceRepository::delete);
+        // ✅ LIKE 타입만 삭제하도록 수정
+        try {
+            Optional<UserReferences> likeReference = userReferencesRepository
+                    .findFirstByUser_UserIdAndRecipe_RcpSnoAndPreference(
+                            user.getUserId(), recipe.getRcpSno(), PreferenceType.LIKE);
+            
+            if (likeReference.isPresent()) {
+                userReferencesRepository.delete(likeReference.get());
+                log.info("좋아요 기록 삭제 완료 - userId: {}, recipeId: {}", 
+                        user.getUserId(), recipe.getRcpSno());
+            } else {
+                log.warn("삭제할 좋아요 기록이 없음 - userId: {}, recipeId: {}", 
+                        user.getUserId(), recipe.getRcpSno());
+            }
+            
+        } catch (Exception e) {
+            log.error("좋아요 기록 삭제 실패 - userId: {}, recipeId: {}", 
+                    user.getUserId(), recipe.getRcpSno(), e);
+            throw e;
+        }
     }
 }

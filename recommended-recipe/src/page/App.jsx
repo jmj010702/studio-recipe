@@ -1,4 +1,3 @@
-// src/page/App.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Header from '../components/Header.jsx';
@@ -7,8 +6,11 @@ import SignupPage from './SignupPage.jsx';
 import LoginPage from './LoginPage.jsx'; 
 import MyPage from './MyPage.jsx';
 import RecipeWritePage from './RecipeWritePage.jsx';
-// 1. (신규) RecipeDetailPage 컴포넌트를 import 합니다.
 import RecipeDetailPage from './RecipeDetailPage.jsx';
+import FindIdPage from './FindIdPage.jsx';
+import RecipeListPage from './RecipeListPage.jsx';
+import FindPasswordPage from './FindPasswordPage.jsx';
+import SearchResultPage from './SearchResultPage.jsx';
 
 import './App.css'; 
 
@@ -18,17 +20,19 @@ function App() {
       <Header />
       <main className="main-content">
         <Routes>
-          {                     /* 기존 라우트들 */}
           <Route path="/" element={<MainPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/find-id" element={<FindIdPage />} />
+          <Route path="/find-password" element={<FindPasswordPage />} />
+          
+          {/* ✅ :id를 :recipeId로 변경 */}
+          <Route path="/details/:recipeId" element={<RecipeDetailPage />} />
+          <Route path="/search" element={<SearchResultPage />} />
+          <Route path="/recipes/:type" element={<RecipeListPage />} />
+          
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/recipe/write" element={<RecipeWritePage />} />
-          
-          {}
-          {      }
-          <Route path="/recipe/:recipeId" element={<RecipeDetailPage />} />
-
         </Routes>
       </main>
     </>

@@ -2,6 +2,7 @@ package com.recipe.algorithm;
 
 import com.recipe.domain.entity.Recipe;
 import com.recipe.repository.RecipeRepository;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -73,17 +74,11 @@ public class IngredientRecommendAlgorithm {
      * 추천 결과 DTO
      */
     @Getter
+    @AllArgsConstructor  // 추가: 생성자 자동 생성 및 getter 확실하게
     public static class IngredientRecommendationResult {
         private final Long recipeId;
         private final String recipeTitle;
         private final String recipeImage;
         private final Double score;
-
-        public IngredientRecommendationResult(Long recipeId, String recipeTitle, String recipeImage, Double score) {
-            this.recipeId = recipeId;
-            this.recipeTitle = recipeTitle;
-            this.recipeImage = recipeImage;
-            this.score = score;
-        }
     }
 }

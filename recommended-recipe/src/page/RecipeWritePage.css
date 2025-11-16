@@ -126,6 +126,19 @@
   background-color: #f44336; /* (삭제 빨간색) */
   flex-shrink: 0;
 }
+.like-btn.liked {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.like-btn {
+  transition: all 0.3s ease;
+}
+
+.like-btn:hover {
+  transform: scale(1.05);
+}
+
 .remove-btn:hover { background-color: #d32f2f; }
 .remove-btn:disabled {
   background-color: #ccc;

@@ -1,105 +1,243 @@
 // src/page/RecipeDetailPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-// import api from '../api/axios'; // (실제 API)
-import './RecipeDetailPage.css'; // (4번에서 만들 CSS)
-
-// --- (Mock Data) MainPage.jsx에 있던 임시 데이터를 여기로 가져옵니다. ---
-// (실제로는 API로 1개만 조회하지만, 임시 로직을 위해 전체 데이터를 사용합니다.)
-const MOCK_ALL_RECIPES = [
-  { id: 1, title: "명란마요초밥", description: "도시락에 빠질 수 없는 공유부초밥!", imageUrl: "https://via.placeholder.com/800x450.png?text=Mentaiko+Sushi", ingredients: [{name: '명란', amount: '1개'}, {name: '밥', amount: '1공기'}], steps: ["밥에 양념을 합니다.", "유부를 조립니다.", "명란마요를 올립니다."]},
-  { id: 2, title: "아시안 닭꼬치", description: "저녁 술안주로 딱!", imageUrl: "https://via.placeholder.com/800x450.png?text=Asian+Chicken+Skewer", ingredients: [{name: '닭다리살', amount: '300g'}, {name: '간장', amount: '2큰술'}], steps: ["닭을 손질합니다.", "꼬치에 꿰어 굽습니다."]},
-  { id: 3, title: "불맛 잡채스테이크", description: "달콤짭짤한 소스의 매력!", imageUrl: "https://via.placeholder.com/800x450.png?text=Japchae+Steak", ingredients: [{name: '소고기', amount: '200g'}, {name: '당면', amount: '50g'}], steps: ["고기를 굽습니다.", "야채와 당면을 볶습니다."]},
-  { id: 4, title: "호텔 파스타", description: "집에서 즐기는 호텔급 맛", imageUrl: "https://via.placeholder.com/800x450.png?text=Hotel+Pasta", ingredients: [{name: '파스타면', amount: '100g'}, {name: '새우', amount: '5마리'}], steps: ["면을 삶습니다.", "재료를 볶습니다."]}
-];
-// --- (Mock Data 끝) ---
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import './RecipeDetailPage.css'; 
 
 function RecipeDetailPage() {
-  // 1. URL 파라미터에서 :recipeId 값을 가져옵니다.
   const { recipeId } = useParams(); 
-  const [recipe, setRecipe] = useState(null); // 레시피 데이터를 저장할 state
+  const [recipe, setRecipe] = useState(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // 2. recipeId가 변경될 때마다 레시피 데이터를 불러옵니다.
+  // 🔍 디버깅: useParams 확인
+  useEffect(() => {
+    console.log('🎯 현재 URL:', window.location.pathname);
+    console.log('🎯 useParams 결과:', { recipeId });
+    console.log('🎯 recipeId 타입:', typeof recipeId);
+  }, [recipeId]);
+
   useEffect(() => {
     const fetchRecipe = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        // --- (Mock Logic) 임시 데이터에서 ID로 레시피 찾기 ---
-        // (URL에서 받은 recipeId는 문자열이므로 숫자로 변환합니다.)
-        const foundRecipe = MOCK_ALL_RECIPES.find(r => r.id === parseInt(recipeId));
+        console.log('🔍 레시피 조회 시작 - ID:', recipeId);
+        console.log('🔍 recipeId 존재 여부:', !!recipeId);
+        const response = await api.get(`/api/details/${recipeId}`);
         
-        // (네트워크 딜레이 0.5초 흉내)
-        setTimeout(() => {
-          if (foundRecipe) {
-            setRecipe(foundRecipe);
-          } else {
-            setRecipe(null); // 레시피 없음
-          }
-          setLoading(false);
-        }, 500);
-        // --- (Mock Logic 끝) ---
-
-        /*
-        // --- (실제 API 호출 로직) ---
-        const response = await api.get(`/api/recipes/${recipeId}`);
-        setRecipe(response.data);
-        setLoading(false);
-        */
-
+        console.log('✅ 레시피 상세 응답:', response.data);
+        
+        // 응답 구조에 따라 데이터 추출 (여러 케이스 처리)
+        let recipeData, isLikedData;
+        
+        if (response.data.data) {
+          // 케이스 A: { data: { recipe: {...}, isLiked: true } }
+          recipeData = response.data.data.recipe;
+          isLikedData = response.data.data.isLiked;
+        } else if (response.data.recipe) {
+          // 케이스 B: { recipe: {...}, isLiked: true }
+          recipeData = response.data.recipe;
+          isLikedData = response.data.isLiked;
+        } else {
+          // 케이스 C: 직접 레시피 데이터
+          recipeData = response.data;
+          isLikedData = false;
+        }
+        
+        console.log('📦 추출된 레시피 데이터:', recipeData);
+        
+        if (!recipeData) {
+          throw new Error('레시피 데이터가 없습니다.');
+        }
+        
+        setRecipe(recipeData);
+        setIsLiked(isLikedData || false);
+        setLikeCount(recipeData.rcmmCnt || 0);
+        
       } catch (error) {
-        console.error("레시피 상세 정보를 불러오는 데 실패했습니다:", error);
+        console.error("❌ 레시피 상세 정보를 불러오는 데 실패:", error);
+        
+        if (error.response) {
+          console.error('응답 상태:', error.response.status);
+          console.error('응답 데이터:', error.response.data);
+          
+          if (error.response.status === 404) {
+            setError("해당 레시피를 찾을 수 없습니다.");
+          } else if (error.response.status === 401) {
+            setError("로그인이 필요합니다.");
+          } else {
+            setError(`레시피를 불러오는데 실패했습니다. (${error.response.status})`);
+          }
+        } else {
+          setError("네트워크 오류가 발생했습니다.");
+        }
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchRecipe();
-  }, [recipeId]); // recipeId가 바뀔 때마다 다시 실행
+    if (recipeId) {
+      fetchRecipe();
+    } else {
+      setError('레시피 ID가 없습니다.');
+      setLoading(false);
+    }
+  }, [recipeId]);
 
-  // 3. 로딩 중일 때 표시
+  const handleLike = async () => {
+    try {
+      console.log('❤️ 좋아요 요청 - recipeId:', recipeId);
+      
+      const response = await api.post(`/api/details/likes`, null, {
+        params: { recipe_id: recipeId }
+      });
+      
+      console.log('좋아요 응답:', response.data);
+      
+      setIsLiked(response.data.isLiked);
+      setLikeCount(response.data.likeCount);
+      
+    } catch (error) {
+      console.error("❌ 좋아요 실패:", error);
+      
+      if (error.response?.status === 401) {
+        const confirmLogin = window.confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?');
+        if (confirmLogin) {
+          navigate('/login');
+        }
+      } else {
+        alert('로그인후 사용해주시기 바랍니다.');
+      }
+    }
+  };
+  
+  const handleComplete = async () => {
+    try {
+      console.log('✅ 사용 완료 요청 - recipeId:', recipeId);
+      
+      const response = await api.post(`/api/details/completion`, null, {
+        params: { recipe_id: recipeId }
+      });
+      
+      console.log('사용 완료 응답:', response.data);
+      alert('레시피 사용 완료!');
+      
+    } catch (error) {
+      console.error("❌ 사용 완료 실패:", error);
+      
+      if (error.response?.status === 401) {
+        const confirmLogin = window.confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?');
+        if (confirmLogin) {
+          navigate('/login');
+        }
+      } else {
+        alert('사용 완료 처리에 실패했습니다.');
+      }
+    }
+  };
+
   if (loading) {
-    return <div className="detail-page-container"><p>레시피를 불러오는 중...</p></div>;
+    return (
+      <div className="detail-page-container">
+        <div className="loading-spinner">
+          <p>레시피를 불러오는 중...</p>
+          <p className="loading-id">ID: {recipeId}</p>
+        </div>
+      </div>
+    );
   }
 
-  // 4. 레시피가 없을 때 표시
+  if (error) {
+    return (
+      <div className="detail-page-container">
+        <div className="error-message">
+          <h2>오류 발생</h2>
+          <p>{error}</p>
+          <button onClick={() => navigate('/')}>홈으로 돌아가기</button>
+        </div>
+      </div>
+    );
+  }
+
   if (!recipe) {
-    return <div className="detail-page-container"><p>해당 레시피를 찾을 수 없습니다.</p></div>;
+    return (
+      <div className="detail-page-container">
+        <div className="error-message">
+          <p>해당 레시피를 찾을 수 없습니다.</p>
+          <button onClick={() => navigate('/')}>홈으로 돌아가기</button>
+        </div>
+      </div>
+    );
   }
 
-  // 5. 로딩 완료 후 레시피 표시
+  const title = recipe.rcpTtl || '제목 없음';
+  const imageUrl = recipe.rcpImgUrl || '/default-recipe-image.jpg';
+  const cookingName = recipe.ckgNm || '';
+  const difficulty = recipe.ckgDodfNm || '';
+  const servings = recipe.ckgInbunNm || '';
+  const cookingTime = recipe.ckgTimeNm || '';
+  const ingredients = recipe.ckgMtrlCn || '재료 정보가 없습니다.';
+  const method = recipe.ckgMthActoNm || '';
+  const viewCount = recipe.inqCnt || 0;
+
+  const ingredientList = ingredients.split(/[\n,]/).filter(item => item.trim());
+
   return (
     <div className="detail-page-container">
-      {/* (1) 제목 및 설명 */}
       <div className="recipe-header">
-        <h1>{recipe.title}</h1>
-        <p>{recipe.description}</p>
+        <h1>{title}</h1>
+        {cookingName && <p className="cooking-name">{cookingName}</p>}
+        
+        <div className="recipe-meta">
+          {difficulty && <span className="meta-item">난이도: {difficulty}</span>}
+          {servings && <span className="meta-item">인분: {servings}</span>}
+          {cookingTime && <span className="meta-item">조리시간: {cookingTime}</span>}
+        </div>
       </div>
 
-      {/* (2) 메인 이미지 */}
-      <img src={recipe.imageUrl} alt={recipe.title} className="recipe-main-image" />
+      <img src={imageUrl} alt={title} className="recipe-main-image" />
+      
+      <div className="recipe-actions">
+        <button 
+          onClick={handleLike} 
+          className={`like-btn ${isLiked ? 'liked' : ''}`}
+        >
+          {isLiked ? '❤️' : '🤍'} 좋아요 {likeCount}
+        </button>
+        <button onClick={handleComplete} className="complete-btn">
+          ✅ 사용 완료
+        </button>
+        <span className="view-count">조회수: {viewCount}</span>
+      </div>
 
-      {/* (3) 재료 */}
       <div className="recipe-content-box">
         <h2>재료</h2>
         <ul className="ingredient-list">
-          {recipe.ingredients.map((item, index) => (
-            <li key={index}>
-              <span className="ingredient-name">{item.name}</span>
-              <span className="ingredient-amount">{item.amount}</span>
-            </li>
-          ))}
+          {ingredientList.length > 0 ? (
+            ingredientList.map((item, index) => (
+              <li key={index}>{item.trim()}</li>
+            ))
+          ) : (
+            <li>재료 정보가 없습니다.</li>
+          )}
         </ul>
       </div>
 
-      {/* (4) 조리 순서 */}
-      <div className="recipe-content-box">
-        <h2>조리 순서</h2>
-        <ol className="step-list">
-          {recipe.steps.map((step, index) => (
-            <li key={index}>{step}</li>
-          ))}
-        </ol>
-      </div>
+      {method && (
+        <div className="recipe-content-box">
+          <h2>조리 방법</h2>
+          <p className="cooking-method">{method}</p>
+        </div>
+      )}
+
+      <button onClick={() => navigate(-1)} className="back-btn">
+        ← 뒤로 가기
+      </button>
     </div>
   );
 }
