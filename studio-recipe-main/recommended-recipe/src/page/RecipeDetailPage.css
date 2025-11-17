@@ -1,0 +1,88 @@
+/* src/page/RecipeDetailPage.css */
+
+/* 페이지 전체 레이아웃 (중앙 정렬) */
+.detail-page-container {
+  max-width: 900px; /* 상세 내용은 너무 넓지 않게 */
+  margin: 30px auto; /* 상하 여백 및 중앙 정렬 */
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 1. 레시피 헤더 (제목, 설명) */
+.recipe-header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 20px;
+}
+.recipe-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+}
+.recipe-header p {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* 2. 메인 이미지 */
+.recipe-main-image {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+/* 3. 재료, 조리 순서 공통 박스 */
+.recipe-content-box {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+.recipe-content-box h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+/* 4. 재료 목록 */
+.ingredient-list {
+  list-style: none;
+  padding: 0;
+}
+.ingredient-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 5px;
+  font-size: 1rem;
+  border-bottom: 1px dashed #ccc;
+}
+.ingredient-list li:last-child {
+  border-bottom: none;
+}
+.ingredient-list .ingredient-name {
+  color: #333;
+  font-weight: 500;
+}
+.ingredient-list .ingredient-amount {
+  color: #777;
+}
+
+/* 5. 조리 순서 */
+.step-list {
+  padding-left: 20px; /* (ol 태그의 숫자 들여쓰기) */
+}
+.step-list li {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #333;
+  margin-bottom: 15px;
+}
