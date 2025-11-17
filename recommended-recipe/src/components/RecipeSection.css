@@ -1,0 +1,113 @@
+/* src/components/RecipeSection.css */
+
+/* 1. (배경) 100% 너비 */
+.recipe-section {
+  width: 100%;
+  /* ▼▼▼ (수정) 상하 패딩은 흰색 박스가 직접 갖도록 제거 ▼▼▼ */
+  /* padding: 30px 0 20px 0; */
+  box-sizing: border-box;
+}
+
+/* (수정) 배경색은 MainPage.css에서 관리하므로 제거 */
+/*
+.recipe-section:nth-of-type(even) {
+  background-color: #f9f9f9;
+}
+*/
+
+
+/* 2. (콘텐츠) ★흰색 박스★ + 중앙 정렬 */
+.recipe-section-content {
+  /* ▼▼▼ (수정) 좌우 꽉 채우기 해제 (max-width 사용) ▼▼▼ */
+  max-width: 1600px; /* (이전 1600px 설정으로 복구) */
+  margin: 0 auto;
+  /* ▲▲▲ (수정) ▲▲▲ */
+  
+  /* ▼▼▼▼▼ (신규) 흰색 박스 디자인 ▼▼▼▼▼ */
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 30px; /* 박스 내부 여백 */
+  /* ▲▲▲▲▲ (신규) ▲▲▲▲▲ */
+
+  box-sizing: border-box;
+}
+
+/* 3. 섹션 헤더 (제목 + 필터/더보기) */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px; /* 카드 목록과의 간격 */
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.see-more-btn {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.see-more-btn:hover {
+  background-color: #e0e0e0;
+}
+
+
+.recipe-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  
+  column-gap: 20px; 
+  row-gap: 30px;
+}
+
+.no-recipes {
+  color: #888;
+  padding: 20px 0;
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .recipe-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .recipe-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .recipe-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .sort-filters {
+    display: none;
+  }
+  .section-header {
+    margin-bottom: 20px;
+  }
+}

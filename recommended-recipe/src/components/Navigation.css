@@ -1,0 +1,65 @@
+/* src/components/Navigation.css */
+
+/* 1. (배경) 100% 너비 */
+.nav-container {
+  width: 100%;
+  padding: 0 0 20px 0; /* 상단 패딩 0, 하단 패딩 20px */
+  background-color: #ffffff; /* 배경색 흰색 */
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+/* 2. (콘텐츠) 중앙 정렬 */
+.nav-content {
+  /* ▼▼▼▼▼ 수정 ▼▼▼▼▼ */
+  max-width: 1600px; /* 기존 1200px에서 1600px로 변경 */
+  /* ▲▲▲▲▲ 수정 ▲▲▲▲▲ */
+  
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* 3. 버튼 스타일 */
+.nav-button {
+  flex: 1; /* 3개의 버튼이 1:1:1 비율 */
+  padding: 40px 20px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.nav-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.nav-button.seasonal { 
+  background-color: #cffafe; /* light cyan */
+}
+.nav-button.my-recipe { 
+  background-color: #fef9c3; /* light yellow */
+}
+.nav-button.special-collection { 
+  background-color: #fbcfe8; /* light pink */
+}
+
+/* 4. 반응형 (창모드) 스타일 */
+@media (max-width: 768px) {
+  .nav-content { /* .nav-container가 아닌 .nav-content를 수정 */
+    flex-direction: column; /* 세로 정렬 */
+    gap: 15px; /* 버튼 사이 간격 */
+  }
+  
+  .nav-button {
+    width: 100%;
+    padding: 25px 20px; /* 패딩 줄임 */
+  }
+}
