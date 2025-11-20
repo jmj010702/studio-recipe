@@ -48,7 +48,7 @@ jwt:
     cache: false
     prefix: classpath:/templates/
     suffix: .html
-    
+
 server:
   port: 8080
   servlet:

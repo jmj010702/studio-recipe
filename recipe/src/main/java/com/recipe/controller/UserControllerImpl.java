@@ -20,7 +20,7 @@ import java.util.Map;
 public class UserControllerImpl implements UserController {
 
     private final UserService userService;
-    private final TokenService tokenService;
+//    private final TokenService tokenService;
 
     @GetMapping("/my-pages/{userId}")
     public ResponseEntity<Void> myPage(@PathVariable("userId") Long userId) {
@@ -35,39 +35,39 @@ public class UserControllerImpl implements UserController {
     }
 
     //회원 탈퇴 (하드 딜리트)
-    @Operation(summary = "회원 탈퇴", description = "JWT 토큰 검증 후 자신의 계정을 완전히 삭제합니다.")
-    @DeleteMapping("/delete")
-    public ResponseEntity<Map<String, String>> deleteUser(
-            @RequestHeader("Authorization") String token,
-            @RequestBody UserDeleteRequestDto request
-    ) {
-        Map<String, String> response = new HashMap<>();
-
-        try {
-            // 1️⃣ Bearer 토큰에서 실제 JWT 부분 추출
-            String jwt = token.replace("Bearer ", "");
-
-            // 2️⃣ 토큰에서 사용자 ID 추출
-            String tokenUserId = tokenService.getUserIdFromToken(jwt);
-
-            // 3️⃣ 토큰의 사용자와 요청 ID 일치 여부 확인
-            if (!tokenUserId.equals(request.getId())) {
-                response.put("code", "403");
-                response.put("message", "본인 계정만 삭제할 수 있습니다.");
-                return ResponseEntity.status(403).body(response);
-            }
-
-            // 4️⃣ 서비스 호출
-            userService.deleteUser(request.getId(), request.getPwd());
-            response.put("code", "200");
-            response.put("message", "회원 탈퇴가 완료되었습니다.");
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("회원 탈퇴 중 오류 발생", e);
-            response.put("code", "400");
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
+//    @Operation(summary = "회원 탈퇴", description = "JWT 토큰 검증 후 자신의 계정을 완전히 삭제합니다.")
+//    @DeleteMapping("/delete")
+//    public ResponseEntity<Map<String, String>> deleteUser(
+//            @RequestHeader("Authorization") String token,
+//            @RequestBody UserDeleteRequestDto request
+//    ) {
+//        Map<String, String> response = new HashMap<>();
+//
+//        try {
+//            // 1️⃣ Bearer 토큰에서 실제 JWT 부분 추출
+//            String jwt = token.replace("Bearer ", "");
+//
+//            // 2️⃣ 토큰에서 사용자 ID 추출
+//            String tokenUserId = tokenService.getUserIdFromToken(jwt);
+//
+//            // 3️⃣ 토큰의 사용자와 요청 ID 일치 여부 확인
+//            if (!tokenUserId.equals(request.getId())) {
+//                response.put("code", "403");
+//                response.put("message", "본인 계정만 삭제할 수 있습니다.");
+//                return ResponseEntity.status(403).body(response);
+//            }
+//
+//            // 4️⃣ 서비스 호출
+//            userService.deleteUser(request.getId(), request.getPwd());
+//            response.put("code", "200");
+//            response.put("message", "회원 탈퇴가 완료되었습니다.");
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            log.error("회원 탈퇴 중 오류 발생", e);
+//            response.put("code", "400");
+//            response.put("message", e.getMessage());
+//            return ResponseEntity.badRequest().body(response);
+//        }
+//    }
 }
