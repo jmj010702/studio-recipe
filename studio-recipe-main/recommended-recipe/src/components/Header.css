@@ -1,0 +1,245 @@
+/* src/components/Header.css */
+
+/* ... (1~3. .header-container, .header-content, .logo 스타일은 동일) ... */
+.header-container {
+  width: 100%;
+  background-color: #27ae60;
+  padding: 15px 0;
+  box-sizing: border-box;
+}
+.header-content {
+  padding: 0 20px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* 4. 검색창과 드롭다운을 묶는 래퍼 (기준점) */
+.search-bar-wrapper {
+  position: relative; 
+  flex-grow: 1; 
+  display: flex;
+  justify-content: center;
+  margin: 0 30px;
+}
+
+/* 5. 검색창 (Form 태그) */
+.search-bar {
+  flex-grow: 1; 
+  display: flex;
+  position: relative; 
+  max-width: 500px; /* ★ 검색창 최대 너비 */
+  width: 100%; 
+}
+
+/* 6. 검색창 입력란 (Input 태그) */
+.search-bar input {
+  width: 100%;
+  max-width: 500px;
+  padding: 12px 45px 12px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 50px;
+  background-color: white;
+  text-align: left;
+}
+
+.search-bar input::placeholder {
+  text-align: left;
+}
+
+.search-submit-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  padding: 0 15px;
+  background: transparent;
+  border: none;
+  border-radius: 0 50px 50px 0;
+  cursor: pointer;
+  color: #888;
+  font-size: 1.1rem;
+}
+.search-submit-btn:hover {
+  color: #333;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  
+  width: 100%;
+  max-width: 500px;
+  
+  left: 50%;
+  transform: translateX(-50%);
+  
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  
+  max-height: 250px; 
+  overflow-y: auto;   
+}
+
+.autocomplete-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.autocomplete-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+.autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.autocomplete-item {
+  display: block;
+  padding: 12px 16px;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+.autocomplete-item:hover {
+  background-color: #f9f9f9;
+}
+
+.autocomplete-item.loading {
+  padding: 12px 16px;
+  color: #888;
+  font-style: italic;
+  cursor: default;
+}
+.autocomplete-item.loading:hover {
+  background-color: transparent;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+.icon-link {
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 0; 
+  border: none; 
+  cursor: pointer;
+}
+
+.icon-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.icon-link.profile {
+  background-color: #a5d6a7; 
+}
+.icon-link.edit {
+  background-color: #ff8a65;
+}
+
+.user-menu .icon {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.profile-menu-container {
+  position: relative; 
+}
+
+/* 15. 드롭다운 메뉴 박스 */
+.profile-dropdown {
+  position: absolute; 
+  top: 50px; 
+  right: 0; 
+  
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px; 
+  z-index: 100; 
+  overflow: hidden; 
+}
+
+/* 16. 드롭다운 메뉴 항목 (Link, button 공통) */
+.dropdown-item {
+  display: flex; 
+  align-items: center;
+  gap: 10px; 
+
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  text-decoration: none;
+  
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-item + .dropdown-item {
+  border-top: 1px solid #f0f0f0;
+}
+
+.dropdown-item:hover {
+  background-color: #f9f9f9;
+}
+
+.dropdown-item.disabled {
+  color: #999;
+  cursor: not-allowed;
+  background-color: #fcfcfc;
+}
+
+/* 17. 반응형 (창모드) 스타일 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column; 
+    gap: 15px; 
+  }
+
+  .search-bar-wrapper {
+    width: 100%;
+    margin: 0;
+    order: 3; 
+  }
+
+  .logo {
+    order: 1; 
+  }
+
+  .user-menu {
+    order: 2; 
+  }
+}

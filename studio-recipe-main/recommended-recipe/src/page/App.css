@@ -1,0 +1,17 @@
+/* src/page/App.css */
+
+/* .app-container 스타일은 더 이상 필요 없으므로 제거(주석 처리)합니다.
+  이 스타일이 있으면 모든 콘텐츠가 1200px로 묶이게 됩니다.
+*/
+/*
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;   
+  padding: 0 20px;  
+}
+*/
+
+/* .main-content는 100% 너비를 유지합니다. */
+.main-content {
+  width: 100%;
+}
