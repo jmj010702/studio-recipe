@@ -325,3 +325,101 @@
     font-size: 1.3rem;
   }
 }
+
+/* 자동완성 항목 - 기존 스타일 유지하되 recipe-title 추가 */
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background-color: #f0f8f4;
+}
+
+.autocomplete-item .search-icon {
+  color: #27ae60;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ✅ 추가: 자동완성 레시피 정보 레이아웃 */
+.recipe-info-autocomplete {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* ✅ 추가: 레시피 제목 */
+.recipe-title {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* ✅ 추가: 레시피 타입 (작은 텍스트) */
+.recipe-type-small {
+  font-size: 12px;
+  color: #999;
+}
+
+/* ✅ 추가: "전체 검색 결과 보기" 버튼 스타일 */
+.autocomplete-item.view-all {
+  background-color: #f8f9fa;
+  border-top: 2px solid #e9ecef;
+  font-weight: 600;
+  color: #27ae60;
+  justify-content: center;
+}
+
+.autocomplete-item.view-all:hover {
+  background-color: #e9ecef;
+}
+
+.view-all-text {
+  color: #27ae60;
+  font-size: 14px;
+}
+
+/* 로딩/결과 없음 상태 */
+.autocomplete-item.loading,
+.autocomplete-item.no-results {
+  padding: 12px 16px;
+  color: #888;
+  font-style: italic;
+  cursor: default;
+  justify-content: center;
+}
+
+.autocomplete-item.loading:hover,
+.autocomplete-item.no-results:hover {
+  background-color: transparent;
+}
+
+/* ✅ 추가: 로딩 스피너 */
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #27ae60;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

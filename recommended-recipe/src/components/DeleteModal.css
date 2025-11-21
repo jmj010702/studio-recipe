@@ -1,0 +1,110 @@
+/* 화면 전체를 덮는 검은 배경 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;  /* 화면 전체 너비 */
+  height: 100vh; /* 화면 전체 높이 */
+  background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은색 */
+  
+  /* ▼▼▼ 중앙 정렬 핵심 코드 (Flexbox) ▼▼▼ */
+  display: flex;
+  justify-content: center; /* 가로 중앙 정렬 (하이픈 필수!) */
+  align-items: center;     /* 세로 중앙 정렬 (하이픈 필수!) */
+  /* ▲▲▲ ▲▲▲ */
+  
+  z-index: 9999; /* 다른 모든 요소보다 위에 오도록 */
+}
+
+/* 하얀색 팝업창 */
+.modal-content {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* 그림자 진하게 */
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+  position: relative;
+  
+  /* 나타날 때 애니메이션 */
+  animation: slideDown 0.3s ease-out;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.modal-content p {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #28a745; /* 포커스 시 초록색 */
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-cancel:hover {
+  background-color: #e2e6ea;
+}
+
+.btn-confirm {
+  background-color: #dc3545; /* 빨간색 */
+  color: white;
+}
+
+.btn-confirm:hover {
+  background-color: #c82333;
+}
+
+/* 위에서 아래로 살짝 내려오는 애니메이션 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

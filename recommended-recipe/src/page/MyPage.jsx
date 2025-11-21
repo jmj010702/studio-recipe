@@ -1,8 +1,8 @@
-// src/page/MyPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaThList, FaStar, FaCommentDots, FaBookOpen, FaSearch, FaHeart } from 'react-icons/fa';
 import api from '../api/axios'; 
+import DeleteModal from '../components/DeleteModal'; // ✅ [추가] 모달 import (파일이 없다면 만들어야 함)
 import './MyPage.css'; 
 
 function MyPage() {
@@ -15,10 +15,9 @@ function MyPage() {
   
   const [activeMenu, setActiveMenu] = useState('editProfile');
   const [subTab, setSubTab] = useState('draft');
-  
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // ✅ [추가] 탈퇴 모달 상태 관리
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -38,8 +37,6 @@ function MyPage() {
         setUserInfo(data.userInfo);
         const liked = data.likedList || [];
         setLikedList(liked);
-        
-        // savedList도 liked와 동일하게 설정 (좋아요 = 찜하기)
         setSavedList(liked);
         setAuthoredList(data.authoredList || []);
         
@@ -61,7 +58,38 @@ function MyPage() {
   };
 
   const handleRecipeClick = (recipeId) => {
-    navigate(`/recipe/${recipeId}`);
+    navigate(`/details/${recipeId}`);
+  };
+
+  // ✅ [추가] 모달 열기 핸들러
+  const handleOpenDeleteModal = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  // ✅ [추가] 실제 회원 탈퇴 요청 핸들러 (모달에서 호출됨)
+  const handleDeleteAccount = async (password) => {
+    try {
+      await api.delete('/user/delete', {
+        data: { password: password } // body에 비밀번호 포함
+      });
+
+      alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
+      setIsDeleteModalOpen(false); // 모달 닫기
+      
+      // 로그아웃 처리 및 홈 이동
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      navigate('/');
+      window.location.reload();
+
+    } catch (error) {
+      console.error('탈퇴 실패:', error);
+      if (error.response && error.response.status === 400) {
+        alert('비밀번호가 일치하지 않습니다.');
+      } else {
+        alert('회원 탈퇴 중 오류가 발생했습니다.');
+      }
+    }
   };
   
   if (!userInfo) {
@@ -81,9 +109,11 @@ function MyPage() {
                 <span className="form-label">아이디(이메일)</span>
                 <div className="form-value-wrapper">
                   <span className="form-value">{userInfo.email}</span> 
+                  {/* 기능 없다면 제거 가능 */}
                   <button type="button" className="btn-inline">이메일 변경</button>
                 </div>
               </div>
+
               <div className="form-row">
                 <span className="form-label">이름</span>
                 <div className="form-value-wrapper">
@@ -100,17 +130,27 @@ function MyPage() {
 
               <div className="form-row">
                 <span className="form-label">비밀번호 변경</span>
-                <div className="form-value-wrapper vertical-inputs">
-                  <input type="password" placeholder="현재 비밀번호" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                  <input type="password" placeholder="새 비밀번호" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                  <input type="password" placeholder="비밀번호 다시 입력" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                  <button type="button" className="btn-full-width">비밀번호 변경</button>
+                <div className="form-value-wrapper">
+                  <p className="info-text" style={{ marginBottom: '10px', color: '#666', fontSize: '14px' }}>
+                    보안을 위해 비밀번호 변경은 이메일 인증 후 가능합니다.
+                  </p>
+                  <button 
+                    type="button" 
+                    className="btn-full-width"
+                    style={{ backgroundColor: '#6c757d', border: 'none' }}
+                    onClick={() => navigate('/find-password')}
+                  >
+                    비밀번호 재설정 하러 가기
+                  </button>
                 </div>
               </div>
+
             </div>
             <div className="form-actions">
-              <button type="button" className="btn-secondary">나가기</button>
-              <button type="button" className="btn-danger">회원탈퇴</button>
+              <button type="button" className="btn-secondary" onClick={() => navigate('/')}>나가기</button>
+              
+              {/* ✅ [수정] onClick 핸들러 연결 */}
+              <button type="button" className="btn-danger" onClick={handleOpenDeleteModal}>회원탈퇴</button>
             </div>
           </div>
         );
@@ -286,6 +326,13 @@ function MyPage() {
       <div className="mypage-content">
         {renderContent()}
       </div>
+
+      {/* ✅ [추가] 모달 렌더링 */}
+      <DeleteModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleDeleteAccount} 
+      />
     </div>
   );
 }

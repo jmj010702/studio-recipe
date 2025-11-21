@@ -81,6 +81,7 @@ public class SecurityConfig {
                                     "/",
                                     "/api/mainPages",
                                     "/api/recipes/**",
+                                    "/api/search/**",
                                     "/api/admin/**",
                                     "/auth/**",
                                     "/batch/run-recipe-csv",

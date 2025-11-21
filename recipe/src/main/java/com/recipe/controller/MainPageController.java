@@ -26,10 +26,10 @@ public class MainPageController {
         log.info("GET /api/mainPages - 메인 페이지 데이터 요청");
         
         try {
-            // 추천 레시피 10개 (최신순)
-            List<RecipeResponseDTO> recommendedRecipes = recipeService.getRecommendedRecipes(10);
+            // ✅ 추천 레시피 50개로 변경 (5일 * 10개 = 50개 필요)
+            List<RecipeResponseDTO> recommendedRecipes = recipeService.getRecommendedRecipes(50);
             
-            // 인기 레시피 10개 (조회수 높은 순)
+            // 인기 레시피 10개 (조회수 높은 순) - 유지
             List<RecipeResponseDTO> topRecipes = recipeService.getTopRecipes(10);
             
             // 프론트엔드가 기대하는 형식으로 응답

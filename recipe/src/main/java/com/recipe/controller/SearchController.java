@@ -24,13 +24,13 @@ public class SearchController {
 
     /**
      * 레시피명 검색
-     * GET /api/search/title?q=김치찌개&page=0&size=20
+     * GET /api/search/title?q=김치찌개&page=0&size=15
      */
     @GetMapping("/title")
     public ResponseEntity<Page<RecipeResponseDTO>> searchByTitle(
             @RequestParam("q") String query,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
         
         log.info("레시피명 검색 요청 - query: {}, page: {}, size: {}", query, page, size);
         
@@ -42,13 +42,13 @@ public class SearchController {
 
     /**
      * 재료 검색 (알고리즘 사용)
-     * GET /api/search/ingredients?q=돼지고기,양파,마늘&page=0&size=20
+     * GET /api/search/ingredients?q=돼지고기,양파,마늘&page=0&size=15
      */
     @GetMapping("/ingredients")
     public ResponseEntity<Page<RecipeResponseDTO>> searchByIngredients(
             @RequestParam("q") String ingredients,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
         
         log.info("재료 검색 요청 - ingredients: {}, page: {}, size: {}", ingredients, page, size);
         
@@ -74,13 +74,13 @@ public class SearchController {
 
     /**
      * 개인화 추천 (로그인 사용자용)
-     * GET /api/search/recommendations?page=0&size=20
+     * GET /api/search/recommendations?page=0&size=15
      */
     @GetMapping("/recommendations")
     public ResponseEntity<Page<RecipeResponseDTO>> getRecommendations(
             @AuthenticationPrincipal CustomerDetails customer,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
         
         if (customer == null) {
             log.info("비로그인 사용자 - 인기 레시피 반환");

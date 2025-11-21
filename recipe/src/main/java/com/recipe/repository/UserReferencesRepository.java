@@ -5,6 +5,7 @@ import com.recipe.domain.entity.User;
 import com.recipe.domain.entity.UserReferences;
 import com.recipe.domain.entity.enums.PreferenceType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying; // 👈 import 추가
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -52,4 +53,9 @@ public interface UserReferencesRepository extends JpaRepository<UserReferences, 
      * 특정 사용자와 레시피, 선호도 타입으로 기록 삭제 (좋아요 취소용)
      */
     void deleteByUserAndRecipeAndPreference(User user, Recipe recipe, PreferenceType preference);
+
+    // ▼▼▼ [추가됨] 회원 탈퇴 시 참조 기록 일괄 삭제 ▼▼▼
+    @Modifying
+    @Query("DELETE FROM UserReferences ur WHERE ur.user.userId = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }
