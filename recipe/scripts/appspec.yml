@@ -1,0 +1,21 @@
+version: 0.0
+os: linux
+files:
+  - source: / # 배포 아티팩트의 모든 파일 (Jenkins에서 backend 폴더만 압축한 내용)
+    destination: /home/ubuntu/recipe # EC2 인스턴스의 배포 경로
+permissions:
+  - object: /home/ubuntu/recipe/scripts # scripts 폴더만 권한 부여
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+
+hooks:
+  BeforeInstall:
+    - location: scripts/stop_app.sh # appspec.yml 기준 상대 경로
+      timeout: 60
+      runas: ubuntu
+  ApplicationStart:
+    - location: scripts/start_app.sh # appspec.yml 기준 상대 경로
+      timeout: 180
+      runas: ubuntu
