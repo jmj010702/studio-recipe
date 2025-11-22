@@ -15,8 +15,8 @@ pipeline {
         S3_ARTIFACT_BUCKET = "recipe-app-codedeploy-artifacts-516175389011"
         
         // CodeDeploy 애플리케이션 및 배포 그룹
-        CODE_DEPLOY_APP_NAME = "recipe-app"
-        CODE_DEPLOY_DEPLOYMENT_GROUP_NAME = "recipe-app-blue-green-deployment-group" //그룹명
+        CODE_DEPLOY_APP_NAME = "recipe-app-codedeploy"
+        CODE_DEPLOY_DEPLOYMENT_GROUP_NAME = "recipe-app-webserver-tg" //그룹명
 
         SECRETS_MANAGER_SECRET_ID = "recipe-app-secrets" // Secret ID 통일
         
