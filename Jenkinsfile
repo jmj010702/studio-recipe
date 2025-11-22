@@ -1,5 +1,12 @@
 pipeline {
     agent any // Jenkins 워커 노드에서 실행
+    //agent {
+        // any -> node로 변경, retries 2는 Jenkins 재시작 등으로 빌드가 실패하면 최대 2번 시도
+        //node{
+            //label 'master'
+            //retries 2
+        //}
+    //}
 
     environment {
         ECR_REPO_NAME = "recipe-app" // ECR Repository
@@ -8,13 +15,13 @@ pipeline {
         S3_ARTIFACT_BUCKET = "recipe-app-codedeploy-artifacts-516175389011"
         
         // CodeDeploy 애플리케이션 및 배포 그룹
-        CODE_DEPLOY_APP_NAME = "recipe-app"
-        CODE_DEPLOY_DEPLOYMENT_GROUP_NAME = "recipe-app-blue-green-deployment-group" //그룹명
+        CODE_DEPLOY_APP_NAME = "recipe-app-codedeploy"
+        CODE_DEPLOY_DEPLOYMENT_GROUP_NAME = "recipe-app-webserver-tg" //그룹명
 
         SECRETS_MANAGER_SECRET_ID = "recipe-app-secrets" // Secret ID 통일
         
-        GITHUB_CREDENTIAL_ID = 'github-pat-for-jenkins'
-        AWS_CREDENTIAL_ID = 'jenkins-aws-credentials'
+        GITHUB_CREDENTIAL_ID = 'JG'
+        AWS_CREDENTIAL_ID = 'AWS'
     }
 
     stages {
@@ -32,7 +39,7 @@ pipeline {
                     dir('recipe') { // !!! 'recipe' 폴더로 이동 !!!
                         echo '   Building Spring Boot application with Gradle...'
                         sh 'chmod +x gradlew'
-                        sh './gradlew clean build'
+                        sh './gradlew clean build --stacktrace'
 
                         echo '3. Building Docker image for backend application...'
                         
