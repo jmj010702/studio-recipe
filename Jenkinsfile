@@ -20,8 +20,8 @@ pipeline {
 
         SECRETS_MANAGER_SECRET_ID = "recipe-app-secrets" // Secret ID 통일
         
-        GITHUB_CREDENTIAL_ID = 'github-pat-for-jenkins'
-        AWS_CREDENTIAL_ID = 'jenkins-aws-credentials'
+        GITHUB_CREDENTIAL_ID = 'JG'
+        AWS_CREDENTIAL_ID = 'AWS'
     }
 
     stages {
