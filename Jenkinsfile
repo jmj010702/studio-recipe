@@ -39,7 +39,7 @@ pipeline {
                     dir('recipe') { // !!! 'recipe' 폴더로 이동 !!!
                         echo '   Building Spring Boot application with Gradle...'
                         sh 'chmod +x gradlew'
-                        sh './gradlew clean build'
+                        sh './gradlew clean build --stacktrace'
 
                         echo '3. Building Docker image for backend application...'
                         
