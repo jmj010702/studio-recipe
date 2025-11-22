@@ -14,6 +14,10 @@ java {
 	}
 }
 
+bootJar {
+    archiveFileName = "app.jar" // 빌드 결과 JAR 파일명을 app.jar로 고정
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -59,3 +63,4 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
