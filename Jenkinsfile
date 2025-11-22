@@ -1,12 +1,12 @@
 pipeline {
-    //agent any // Jenkins 워커 노드에서 실행
-    agent {
+    agent any // Jenkins 워커 노드에서 실행
+    //agent {
         // any -> node로 변경, retries 2는 Jenkins 재시작 등으로 빌드가 실패하면 최대 2번 시도
-        node{
-            label 'master'
-            retries 2
-        }
-    }
+        //node{
+            //label 'master'
+            //retries 2
+        //}
+    //}
 
     environment {
         ECR_REPO_NAME = "recipe-app" // ECR Repository
