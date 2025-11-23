@@ -19,18 +19,22 @@ import java.time.LocalDateTime;
 public class Recipe {
     
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // ✅ 자동 증가 설정
     @Column(name = "RCP_SNO")
     private Long rcpSno;
 
-    @Column(name = "RCP_TTL", length = 200)  // ✅ 길이 제한 추가
+    @Column(name = "USER_ID")  // ✅ 작성자 ID 추가
+    private Long userId;
+
+    @Column(name = "RCP_TTL", length = 200)
     private String rcpTtl;
 
     @Column(name = "CKG_NM", length = 100)
     private String ckgNm;
 
     @Column(name = "INQ_CNT")
-    @ColumnDefault("0")  // ✅ 기본값 설정
-    @Builder.Default  // ✅ Builder 기본값
+    @ColumnDefault("0")
+    @Builder.Default
     private Integer inqCnt = 0;
 
     @Column(name = "RCMM_CNT")
@@ -63,7 +67,7 @@ public class Recipe {
     @Column(name = "FIRST_REG_DT")
     private LocalDateTime firstRegDt;
 
-    @Column(name = "RCP_IMG_URL", length = 500)  // ✅ URL 길이 제한
+    @Column(name = "RCP_IMG_URL", length = 500)
     private String rcpImgUrl;
 
     // ✅ 비즈니스 로직 메서드
@@ -86,5 +90,19 @@ public class Recipe {
             this.inqCnt = 0;
         }
         this.inqCnt++;
+    }
+    
+    // ✅ 등록 전 처리 (등록일 자동 설정)
+    @PrePersist
+    public void prePersist() {
+        if (this.firstRegDt == null) {
+            this.firstRegDt = LocalDateTime.now();
+        }
+        if (this.inqCnt == null) {
+            this.inqCnt = 0;
+        }
+        if (this.rcmmCnt == null) {
+            this.rcmmCnt = 0;
+        }
     }
 }

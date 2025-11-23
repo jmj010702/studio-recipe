@@ -7,7 +7,7 @@ import com.recipe.domain.dto.auth.CustomerDetails;
 import com.recipe.domain.entity.Recipe;
 import com.recipe.service.LikeService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@Slf4j
+@Log4j2
 @RequiredArgsConstructor
 public class LikeControllerImpl implements LikeController {
 

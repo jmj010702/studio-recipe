@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class RecipeDTO {
 
     private Long rcpSno;                // 레시피 고유 번호
+    private Long userId;                // ✅ 작성자 ID
     private String rcpTtl;              // 레시피 제목
     private String ckgNm;               // 요리명
     private Integer inqCnt;             // 조회수
@@ -33,6 +34,7 @@ public class RecipeDTO {
         if (recipe == null) return null;
         return RecipeDTO.builder()
                 .rcpSno(recipe.getRcpSno())
+                .userId(recipe.getUserId())
                 .rcpTtl(recipe.getRcpTtl())
                 .ckgNm(recipe.getCkgNm())
                 .inqCnt(recipe.getInqCnt())
@@ -53,10 +55,11 @@ public class RecipeDTO {
     public Recipe toEntity() {
         return Recipe.builder()
                 .rcpSno(rcpSno)
+                .userId(userId)
                 .rcpTtl(rcpTtl)
                 .ckgNm(ckgNm)
-                .inqCnt(inqCnt)
-                .rcmmCnt(rcmmCnt)
+                .inqCnt(inqCnt != null ? inqCnt : 0)
+                .rcmmCnt(rcmmCnt != null ? rcmmCnt : 0)
                 .ckgMthActoNm(ckgMthActoNm)
                 .ckgMtrlActoNm(ckgMtrlActoNm)
                 .ckgKndActoNm(ckgKndActoNm)
@@ -64,8 +67,10 @@ public class RecipeDTO {
                 .ckgInbunNm(ckgInbunNm)
                 .ckgDodfNm(ckgDodfNm)
                 .ckgTimeNm(ckgTimeNm)
-                .firstRegDt(firstRegDt)
+                .firstRegDt(firstRegDt != null ? firstRegDt : LocalDateTime.now())
                 .rcpImgUrl(rcpImgUrl)
                 .build();
     }
 }
+
+// ⚠️ 여기 아래에 다른 클래스가 있으면 모두 삭제하세요!

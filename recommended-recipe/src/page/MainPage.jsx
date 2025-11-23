@@ -50,8 +50,7 @@ function MainPage() {
     return shuffled;
   };
 
-  // ✅ [수정됨] 레시피 정렬 함수 
-  // 백엔드 필드명(inqCnt, rcmmCnt, firstRegDt)을 사용하여 정렬하도록 수정했습니다.
+  // ✅ 레시피 정렬 함수 (백엔드 필드명 사용)
   const sortRecipes = (recipes, type) => {
     if (!recipes || recipes.length === 0) return recipes;
     
@@ -60,17 +59,14 @@ function MainPage() {
     switch(type) {
       case 'views': // 조회수
         console.log('📊 조회수(inqCnt)로 정렬 중...');
-        // views -> inqCnt 로 변경
         return sorted.sort((a, b) => (b.inqCnt || 0) - (a.inqCnt || 0));
       
       case 'likes': // 추천수
         console.log('❤️ 추천수(rcmmCnt)로 정렬 중...');
-        // likes/likeCount -> rcmmCnt 로 변경
         return sorted.sort((a, b) => (b.rcmmCnt || 0) - (a.rcmmCnt || 0));
       
       case 'latest': // 최신순
         console.log('🆕 최신순(firstRegDt)으로 정렬 중...');
-        // createdAt/regDt -> firstRegDt 로 변경
         return sorted.sort((a, b) => {
           const dateA = new Date(a.firstRegDt || 0);
           const dateB = new Date(b.firstRegDt || 0);
@@ -91,9 +87,9 @@ function MainPage() {
     }
 
     const uniqueRecipes = recipes.reduce((acc, recipe) => {
-      // recipeId가 없으면 rcpSno를 사용
-      const id = recipe.recipeId || recipe.rcpSno;
-      const exists = acc.find(r => (r.recipeId || r.rcpSno) === id);
+      // ✅ rcpSno를 ID로 사용
+      const id = recipe.rcpSno;
+      const exists = acc.find(r => r.rcpSno === id);
       if (!exists) {
         acc.push(recipe);
       }
@@ -119,8 +115,9 @@ function MainPage() {
       const index = (offset + i) % uniqueRecipes.length;
       const recipe = shuffled[index];
       
-      const recipeId = recipe.recipeId || recipe.rcpSno;
-      const isDuplicate = selected.find(r => (r.recipeId || r.rcpSno) === recipeId);
+      // ✅ rcpSno를 ID로 사용
+      const recipeId = recipe.rcpSno;
+      const isDuplicate = selected.find(r => r.rcpSno === recipeId);
       
       if (!isDuplicate) {
         selected.push(recipe);
@@ -148,11 +145,10 @@ function MainPage() {
         
         const todayUniqueRecipes = get5DayUniqueRecipes(recommended, 10);
         
-        // 데이터 구조 확인용 로그 (개발자 도구에서 확인 가능)
+        // 데이터 구조 확인용 로그
         if (todayUniqueRecipes.length > 0) {
-            console.log('=== 첫 번째 레시피 데이터 확인 ===');
-            console.log(todayUniqueRecipes[0]); 
-            // 여기서 inqCnt, rcmmCnt, firstRegDt 가 있는지 확인해보세요.
+          console.log('=== 첫 번째 레시피 데이터 확인 ===');
+          console.log(todayUniqueRecipes[0]); 
         }
 
         setTodayRecipes(todayUniqueRecipes); 

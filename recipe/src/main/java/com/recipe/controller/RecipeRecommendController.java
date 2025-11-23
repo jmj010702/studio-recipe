@@ -21,7 +21,8 @@ public class RecipeRecommendController {
     @GetMapping("/{userId}")
     public ResponseEntity<?> getRecommendations(@PathVariable Long userId) {
 
-        userRepository.findById(userId)
+        // ✅ findById → findByUserId로 수정
+        userRepository.findByUserId(userId)
                 .orElseThrow(() -> UserExceptions.NOT_FOUND.getUserException("해당 사용자를 찾을 수 없습니다."));
 
         RecipeResponseDto response = recommendService.getRecommendedRecipes(userId);

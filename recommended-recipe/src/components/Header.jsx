@@ -24,17 +24,23 @@ function Header() {
     setIsLoggedIn(!!token);
   }, [location]);
 
-  // 검색 제출
+  // ✅ [수정 1] 검색 제출 (엔터 or 돋보기 클릭)
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}&type=title`);
+    const term = searchTerm.trim();
+    if (term) {
+      // 콤마(,)가 있으면 '재료 검색'으로, 없으면 '제목 검색'으로 이동
+      const searchType = term.includes(',') ? 'ingredients' : 'title';
+      
+      console.log(`🔍 검색 실행: "${term}" (타입: ${searchType})`);
+      
+      navigate(`/search?q=${encodeURIComponent(term)}&type=${searchType}`);
       setSearchResults([]);
       setSearchTerm('');
     }
   };
 
-  // 자동완성 검색
+  // ✅ [수정 2] 자동완성 검색 (스마트 감지)
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -49,9 +55,16 @@ function Header() {
     debounceTimerRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await api.get('/api/search/title', {
+        const term = searchTerm.trim();
+        // 콤마가 있으면 재료 검색 API, 없으면 제목 검색 API 호출
+        const isIngredientSearch = term.includes(',');
+        const endpoint = isIngredientSearch ? '/api/search/ingredients' : '/api/search/title';
+        
+        console.log(`🔍 자동완성 API 호출 (${isIngredientSearch ? '재료' : '제목'}):`, term);
+        
+        const response = await api.get(endpoint, {
           params: { 
-            q: searchTerm.trim(), 
+            q: term, 
             page: 0,
             size: 5 
           }
@@ -89,9 +102,9 @@ function Header() {
     navigate('/');
   };
 
-  // 프로필 아이콘 클릭 (드롭다운 토글)
+  // 프로필 아이콘 클릭
   const handleProfileIconClick = (e) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
+    e.stopPropagation();
     if (isLoggedIn) {
       setIsDropdownOpen(prev => !prev);
     } else {
@@ -106,7 +119,7 @@ function Header() {
     setSearchTerm('');
   };
 
-  // 외부 클릭 감지 (드롭다운 닫기)
+  // 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -120,11 +133,11 @@ function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 페이지 이동 시 검색창/드롭다운 초기화
+  // 페이지 이동 시 초기화
   useEffect(() => {
     setSearchTerm('');
     setSearchResults([]); 
-    setIsDropdownOpen(false); // 페이지 이동하면 드롭다운 닫기
+    setIsDropdownOpen(false);
   }, [location.pathname]);
 
   return (
@@ -138,7 +151,7 @@ function Header() {
           <form className="search-bar" onSubmit={handleSearchSubmit}>
             <input 
               type="text" 
-              placeholder="레시피 검색..." 
+              placeholder="레시피명 또는 재료(쉼표로 구분)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               autoComplete="off"
@@ -175,7 +188,9 @@ function Header() {
                     onClick={handleSearchSubmit}
                   >
                     <FaSearch className="search-icon" />
-                    <span className="view-all-text">"{searchTerm}" 전체 검색 결과 보기</span>
+                    <span className="view-all-text">
+                      "{searchTerm}" 전체 검색 결과 보기
+                    </span>
                   </div>
                 </>
               ) : null}
@@ -204,21 +219,18 @@ function Header() {
 
             {isLoggedIn && isDropdownOpen && (
               <div className="profile-dropdown">
-                {/* ▼▼▼ [수정된 핵심 부분] Link 제거하고 div + onClick으로 변경 ▼▼▼ */}
                 <div 
                   className="dropdown-item" 
                   onClick={(e) => {
                     e.preventDefault();
-                    e.stopPropagation(); // 이벤트 전파 막기 (드롭다운 닫힘 방지)
-                    console.log("🚀 My 버튼 클릭됨 -> 이동합니다.");
+                    e.stopPropagation();
                     setIsDropdownOpen(false);
                     navigate('/mypage');
                   }}
-                  style={{ cursor: 'pointer' }} // 마우스 커서를 손가락 모양으로
+                  style={{ cursor: 'pointer' }}
                 >
                   <VscAccount /> My
                 </div>
-                {/* ▲▲▲ [수정 완료] ▲▲▲ */}
                 
                 <div className="dropdown-item disabled">
                   <FaBell /> 알림

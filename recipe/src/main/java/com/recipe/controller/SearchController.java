@@ -24,13 +24,12 @@ public class SearchController {
 
     /**
      * 레시피명 검색
-     * GET /api/search/title?q=김치찌개&page=0&size=15
      */
     @GetMapping("/title")
     public ResponseEntity<Page<RecipeResponseDTO>> searchByTitle(
             @RequestParam("q") String query,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
+            @RequestParam(defaultValue = "16") int size) {
         
         log.info("레시피명 검색 요청 - query: {}, page: {}, size: {}", query, page, size);
         
@@ -41,14 +40,14 @@ public class SearchController {
     }
 
     /**
-     * 재료 검색 (알고리즘 사용)
-     * GET /api/search/ingredients?q=돼지고기,양파,마늘&page=0&size=15
+     * 재료 검색 (교집합 필터링)
+     * 입력: "돼지고기,양파,마늘" -> 돼지고기 AND 양파 AND 마늘 포함하는 레시피만 반환
      */
     @GetMapping("/ingredients")
     public ResponseEntity<Page<RecipeResponseDTO>> searchByIngredients(
             @RequestParam("q") String ingredients,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
+            @RequestParam(defaultValue = "16") int size) {
         
         log.info("재료 검색 요청 - ingredients: {}, page: {}, size: {}", ingredients, page, size);
         
@@ -60,7 +59,6 @@ public class SearchController {
 
     /**
      * 재료 자동완성
-     * GET /api/search/ingredients/suggestions?q=돼
      */
     @GetMapping("/ingredients/suggestions")
     public ResponseEntity<List<String>> getIngredientSuggestions(
@@ -74,17 +72,15 @@ public class SearchController {
 
     /**
      * 개인화 추천 (로그인 사용자용)
-     * GET /api/search/recommendations?page=0&size=15
      */
     @GetMapping("/recommendations")
     public ResponseEntity<Page<RecipeResponseDTO>> getRecommendations(
             @AuthenticationPrincipal CustomerDetails customer,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "16") int size) {  // 🔥 15개로 변경
+            @RequestParam(defaultValue = "16") int size) {
         
         if (customer == null) {
             log.info("비로그인 사용자 - 인기 레시피 반환");
-            // 비로그인 시 빈 페이지 또는 인기 레시피 반환
             return ResponseEntity.ok(Page.empty());
         }
         

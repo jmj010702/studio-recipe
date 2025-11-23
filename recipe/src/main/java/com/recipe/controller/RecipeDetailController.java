@@ -6,7 +6,7 @@ import com.recipe.exceptions.recipe.RecipeException;
 import com.recipe.service.RecipeService;
 import com.recipe.service.LikeService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,7 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/details")
 @RequiredArgsConstructor
-@Slf4j
+@Log4j2
 public class RecipeDetailController {
     
     private final RecipeService recipeService;

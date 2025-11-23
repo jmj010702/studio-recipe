@@ -67,7 +67,7 @@ function RecipeWritePage() {
       
       // 💡 (실제) API 호출 활성화
       // (엔드포인트는 백엔드와 협의 필요. /api/recipes/new는 예시)
-      await api.post('/api/recipes/new', recipeData); 
+      await api.post('/api/recipes/write', recipeData); 
       
       alert('레시피가 성공적으로 등록되었습니다!');
       navigate('/mypage'); // 등록 후 마이페이지로 이동
@@ -171,5 +171,34 @@ function RecipeWritePage() {
     </div>
   );
 }
+
+const handleSubmit = async () => {
+    // 1. 데이터 유효성 검사
+    if (!title || !description) {
+      alert("제목과 소개를 입력해주세요.");
+      return;
+    }
+
+    // 2. 전송할 데이터 객체 만들기
+    const recipeData = {
+      title: title,
+      description: description,
+      ingredients: ingredients, // [{name, amount, unit, note}, ...]
+      videoUrl: videoUrl,
+      tags: tags
+    };
+
+    try {
+      // 3. 백엔드로 전송 (POST)
+      await api.post('/api/recipes/write', recipeData);
+      
+      alert("레시피가 등록되었습니다!");
+      navigate('/'); // 메인 페이지로 이동 (또는 마이페이지)
+      
+    } catch (error) {
+      console.error("등록 실패:", error);
+      alert("레시피 등록 중 오류가 발생했습니다.");
+    }
+  };
 
 export default RecipeWritePage;

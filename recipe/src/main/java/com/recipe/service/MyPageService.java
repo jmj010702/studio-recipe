@@ -1,5 +1,6 @@
 package com.recipe.service;
 
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.mypage.MyPageResponseDto;
 import com.recipe.domain.entity.Recipe;
 import com.recipe.domain.entity.User;
@@ -28,7 +29,7 @@ public class MyPageService {
     private final UserReferencesRepository userReferencesRepository;
 
     /**
-     * 마이페이지 데이터 조회
+     * 마이페이지 데이터 조회 (username 기반)
      * @param username 사용자 ID (Spring Security의 username)
      * @return 마이페이지 응답 DTO
      */
@@ -47,12 +48,49 @@ public class MyPageService {
         
         log.info("좋아요 레시피 조회 완료 - {}개", likedRecipes.size());
         
-        // 3. 내가 작성한 레시피 목록 조회 (추후 구현)
-        List<Recipe> authoredRecipes = new ArrayList<>();
+        // 3. 내가 작성한 레시피 목록 조회
+        List<Recipe> authoredRecipes = getAuthoredRecipes(user.getUserId());
         
+        log.info("작성 레시피 조회 완료 - {}개", authoredRecipes.size());
         log.info("마이페이지 데이터 조회 완료 - userId: {}", user.getUserId());
         
         return MyPageResponseDto.of(user, likedRecipes, authoredRecipes);
+    }
+
+    /**
+     * 마이페이지 정보 조회 (userId 기반) - Controller에서 직접 호출
+     * @param userId 사용자 고유 ID
+     * @return 마이페이지 응답 DTO
+     */
+    public MyPageResponseDto getMyPageInfo(Long userId) {
+        log.info("마이페이지 정보 조회 - userId: {}", userId);
+        
+        // 1. 사용자 조회 (userId로)
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. userId: " + userId));
+        
+        // 2. 좋아요 누른 레시피 목록 조회
+        List<Recipe> likedRecipes = getLikedRecipes(userId);
+        
+        // 3. 내가 작성한 레시피 목록 조회
+        List<Recipe> authoredRecipes = getAuthoredRecipes(userId);
+        
+        return MyPageResponseDto.of(user, likedRecipes, authoredRecipes);
+    }
+
+    /**
+     * 내가 작성한 레시피 목록 조회 (userId 기반) - Controller에서 직접 호출
+     * @param userId 사용자 고유 ID
+     * @return 작성한 레시피 DTO 리스트
+     */
+    public List<RecipeResponseDTO> getMyRecipes(Long userId) {
+        log.info("내 레시피 목록 조회 - userId: {}", userId);
+        
+        List<Recipe> myRecipes = getAuthoredRecipes(userId);
+        
+        return myRecipes.stream()
+                .map(RecipeResponseDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -68,5 +106,15 @@ public class MyPageService {
         return userReferences.stream()
                 .map(UserReferences::getRecipe)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 내가 작성한 레시피 목록 조회
+     * @param userId 사용자 ID
+     * @return 작성한 레시피 리스트
+     */
+    private List<Recipe> getAuthoredRecipes(Long userId) {
+        List<Recipe> recipes = recipeRepository.findByUserId(userId);
+        return recipes != null ? recipes : new ArrayList<>();
     }
 }

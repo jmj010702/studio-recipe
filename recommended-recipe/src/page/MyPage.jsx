@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaThList, FaStar, FaCommentDots, FaBookOpen, FaSearch, FaHeart } from 'react-icons/fa';
 import api from '../api/axios'; 
-import DeleteModal from '../components/DeleteModal'; // ✅ [추가] 모달 import (파일이 없다면 만들어야 함)
+import DeleteModal from '../components/DeleteModal';
 import './MyPage.css'; 
 
 function MyPage() {
@@ -16,7 +16,6 @@ function MyPage() {
   const [activeMenu, setActiveMenu] = useState('editProfile');
   const [subTab, setSubTab] = useState('draft');
 
-  // ✅ [추가] 탈퇴 모달 상태 관리
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   useEffect(() => {
@@ -29,21 +28,29 @@ function MyPage() {
 
     const fetchMyPageData = async () => {
       try {
+        // 1. 기본 마이페이지 정보 조회
         const response = await api.get('/api/mypages/me'); 
         const data = response.data;
         
-        console.log('API 응답:', data);
+        console.log('✅ API 응답:', data);
 
         setUserInfo(data.userInfo);
         const liked = data.likedList || [];
         setLikedList(liked);
         setSavedList(liked);
-        setAuthoredList(data.authoredList || []);
         
-        console.log('좋아요한 레시피:', liked.length, '개');
+        console.log('📦 좋아요한 레시피:', liked.length, '개');
+        if (liked.length > 0) {
+          console.log('📋 첫 번째 레시피:', liked[0]);
+        }
+        
+        // 2. 내가 작성한 레시피 별도 조회
+        const myRecipesResponse = await api.get('/api/mypages/my-recipes');
+        console.log('✅ 내가 작성한 레시피:', myRecipesResponse.data);
+        setAuthoredList(myRecipesResponse.data || []);
       
       } catch (error) {
-        console.error('마이페이지 정보 조회 실패:', error);
+        console.error('❌ 마이페이지 정보 조회 실패:', error);
         alert('정보를 불러오는 데 실패했습니다. 다시 로그인해주세요.');
         localStorage.removeItem('accessToken'); 
         navigate('/login');
@@ -57,26 +64,41 @@ function MyPage() {
     navigate('/recipe/write'); 
   };
 
-  const handleRecipeClick = (recipeId) => {
+  // ✅ recipeId를 안전하게 가져오는 함수
+  const getRecipeId = (recipe) => {
+    return recipe.recipeId || recipe.rcpSno || recipe.id;
+  };
+
+  // ✅ 필드명 호환성 함수들
+  const getTitle = (recipe) => recipe.title || recipe.rcpTtl || '제목 없음';
+  const getImageUrl = (recipe) => recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg';
+  const getViewCount = (recipe) => recipe.viewCount || recipe.inqCnt || 0;
+  const getLikeCount = (recipe) => recipe.likeCount || recipe.rcmmCnt || 0;
+
+  const handleRecipeClick = (recipe) => {
+    const recipeId = getRecipeId(recipe);
+    if (!recipeId) {
+      console.error('❌ recipeId를 찾을 수 없습니다:', recipe);
+      alert('레시피 정보를 불러올 수 없습니다.');
+      return;
+    }
+    console.log('🔗 레시피 클릭:', recipeId);
     navigate(`/details/${recipeId}`);
   };
 
-  // ✅ [추가] 모달 열기 핸들러
   const handleOpenDeleteModal = () => {
     setIsDeleteModalOpen(true);
   };
 
-  // ✅ [추가] 실제 회원 탈퇴 요청 핸들러 (모달에서 호출됨)
   const handleDeleteAccount = async (password) => {
     try {
       await api.delete('/user/delete', {
-        data: { password: password } // body에 비밀번호 포함
+        data: { password: password }
       });
 
       alert('회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.');
-      setIsDeleteModalOpen(false); // 모달 닫기
+      setIsDeleteModalOpen(false);
       
-      // 로그아웃 처리 및 홈 이동
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       navigate('/');
@@ -109,7 +131,6 @@ function MyPage() {
                 <span className="form-label">아이디(이메일)</span>
                 <div className="form-value-wrapper">
                   <span className="form-value">{userInfo.email}</span> 
-                  {/* 기능 없다면 제거 가능 */}
                   <button type="button" className="btn-inline">이메일 변경</button>
                 </div>
               </div>
@@ -148,8 +169,6 @@ function MyPage() {
             </div>
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={() => navigate('/')}>나가기</button>
-              
-              {/* ✅ [수정] onClick 핸들러 연결 */}
               <button type="button" className="btn-danger" onClick={handleOpenDeleteModal}>회원탈퇴</button>
             </div>
           </div>
@@ -189,15 +208,19 @@ function MyPage() {
                 ) : (
                   <div className="recipes-grid">
                     {authoredList.map(recipe => (
-                      <div key={recipe.recipeId} className="recipe-card" onClick={() => handleRecipeClick(recipe.recipeId)}>
+                      <div 
+                        key={getRecipeId(recipe)} 
+                        className="recipe-card" 
+                        onClick={() => handleRecipeClick(recipe)}
+                      >
                         <div className="recipe-image-wrapper">
-                          <img src={recipe.imageUrl} alt={recipe.title} />
+                          <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
                         </div>
                         <div className="recipe-info">
-                          <h4>{recipe.title}</h4>
+                          <h4>{recipe.title || recipe.rcpTtl}</h4>
                           <div className="recipe-stats">
-                            <span>👁️ {recipe.viewCount || 0}</span>
-                            <span>❤️ {recipe.likeCount || 0}</span>
+                            <span>👁️ {recipe.viewCount || recipe.inqCnt || 0}</span>
+                            <span>❤️ {recipe.likeCount || recipe.rcmmCnt || 0}</span>
                           </div>
                         </div>
                       </div>
@@ -228,18 +251,22 @@ function MyPage() {
             ) : (
               <div className="recipes-grid">
                 {likedList.map(recipe => (
-                  <div key={recipe.recipeId} className="recipe-card" onClick={() => handleRecipeClick(recipe.recipeId)}>
+                  <div 
+                    key={getRecipeId(recipe)} 
+                    className="recipe-card" 
+                    onClick={() => handleRecipeClick(recipe)}
+                  >
                     <div className="recipe-image-wrapper">
-                      <img src={recipe.imageUrl} alt={recipe.title} />
+                      <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
                       <div className="like-badge">
                         <FaHeart />
                       </div>
                     </div>
                     <div className="recipe-info">
-                      <h4>{recipe.title}</h4>
+                      <h4>{recipe.title || recipe.rcpTtl}</h4>
                       <div className="recipe-stats">
-                        <span>👁️ {recipe.viewCount || 0}</span>
-                        <span>❤️ {recipe.likeCount || 0}</span>
+                        <span>👁️ {recipe.viewCount || recipe.inqCnt || 0}</span>
+                        <span>❤️ {recipe.likeCount || recipe.rcmmCnt || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -264,18 +291,22 @@ function MyPage() {
             ) : (
               <div className="recipes-grid">
                 {savedList.map(recipe => (
-                  <div key={recipe.recipeId} className="recipe-card" onClick={() => handleRecipeClick(recipe.recipeId)}>
+                  <div 
+                    key={getRecipeId(recipe)} 
+                    className="recipe-card" 
+                    onClick={() => handleRecipeClick(recipe)}
+                  >
                     <div className="recipe-image-wrapper">
-                      <img src={recipe.imageUrl} alt={recipe.title} />
+                      <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
                       <div className="saved-badge">
                         <FaStar />
                       </div>
                     </div>
                     <div className="recipe-info">
-                      <h4>{recipe.title}</h4>
+                      <h4>{recipe.title || recipe.rcpTtl}</h4>
                       <div className="recipe-stats">
-                        <span>👁️ {recipe.viewCount || 0}</span>
-                        <span>❤️ {recipe.likeCount || 0}</span>
+                        <span>👁️ {recipe.viewCount || recipe.inqCnt || 0}</span>
+                        <span>❤️ {recipe.likeCount || recipe.rcmmCnt || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -327,7 +358,6 @@ function MyPage() {
         {renderContent()}
       </div>
 
-      {/* ✅ [추가] 모달 렌더링 */}
       <DeleteModal 
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)} 

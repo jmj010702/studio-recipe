@@ -2,14 +2,13 @@ package com.recipe.controller.inter;
 
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.domain.dto.auth.CustomerDetails;
+import com.recipe.domain.dto.RecipeCreateDTO;  // ✅ 수정
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
 
 @Tag(name = "레시피", description = "레시피에 대한 API 명세서")
 public interface RecipeController {
@@ -44,4 +43,12 @@ public interface RecipeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     );
+
+    @Operation(summary = "레시피 작성", description = "새로운 레시피를 작성합니다",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "작성 성공"),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+                    @ApiResponse(responseCode = "401", description = "인증 실패")
+            })
+    public ResponseEntity<?> writeRecipe(@RequestBody RecipeCreateDTO request, CustomerDetails customer);  // ✅ 수정
 }
