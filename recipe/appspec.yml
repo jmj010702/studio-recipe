@@ -1,8 +1,9 @@
+
 version: 0.0
 os: linux
 files:
-  - source: /scripts # CodeDeploy 아티팩트 내의 scripts 폴더
-    destination: /home/ubuntu/scripts # EC2 인스턴스의 특정 경로로 복사
+  - source: /scripts
+    destination: /home/ubuntu/scripts
 
 permissions:
   - object: /home/ubuntu/scripts
@@ -10,7 +11,6 @@ permissions:
     owner: ubuntu
     group: ubuntu
     mode: 755
-  # 개별 스크립트에 실행 권한 부여 (필수)
   - object: /home/ubuntu/scripts/stop_container.sh
     mode: 755
   - object: /home/ubuntu/scripts/clean_old_images.sh
@@ -21,26 +21,21 @@ permissions:
     mode: 755
 
 hooks:
-  # 애플리케이션 중지 (이전 컨테이너 중지)
   ApplicationStop:
     - location: scripts/stop_container.sh
       timeout: 60
       runas: ubuntu
-  # BeforeInstall 단계: 새 이미지 풀 전에 이전 Docker 이미지들 정리
   BeforeInstall:
     - location: scripts/clean_old_images.sh
       timeout: 60
       runas: ubuntu
-  # ApplicationStart 단계: Docker 컨테이너 실행
   ApplicationStart:
     - location: scripts/start_container.sh
-      timeout: 300 # 컨테이너 시작 및 이미지 다운로드에 충분한 시간 할당
+      timeout: 300
       runas: ubuntu
       arguments:
-        # 이 변수가 start_container.sh 스크립트 내부에서 $ECR_IMAGE로 접근됩니다.
         ECR_IMAGE: "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app:{{BUILD_NUMBER}}"
-  # 서비스 유효성 검사 (헬스 체크)
   ValidateService:
     - location: scripts/validate_service.sh
-      timeout: 180 # 헬스 체크가 성공할 때까지 대기
+      timeout: 180
       runas: ubuntu
