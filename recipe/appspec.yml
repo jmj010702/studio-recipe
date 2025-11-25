@@ -1,13 +1,22 @@
-
 version: 0.0
 os: linux
 files:
   - source: /scripts
     destination: /home/ubuntu/scripts
+  # 새로 추가: 모든 애플리케이션 파일을 /home/ubuntu/app 경로로 복사
+  - source: / # S3 번들(.zip)의 루트에 있는 모든 파일 (즉, .jar 파일)
+    destination: /home/ubuntu/app # 이 경로에 복사
+    #permissions 섹션에 /home/ubuntu/app 에 대한 소유권 및 권한 설정을 추가하는 것이 안전
 
 permissions:
   - object: /home/ubuntu/scripts
     pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+  # /home/ubuntu/app 디렉토리에 대한 권한
+  - object: /home/ubuntu/app
+    pattern: "**" # 모든 하위 파일 및 디렉토리
     owner: ubuntu
     group: ubuntu
     mode: 755
