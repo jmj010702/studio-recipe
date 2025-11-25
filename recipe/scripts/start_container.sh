@@ -3,23 +3,14 @@ set -eux
 
 echo "--- Starting Application: recipe-app-container ---"
 
-ECR_IMAGE="" 
-
-for arg in "$@"; do
-  if [[ "$arg" == "--ECR_IMAGE="* ]]; then
-    ECR_IMAGE="${arg#*=}"
-    break
-  fi
-done
-
-echo "DEBUG: Parsed ECR_IMAGE from arguments: $ECR_IMAGE"
-: "${ECR_IMAGE:?ERROR: ECR_IMAGE variable was not provided or is empty after parsing arguments.}"
+echo "DEBUG: ECR_IMAGE environment variable: $ECR_IMAGE"
+: "${ECR_IMAGE:?ERROR: ECR_IMAGE environment variable is empty. Check Jenkinsfile for correct BUILD_NUMBER substitution.}"
 
 
+# Docker 로그인 및 이미지 다운로드
 echo "DEBUG: Logging in to ECR..."
-
 aws ecr get-login-password --region ap-northeast-2 \
-| sudo docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com || true 
+| sudo docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com || true
 
 echo "DEBUG: Pulling Docker image: $ECR_IMAGE"
 sudo docker pull "$ECR_IMAGE" || (echo "ERROR: Failed to pull Docker image: $ECR_IMAGE. Exiting." && exit 1)
@@ -33,11 +24,11 @@ DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
 DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
 DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
 
-MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME') 
-MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD') 
+MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
+MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
 
 REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
-REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST') 
+REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
 
 MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
@@ -46,7 +37,7 @@ ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL
 ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
 ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
 
-ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}" 
+ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
 ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
 
 ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
@@ -54,9 +45,10 @@ ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 
 ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" # prod 프로파일 활성화
+ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" 
 
 
+#  기존 컨테이너 정리 로직
 CONTAINER_NAME="recipe-app-container"
 echo "DEBUG: Checking for existing container '$CONTAINER_NAME'..."
 if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -68,7 +60,7 @@ else
 fi
 
 
-# 5 새 Docker 컨테이너 실행
+# 새 Docker 컨테이너 실행
 echo "DEBUG: Running new Docker container '$CONTAINER_NAME' with image '$ECR_IMAGE' and environment variables..."
 sudo docker run -d \
   -p 8080:8080 \
@@ -80,13 +72,12 @@ sudo docker run -d \
   $ENV_ARGS \
   "$ECR_IMAGE"
 
-echo "🚀 Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
-# ================================================================
+echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
 
 
-# 6 컨테이너 시작 상태 확인 (디버깅용)
+# 컨테이너 시작 상태 확인 (디버깅용)
 echo "DEBUG: Docker container command issued. Giving it some time to start up..."
-sleep 5 
+sleep 5
 
 echo "DEBUG: Current Docker processes:"
 sudo docker ps -a
