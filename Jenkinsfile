@@ -1,113 +1,92 @@
-pipeline {
-    agent any // Jenkins 워커 노드에서 실행
-    //agent {
-        // any -> node로 변경, retries 2는 Jenkins 재시작 등으로 빌드가 실패하면 최대 2번 시도
-        //node{
-            //label 'master'
-            //retries 2
-        //}
-    //}
+#!/bin/bash
+set -eux 
 
-    environment {
-        ECR_REPO_NAME = "recipe-app" // ECR Repository
-        ECR_REPO_URL = "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/${ECR_REPO_NAME}"
-        AWS_REGION = "ap-northeast-2"
-        S3_ARTIFACT_BUCKET = "recipe-app-codedeploy-artifacts-516175389011"
-        
-        // CodeDeploy 애플리케이션 및 배포 그룹
-        CODE_DEPLOY_APP_NAME = "recipe-app-codedeploy"
-        CODE_DEPLOY_DEPLOYMENT_GROUP_NAME = "recipe-app-webserver-tg" //그룹명
+echo "--- Starting Application: recipe-app-container ---"
 
-        SECRETS_MANAGER_SECRET_ID = "recipe-app-secrets" // Secret ID 통일
-        
-        GITHUB_CREDENTIAL_ID = 'JG'
-        AWS_CREDENTIAL_ID = 'AWS'
-    }
+echo "DEBUG: ECR_IMAGE environment variable: $ECR_IMAGE"
+: "${ECR_IMAGE:?ERROR: ECR_IMAGE environment variable is empty. Check Jenkinsfile for correct BUILD_NUMBER substitution.}"
+# ================================================================
 
-    stages {
-        stage('Checkout Source') {
-            steps {
-                echo '1. Checking out source code from GitHub...'
-                git branch: 'main', credentialsId: GITHUB_CREDENTIAL_ID, url: 'https://github.com/stayonasDev/studio-recipe.git'
-            }
-        }
 
-        stage('Build Application & Docker Image') {
-            steps {
-                script {
-                    echo '2. Navigating to recipe directory...'
-                    dir('recipe') { // !!! 'recipe' 폴더로 이동 !!!
-                        echo '   Building Spring Boot application with Gradle...'
-                        sh 'chmod +x gradlew'
-                        sh './gradlew clean build --stacktrace'
+# ================================================================
+# Docker 로그인 및 이미지 다운로드
+echo "DEBUG: Logging in to ECR..."
+aws ecr get-login-password --region ap-northeast-2 \
+| sudo docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com || true
 
-                        echo '3. Building Docker image for backend application...'
-                        
-                        withAWS(credentials: AWS_CREDENTIAL_ID, region: AWS_REGION) {
-                            sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO_URL}"
-                            sh "docker build -t ${ECR_REPO_URL}:${env.BUILD_NUMBER} ."
-                            sh "docker push ${ECR_REPO_URL}:${env.BUILD_NUMBER}"
-                        }
-                    }
-                }
-            }
-        }
+echo "DEBUG: Pulling Docker image: $ECR_IMAGE"
+sudo docker pull "$ECR_IMAGE" || (echo "ERROR: Failed to pull Docker image: $ECR_IMAGE. Exiting." && exit 1)
 
-        stage('Fetch Secrets for Deployment') {
-            steps {
-                script {
-                    echo '4. Fetching application secrets from AWS Secrets Manager...'
-                    withAWS(credentials: AWS_CREDENTIAL_ID, region: AWS_REGION) {
-                        def secretsJson = sh(returnStdout: true, script: "aws secretsmanager get-secret-value --secret-id ${SECRETS_MANAGER_SECRET_ID} --query SecretString --output text")
-                        def secrets = readJSON text: secretsJson
-                        
-                        def envVarsString = ''
-                        secrets.each { key, value ->
-                            envVarsString += "-e ${key}=\"${value}\" "
-                        }
-                        env.ENV_VARS_FOR_DOCKER = envVarsString.trim()
-                        echo "Secrets fetched and prepared for Docker: ${env.ENV_VARS_FOR_DOCKER.minus(~/DATABASE_PASSWORD="[^"]*"/).minus(~/MY_APP_SECRET="[^"]*"/)}"
-                    }
-                }
-            }
-        }
 
-        stage('Deploy Application with CodeDeploy') {
-            steps {
-                script {
-                    echo '5. Deploying backend application to EC2 via CodeDeploy (Blue/Green Mode)...'
-                    withAWS(credentials: AWS_CREDENTIAL_ID, region: AWS_REGION) {
-                        def s3Key = "recipe-app/${env.BUILD_NUMBER}.zip"
-                        
-                        // `recipe` 폴더만 압축 (appspec.yml과 scripts 폴더 포함)
-                        sh "zip -r recipe-app.zip recipe -x 'recipe/.git*' -x 'recipe/.jenkins*'"
-                        
-                        sh "aws s3 cp recipe-app.zip s3://${S3_ARTIFACT_BUCKET}/${s3Key}"
+# Secrets Manager에서 환경 변수 가져오기
+echo "DEBUG: Fetching secrets from AWS Secrets Manager..."
+SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id recipe-app-secrets --query SecretString --output text --region ap-northeast-2)
 
-                        sh """
-                            aws deploy create-deployment \
-                                --application-name ${CODE_DEPLOY_APP_NAME} \
-                                --deployment-group-name ${CODE_DEPLOY_DEPLOYMENT_GROUP_NAME} \
-                                --deployment-config-name CodeDeployDefault.OneAtATime \
-                                --description "Blue/Green Deployment triggered by Jenkins build ${env.BUILD_NUMBER}" \
-                                --s3-location bucket=${S3_ARTIFACT_BUCKET},key=${s3Key},bundleType=zip \
-                                --region ${AWS_REGION}
-                        """
-                        echo "CodeDeploy Blue/Green deployment initiated."
-                    }
-                }
-            }
-        }
-    }
-    post {
-        always {
-            echo 'CI/CD Pipeline finished.'
-        }
-        success {
-            echo 'Blue/Green Deployment successful! Check your application via ALB DNS.'
-        }
-        failure {
-            echo 'Blue/Green Deployment failed. Check Jenkins logs and CodeDeploy console.'
-        }
-    }
-}
+DB_HOST=$(echo "$SECRET_STRING" | jq -r '.DATABASE_HOST')
+DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
+DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
+DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
+
+MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
+MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
+
+REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
+REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
+
+MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
+
+# ENV_ARGS 문자열 빌드
+ENV_ARGS=""
+ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
+ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
+ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
+
+ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
+ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
+
+ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
+ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
+
+ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
+
+ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" 
+
+
+# 기존 컨테이너 정리 로직
+CONTAINER_NAME="recipe-app-container"
+echo "DEBUG: Checking for existing container '$CONTAINER_NAME'..."
+if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "DEBUG: Stopping and removing existing container: $CONTAINER_NAME"
+  sudo docker stop "$CONTAINER_NAME" || true
+  sudo docker rm "$CONTAINER_NAME" || true
+else
+  echo "DEBUG: No existing container '$CONTAINER_NAME' found. Skipping stop/remove."
+fi
+
+
+# 새 Docker 컨테이너 실행
+echo "DEBUG: Running new Docker container '$CONTAINER_NAME' with image '$ECR_IMAGE' and environment variables..."
+sudo docker run -d \
+  -p 8080:8080 \
+  --name "$CONTAINER_NAME" \
+  --health-cmd="curl -f http://localhost:8080/studio-recipe/health || exit 1" \
+  --health-interval=30s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  $ENV_ARGS \
+  "$ECR_IMAGE"
+
+echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
+
+
+echo "DEBUG: Docker container command issued. Giving it some time to start up..."
+sleep 5
+
+echo "DEBUG: Current Docker processes:"
+sudo docker ps -a
+
+echo "DEBUG: Checking Docker container logs for initial startup messages..."
+sudo docker logs "$CONTAINER_NAME" --tail 50
+# ================================================================
+
+echo "--- ApplicationStart script finished ---"
