@@ -25,8 +25,12 @@ pipeline {
         stage('Build Spring Boot Application') {
             steps {
                 echo "--- Building Spring Boot application ---"
-                // 'clean build'를 통해 빌드 전 깨끗하게 정리하고 새로 빌드
-                sh "./gradlew clean build"
+                script {
+                    // gradlew 스크립트에 실행 권한 부여 (Permission denied 오류 해결)
+                    sh "chmod +x gradlew"
+                    // Spring Boot 애플리케이션 빌드
+                    sh "./gradlew clean build"
+                }
             }
         }
 
