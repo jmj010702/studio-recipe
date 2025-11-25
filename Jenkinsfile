@@ -1,92 +1,108 @@
-#!/bin/bash
-set -eux 
+pipeline {
+    agent any // Jenkins 에이전트가 어떤 머신에서든 실행될 수 있도록 설정
 
-echo "--- Starting Application: recipe-app-container ---"
+    environment {
+        AWS_REGION = 'ap-northeast-2'
+        
+        ECR_REPOSITORY_URI = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
+        
+        // S3 아티팩트 버킷 이름
+        S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
+        
+        // CodeDeploy 애플리케이션 및 배포 그룹 이름
+        CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg'
+    }
 
-echo "DEBUG: ECR_IMAGE environment variable: $ECR_IMAGE"
-: "${ECR_IMAGE:?ERROR: ECR_IMAGE environment variable is empty. Check Jenkinsfile for correct BUILD_NUMBER substitution.}"
-# ================================================================
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "--- Checking out source code ---"
+                git branch: 'main', credentialsId: 'JG', url: 'https://github.com/stayonasDev/studio-recipe.git'
+            }
+        }
 
+        stage('Build Spring Boot Application') {
+            steps {
+                echo "--- Building Spring Boot application ---"
+                // 'clean build'를 통해 빌드 전 깨끗하게 정리하고 새로 빌드
+                sh "./gradlew clean build"
+            }
+        }
 
-# ================================================================
-# Docker 로그인 및 이미지 다운로드
-echo "DEBUG: Logging in to ECR..."
-aws ecr get-login-password --region ap-northeast-2 \
-| sudo docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com || true
+        stage('Docker Build & Push to ECR') {
+            steps {
+                echo "--- Building Docker image and pushing to ECR ---"
+                script {
+                    // ECR에 로그인
+                    sh """
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY_URI}
+                    """
+                    
+                    // Docker 이미지 빌드 (Dockerfile은 프로젝트 루트에 있다고 가정)
+                    sh """
+                    docker build -t ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER} .
+                    """
+                    
+                    // Docker 이미지를 ECR에 푸시
+                    sh """
+                    docker push ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}
+                    """
+                }
+            }
+        }
 
-echo "DEBUG: Pulling Docker image: $ECR_IMAGE"
-sudo docker pull "$ECR_IMAGE" || (echo "ERROR: Failed to pull Docker image: $ECR_IMAGE. Exiting." && exit 1)
+        stage('Prepare and Deploy to CodeDeploy') {
+            steps {
+                script {
+                    echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
+                    // 1. appspec.yml 파일 읽기
+                    def appspecContent = readFile('appspec.yml')
+                    
+                    // 2. ECR_IMAGE 플레이스홀더 치환 (젠킨스 빌드 번호를 이용하여 이미지 태그 완성)
+                    appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
+                    
+                    // 3. 수정된 appspec.yml 내용을 원본 파일에 다시 쓰기
+                    // 이 파일은 곧 생성될 deployment.zip에 포함
+                    writeFile(file: 'appspec.yml', text: appspecContent)
+                    
+                    // 4. CodeDeploy 배포 번들 (deployment.zip) 생성
+                    // appspec.yml, scripts 디렉토리, build/libs/*.jar 파일을 포함
+                    sh """
+                    zip -r deployment.zip appspec.yml scripts build/libs/
+                    """
+                    
+                    // 5. 배포 번들을 S3에 업로드
+                    sh """
+                    aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
+                    """
+                    
+                    // 6. CodeDeploy 배포 생성
+                    // aws deploy create-deployment 명령은 Jenkins 환경에서 AWS CLI를 통해 실행
+                    sh """
+                    aws deploy create-deployment \\
+                      --application-name ${CODEDEPLOY_APPLICATION} \\
+                      --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
+                      --deployment-config-name CodeDeployDefault.OneAtATime \\
+                      --description "Blue/Green Deployment triggered by Jenkins build ${env.BUILD_NUMBER}" \\
+                      --s3-location bucket=${S3_BUCKET},key=recipe-app/${env.BUILD_NUMBER}.zip,bundleType=zip \\
+                      --region ${AWS_REGION}
+                    """
+                }
+            }
+        }
+    }
 
-# Secrets Manager에서 환경 변수 가져오기
-echo "DEBUG: Fetching secrets from AWS Secrets Manager..."
-SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id recipe-app-secrets --query SecretString --output text --region ap-northeast-2)
-
-DB_HOST=$(echo "$SECRET_STRING" | jq -r '.DATABASE_HOST')
-DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
-DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
-DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
-
-MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
-MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
-
-REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
-REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
-
-MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
-
-# ENV_ARGS 문자열 빌드
-ENV_ARGS=""
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
-ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
-ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
-
-ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
-ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
-
-ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
-ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
-
-ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
-
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" 
-
-
-# 기존 컨테이너 정리 로직
-CONTAINER_NAME="recipe-app-container"
-echo "DEBUG: Checking for existing container '$CONTAINER_NAME'..."
-if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "DEBUG: Stopping and removing existing container: $CONTAINER_NAME"
-  sudo docker stop "$CONTAINER_NAME" || true
-  sudo docker rm "$CONTAINER_NAME" || true
-else
-  echo "DEBUG: No existing container '$CONTAINER_NAME' found. Skipping stop/remove."
-fi
-
-
-# 새 Docker 컨테이너 실행
-echo "DEBUG: Running new Docker container '$CONTAINER_NAME' with image '$ECR_IMAGE' and environment variables..."
-sudo docker run -d \
-  -p 8080:8080 \
-  --name "$CONTAINER_NAME" \
-  --health-cmd="curl -f http://localhost:8080/studio-recipe/health || exit 1" \
-  --health-interval=30s \
-  --health-timeout=10s \
-  --health-retries=3 \
-  $ENV_ARGS \
-  "$ECR_IMAGE"
-
-echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
-
-
-echo "DEBUG: Docker container command issued. Giving it some time to start up..."
-sleep 5
-
-echo "DEBUG: Current Docker processes:"
-sudo docker ps -a
-
-echo "DEBUG: Checking Docker container logs for initial startup messages..."
-sudo docker logs "$CONTAINER_NAME" --tail 50
-# ================================================================
-
-echo "--- ApplicationStart script finished ---"
+    post {
+        always { // 빌드 성공/실패 여부와 상관없이 항상 실행
+            cleanWs() // 워크스페이스 정리
+        }
+        success {
+            echo "CI/CD Pipeline finished successfully for build ${env.BUILD_NUMBER}."
+        }
+        failure {
+            echo "CI/CD Pipeline failed for build ${env.BUILD_NUMBER}. Check Jenkins logs and AWS CodeDeploy console for details."
+        }
+    }
+}
