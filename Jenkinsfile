@@ -29,29 +29,28 @@ pipeline {
             steps {
                 echo "--- Building Spring Boot application ---"
                 script {
-                    // 백엔드 디렉토리(recipe) 안의 gradlew 스크립트에 실행 권한 부여
                     sh "chmod +x ${BACKEND_DIR}/gradlew"
-
-                    // 백엔드 디렉토리(recipe) 안의 gradlew를 사용하여 애플리케이션 빌드
-                    // '-p' 옵션으로 빌드할 프로젝트의 루트 경로를 지정합니다.
                     sh "${BACKEND_DIR}/gradlew clean build -p ${BACKEND_DIR}"
 
-                    // 빌드된 JAR 파일을 찾아 'app.jar'로 이름을 변경하는 로직
-                    // 'COPY failed: file not found' 오류를 해결하고 Dockerfile을 간소화합니다.
                     echo "--- Renaming JAR file to app.jar ---"
-                    // ${BACKEND_DIR}/build/libs 디렉토리에서 *.jar 파일을 찾습니다. (예: recipe/build/libs/*.jar)
                     def jarFiles = findFiles(glob: "${BACKEND_DIR}/build/libs/*.jar")
                     
                     if (jarFiles.length == 0) {
                         error "Error: No JAR file found in ${BACKEND_DIR}/build/libs after build! Build failed."
                     }
                     def originalJarPath = jarFiles[0].path // 찾은 첫 번째 JAR 파일의 전체 경로
-                    def renamedJarPath = "${BACKEND_DIR}/build/libs/app.jar" // 고정된 app.jar의 경로
+                    def targetJarName = "app.jar" // 목표로 하는 파일 이름
+                    def targetJarPath = "${BACKEND_DIR}/build/libs/${targetJarName}" // 목표로 하는 파일의 전체 경로
                     
-                    // 찾은 JAR 파일의 이름을 'app.jar'로 변경합니다.
-                    sh "mv ${originalJarPath} ${renamedJarPath}"
-                    echo "Renamed '${originalJarPath}' to '${renamedJarPath}' successfully."
-                    // =================================================================
+                    // 파일 이름만 추출
+                    def currentJarFileName = originalJarPath.tokenize('/')[-1]
+                    
+                    if (currentJarFileName != targetJarName) {
+                        sh "mv ${originalJarPath} ${targetJarPath}"
+                        echo "Renamed '${originalJarPath}' to '${targetJarPath}' successfully."
+                    } else {
+                        echo "JAR file is already named '${targetJarName}'. No rename needed."
+                    }
                 }
             }
         }
