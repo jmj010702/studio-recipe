@@ -37,8 +37,8 @@ hooks:
     - location: scripts/start_container.sh
       timeout: 300
       runas: ubuntu
-      arguments: # (CodeDeploy가 오류 가능성 때문에 일단 유지)
-        ECR_IMAGE: "NOT_USED_ANYMORE_WILL_READ_FROM_FILE" # 명시적으로 안쓴다 표시
+      arguments:
+        ECR_IMAGE: "NOT_USED_ANYMORE_WILL_READ_FROM_FILE"
   ValidateService:
     - location: scripts/validate_service.sh
       timeout: 180
