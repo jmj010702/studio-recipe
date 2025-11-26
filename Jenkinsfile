@@ -83,29 +83,29 @@ pipeline {
 
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
-                script {                    
+                script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
                     def appspecContent = readFile('appspec.yml')
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     writeFile(file: 'appspec.yml', text: appspecContent)
                     
-                    sh "cp -r ${BACKEND_DIR}/scripts ."
+                    // ECR_IMAGE 값을 담은 파일 생성
+                    def ecrImageFullPath = "${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}"
+                    echo "Generating ECR_IMAGE_VALUE.txt with: ${ecrImageFullPath}"
+                    writeFile(file: 'ECR_IMAGE_VALUE.txt', text: ecrImageFullPath)
+                    // =================================================================
                     
-                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ."
-
                     sh """
-                    zip -r deployment.zip appspec.yml scripts app.jar
+                    zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt
                     """
                     
-                    sh "rm -rf scripts app.jar"
-                    
-                    //  생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
+                    // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
                     sh """
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    //  AWS CodeDeploy API를 호출하여 배포 시작
+                    // 6. AWS CodeDeploy API를 호출하여 배포 시작
                     sh """
                     aws deploy create-deployment \\
                       --application-name ${CODEDEPLOY_APPLICATION} \\
