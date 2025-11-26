@@ -89,17 +89,15 @@ pipeline {
                     // 1. appspec.yml 파일 내용 읽기
                     def appspecContent = readFile('appspec.yml')
                     
-                    // 2. ECR_IMAGE 플레이스홀더 치환
-                    // appspec.yml 내부의 '${BUILD_NUMBER}'를 Jenkins의 실제 빌드 번호로 교체
+                    // 2. BUILD_NUMBER 플레이스홀더 치환
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     
                     // 3. 수정된 appspec.yml 내용을 원본 파일에 다시 쓰기
-                    // 이 파일은 곧 생성될 deployment.zip에 포함
                     writeFile(file: 'appspec.yml', text: appspecContent)
                     
                     // CodeDeploy 배포 번들 (deployment.zip) 생성
                     sh """
-                    zip -r deployment.zip appspec.yml scripts ${BACKEND_DIR}/build/libs/app.jar
+                    zip -r deployment.zip appspec.yml ${BACKEND_DIR}/scripts ${BACKEND_DIR}/build/libs/app.jar
                     """
                     
                     // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
