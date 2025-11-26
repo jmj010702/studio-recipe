@@ -3,8 +3,8 @@ os: linux
 files:
   - source: /scripts
     destination: /home/ubuntu/scripts
-  - source: / # S3 번들(.zip)의 루트에 있는 모든 파일 (즉, .jar 파일)
-    destination: /home/ubuntu/app
+  - source: /recipe/build/libs/app.jar 
+    destination: /home/ubuntu/app/app.jar 
 
 permissions:
   - object: /home/ubuntu/scripts # scripts 디렉토리 및 그 하위 모든 파일에 대한 권한
@@ -17,14 +17,6 @@ permissions:
     owner: ubuntu
     group: ubuntu
     mode: 755
-  # - object: /home/ubuntu/scripts/stop_container.sh
-  #   mode: 755
-  # - object: /home/ubuntu/scripts/clean_old_images.sh
-  #   mode: 755
-  # - object: /home/ubuntu/scripts/start_container.sh
-  #   mode: 755
-  # - object: /home/ubuntu/scripts/validate_service.sh
-  #   mode: 755
 
 hooks:
   ApplicationStop:
@@ -40,7 +32,7 @@ hooks:
       timeout: 300
       runas: ubuntu
       arguments:
-        ECR_IMAGE: "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app:{{BUILD_NUMBER}}"
+        ECR_IMAGE: "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app:${BUILD_NUMBER}"
   ValidateService:
     - location: scripts/validate_service.sh
       timeout: 180
