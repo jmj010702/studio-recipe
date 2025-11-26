@@ -112,30 +112,10 @@ pipeline {
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    echo "--- Checking for and stopping any active CodeDeploy deployments ---"
-                    
-                    def activeDeployments = sh(returnStdout: true, script: """
-                        aws deploy list-deployments \\
-                            --filters 'applicationName=${CODEDEPLOY_APPLICATION},deploymentGroupName=${CODEDEPLOY_DEPLOYMENT_GROUP},status=InProgress,status=Pending,status=Queued,status=Created,status=Ready' \\
-                            --query 'deployments' \\
-                            --output text \\
-                            --region ${AWS_REGION}
-                    """).trim()
-
-                    if (activeDeployments) {
-                        echo "Found active deployment(s): ${activeDeployments}. Attempting to stop them."
-                        // 각 활성 배포에 대해 중지 명령 실행
-                        activeDeployments.split('\t').each { deploymentId ->
-                            echo "Stopping deployment ${deploymentId}..."
-                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                        }
-                        // CodeDeploy가 배포를 중지하는 데 시간이 걸릴 수 있으므로 잠시 대기
-                        sleep 10
-                        echo "Active deployments stopped or being stopped. Proceeding with new deployment."
-                    } else {
-                        echo "No active CodeDeploy deployments found. Proceeding with new deployment."
-                    }
-                    // =================================================================
+                    sh """
+                        python ${BACKEND_DIR}/scripts/stop_active_codedeploy.py
+                    """
+                    sleep 10 // CodeDeploy 중지 후 새 배포 생성까지 충분한 시간 대기
                     
                     // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
