@@ -1,13 +1,13 @@
 version: 0.0
 os: linux
 files:
-  - source: recipe/scripts # deployment.zip 내의 'recipe/scripts' 디렉토리
-    destination: /home/ubuntu/scripts # EC2 인스턴스에 복사될 경로
-  - source: recipe/build/libs/app.jar
+  - source: /scripts 
+    destination: /home/ubuntu/scripts
+  - source: /app.jar 
     destination: /home/ubuntu/app/app.jar
 
 permissions:
-  - object: /home/ubuntu/scripts # EC2 인스턴스의 scripts 디렉토리
+  - object: /home/ubuntu/scripts
     pattern: "**"
     owner: ubuntu
     group: ubuntu
@@ -20,7 +20,7 @@ permissions:
 
 hooks:
   ApplicationStop:
-    - location: scripts/stop_container.sh 
+    - location: scripts/stop_container.sh
       timeout: 60
       runas: ubuntu
   BeforeInstall:
@@ -37,3 +37,4 @@ hooks:
     - location: scripts/validate_service.sh
       timeout: 180
       runas: ubuntu
+  # ================================================================
