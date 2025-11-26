@@ -112,10 +112,55 @@ pipeline {
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    sh """
-                        python ${BACKEND_DIR}/scripts/stop_active_codedeploy.py
-                    """
-                    sleep 10 // CodeDeploy 중지 후 새 배포 생성까지 충분한 시간 대기
+                    echo "--- Checking for and stopping any active CodeDeploy deployments ---"
+                    
+                    // 활성 상태로 간주할 배포 상태 목록
+                    def activeStatuses = ['InProgress', 'Pending', 'Queued', 'Created', 'Ready']
+                    
+                    // list-deployments-by-application 명령으로 모든 배포 ID를 조회
+                    // --query로 deploymentIds만 추출
+                    def allDeploymentIds = sh(returnStdout: true, script: """
+                        aws deploy list-deployments-by-application \
+                            --application-name ${CODEDEPLOY_APPLICATION} \
+                            --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \
+                            --query 'deployments' \
+                            --output text \
+                            --region ${AWS_REGION}
+                    """).trim()
+
+                    def activeDeployments = []
+
+                    // 모든 배포 ID에 대해 상세 정보를 가져와서 상태 필터링 (Jenkins Groovy 단에서 수행)
+                    if (allDeploymentIds) {
+                        allDeploymentIds.split('\t').each { deploymentId -> // AWS CLI text output은 탭으로 구분될 수 있음
+                            def deploymentInfo = sh(returnStdout: true, script: """
+                                aws deploy get-deployment \
+                                    --deployment-id ${deploymentId} \
+                                    --query 'deploymentInfo.status' \
+                                    --output text \
+                                    --region ${AWS_REGION}
+                            """).trim()
+                            
+                            if (activeStatuses.contains(deploymentInfo)) {
+                                activeDeployments.add(deploymentId)
+                            }
+                        }
+                    }
+
+                    if (activeDeployments) {
+                        echo "Found active deployment(s): ${activeDeployments.join(', ')}. Attempting to stop them."
+                        // 각 활성 배포에 대해 중지 명령 실행
+                        activeDeployments.each { deploymentId ->
+                            echo "Stopping deployment ${deploymentId}..."
+                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
+                        }
+                        // CodeDeploy가 배포를 중지하는 데 시간이 걸릴 수 있으므로 잠시 대기
+                        sleep 10
+                        echo "Active deployments stopped or being stopped. Proceeding with new deployment."
+                    } else {
+                        echo "No active CodeDeploy deployments found. Proceeding with new deployment."
+                    }
+                    // =================================================================
                     
                     // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
