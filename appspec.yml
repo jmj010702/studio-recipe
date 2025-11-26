@@ -1,9 +1,9 @@
 version: 0.0
 os: linux
 files:
-  - source: /recipe/scripts # deployment.zip 내의 'recipe/scripts' 디렉토리
+  - source: recipe/scripts # deployment.zip 내의 'recipe/scripts' 디렉토리
     destination: /home/ubuntu/scripts # EC2 인스턴스에 복사될 경로
-  - source: /recipe/build/libs/app.jar
+  - source: recipe/build/libs/app.jar
     destination: /home/ubuntu/app/app.jar
 
 permissions:
