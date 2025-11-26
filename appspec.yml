@@ -1,18 +1,18 @@
 version: 0.0
 os: linux
 files:
-  - source: /scripts
-    destination: /home/ubuntu/scripts
-  - source: /recipe/build/libs/app.jar 
-    destination: /home/ubuntu/app/app.jar 
+  - source: /recipe/scripts # deployment.zip 내의 'recipe/scripts' 디렉토리
+    destination: /home/ubuntu/scripts # EC2 인스턴스에 복사될 경로
+  - source: /recipe/build/libs/app.jar
+    destination: /home/ubuntu/app/app.jar
 
 permissions:
-  - object: /home/ubuntu/scripts # scripts 디렉토리 및 그 하위 모든 파일에 대한 권한
+  - object: /home/ubuntu/scripts # EC2 인스턴스의 scripts 디렉토리
     pattern: "**"
     owner: ubuntu
     group: ubuntu
     mode: 755
-  - object: /home/ubuntu/app # 애플리케이션 디렉토리 및 그 하위 모든 파일에 대한 권한
+  - object: /home/ubuntu/app
     pattern: "**"
     owner: ubuntu
     group: ubuntu
@@ -20,20 +20,20 @@ permissions:
 
 hooks:
   ApplicationStop:
-    - location: recipe/scripts/stop_container.sh
+    - location: scripts/stop_container.sh 
       timeout: 60
       runas: ubuntu
   BeforeInstall:
-    - location: recipe/scripts/clean_old_images.sh
+    - location: scripts/clean_old_images.sh
       timeout: 60
       runas: ubuntu
   ApplicationStart:
-    - location: recipe/scripts/start_container.sh
+    - location: scripts/start_container.sh
       timeout: 300
       runas: ubuntu
       arguments:
         ECR_IMAGE: "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app:${BUILD_NUMBER}"
   ValidateService:
-    - location: recipe/scripts/validate_service.sh
+    - location: scripts/validate_service.sh
       timeout: 180
       runas: ubuntu
