@@ -12,6 +12,9 @@ pipeline {
         // CodeDeploy 애플리케이션 및 배포 그룹 이름
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
         CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg'
+        
+        // 백엔드 서비스의 Dockerfile, gradlew, JAR 파일이 위치한 서브 디렉토리 이름
+        BACKEND_DIR = 'recipe'
     }
 
     stages {
@@ -26,10 +29,29 @@ pipeline {
             steps {
                 echo "--- Building Spring Boot application ---"
                 script {
-                    // gradlew 스크립트에 실행 권한 부여 (Permission denied 오류 해결)
-                    sh "chmod +x gradlew"
-                    // Spring Boot 애플리케이션 빌드
-                    sh "./gradlew clean build"
+                    // 백엔드 디렉토리(recipe) 안의 gradlew 스크립트에 실행 권한 부여
+                    sh "chmod +x ${BACKEND_DIR}/gradlew"
+
+                    // 백엔드 디렉토리(recipe) 안의 gradlew를 사용하여 애플리케이션 빌드
+                    // '-p' 옵션으로 빌드할 프로젝트의 루트 경로를 지정합니다.
+                    sh "${BACKEND_DIR}/gradlew clean build -p ${BACKEND_DIR}"
+
+                    // 빌드된 JAR 파일을 찾아 'app.jar'로 이름을 변경하는 로직
+                    // 'COPY failed: file not found' 오류를 해결하고 Dockerfile을 간소화합니다.
+                    echo "--- Renaming JAR file to app.jar ---"
+                    // ${BACKEND_DIR}/build/libs 디렉토리에서 *.jar 파일을 찾습니다. (예: recipe/build/libs/*.jar)
+                    def jarFiles = findFiles(glob: "${BACKEND_DIR}/build/libs/*.jar")
+                    
+                    if (jarFiles.length == 0) {
+                        error "Error: No JAR file found in ${BACKEND_DIR}/build/libs after build! Build failed."
+                    }
+                    def originalJarPath = jarFiles[0].path // 찾은 첫 번째 JAR 파일의 전체 경로
+                    def renamedJarPath = "${BACKEND_DIR}/build/libs/app.jar" // 고정된 app.jar의 경로
+                    
+                    // 찾은 JAR 파일의 이름을 'app.jar'로 변경합니다.
+                    sh "mv ${originalJarPath} ${renamedJarPath}"
+                    echo "Renamed '${originalJarPath}' to '${renamedJarPath}' successfully."
+                    // =================================================================
                 }
             }
         }
@@ -43,12 +65,16 @@ pipeline {
                     aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY_URI}
                     """
                     
-                    // Docker 이미지 빌드 (Dockerfile은 프로젝트 루트에 있다고 가정)
+                    // Docker 이미지 빌드 명령:
+                    // -t: 이미지 태그 지정
+                    // -f ${BACKEND_DIR}/Dockerfile: Dockerfile의 정확한 경로 지정 (예: recipe/Dockerfile)
+                    // 마지막의 ${BACKEND_DIR}: 빌드 컨텍스트를 'recipe' 디렉토리로 설정
+                    // 이전에 발생한 'Dockerfile: no such file or directory'와 'COPY failed' 오류를 해결합니다.
                     sh """
-                    docker build -t ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER} -f recipe/Dockerfile .
+                    docker build -t ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER} -f ${BACKEND_DIR}/Dockerfile ${BACKEND_DIR}
                     """
                     
-                    // Docker 이미지를 ECR에 푸시
+                    // 빌드된 Docker 이미지를 ECR에 푸시
                     sh """
                     docker push ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}
                     """
@@ -61,29 +87,28 @@ pipeline {
                 script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // 1. appspec.yml 파일 읽기
+                    // 1. appspec.yml 파일 내용 읽기
                     def appspecContent = readFile('appspec.yml')
                     
-                    // 2. ECR_IMAGE 플레이스홀더 치환 (젠킨스 빌드 번호를 이용하여 이미지 태그 완성)
+                    // 2. ECR_IMAGE 플레이스홀더 치환
+                    // appspec.yml 내부의 '${BUILD_NUMBER}'를 Jenkins의 실제 빌드 번호로 교체
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     
                     // 3. 수정된 appspec.yml 내용을 원본 파일에 다시 쓰기
                     // 이 파일은 곧 생성될 deployment.zip에 포함
                     writeFile(file: 'appspec.yml', text: appspecContent)
                     
-                    // 4. CodeDeploy 배포 번들 (deployment.zip) 생성
-                    // appspec.yml, scripts 디렉토리, build/libs/*.jar 파일을 포함
+                    // CodeDeploy 배포 번들 (deployment.zip) 생성
                     sh """
-                    zip -r deployment.zip appspec.yml scripts build/libs/
+                    zip -r deployment.zip appspec.yml scripts ${BACKEND_DIR}/build/libs/app.jar
                     """
                     
-                    // 5. 배포 번들을 S3에 업로드
+                    // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
                     sh """
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    // 6. CodeDeploy 배포 생성
-                    // aws deploy create-deployment 명령은 Jenkins 환경에서 AWS CLI를 통해 실행
+                    // 6. AWS CodeDeploy API를 호출하여 배포 시작
                     sh """
                     aws deploy create-deployment \\
                       --application-name ${CODEDEPLOY_APPLICATION} \\
@@ -100,7 +125,7 @@ pipeline {
 
     post {
         always { // 빌드 성공/실패 여부와 상관없이 항상 실행
-            cleanWs() // 워크스페이스 정리
+            cleanWs() // Jenkins 워크스페이스 정리 (다음 빌드를 위해 깨끗하게 유지)
         }
         success {
             echo "CI/CD Pipeline finished successfully for build ${env.BUILD_NUMBER}."
