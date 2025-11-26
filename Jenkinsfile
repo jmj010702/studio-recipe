@@ -84,8 +84,9 @@ pipeline {
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
                 script {
-                   echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
+                    echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
+                    // appspec.yml 치환 및 ECR_IMAGE_VALUE.txt 생성
                     def appspecContent = readFile('appspec.yml')
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     writeFile(file: 'appspec.yml', text: appspecContent)
@@ -93,34 +94,53 @@ pipeline {
                     def ecrImageFullPath = "${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}"
                     echo "Generating ECR_IMAGE_VALUE.txt with: ${ecrImageFullPath}"
                     writeFile(file: 'ECR_IMAGE_VALUE.txt', text: ecrImageFullPath)
-                    
+
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
-                    
-                    sh "cp -r ${BACKEND_DIR}/scripts ." 
-                    sh "ls -l scripts/"
+                    sh "cp -r ${BACKEND_DIR}/scripts ."
                     sh "test -d scripts/ && test -f scripts/clean_old_images.sh || error 'scripts directory or clean_old_images.sh not found after copy!'"
-
-                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ." 
-                    sh "ls -l app.jar"
+                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ."
                     sh "test -f app.jar || error 'app.jar not found after copy!'"
-
                     echo "DEBUG: All artifacts copied to Jenkins workspace root."
 
-                    // 3. CodeDeploy 배포 번들 (deployment.zip) 생성
+                    // CodeDeploy 배포 번들 (deployment.zip) 생성
                     sh """
                     zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt
                     """
                     
-                    // 4. 임시로 복사한 파일들 정리
-                    sh "rm -rf scripts app.jar ECR_IMAGE_VALUE.txt"
-                    // =================================================================
-                    
-                    // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
+                    // S3 업로드
                     sh """
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    // 6. AWS CodeDeploy API를 호출하여 배포 시작
+                    //  CodeDeploy 배포 그룹의 활성 배포 확인 및 중지
+                    echo "--- Checking for and stopping any active CodeDeploy deployments ---"
+                    // 활성 배포가 있는지 확인
+                    def activeDeployments = sh(returnStdout: true, script: """
+                        aws deploy list-deployments-by-application \
+                            --application-name ${CODEDEPLOY_APPLICATION} \
+                            --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \
+                            --include-only-statuses InProgress Pending Queued Created Ready \
+                            --query 'deployments' \
+                            --output text \
+                            --region ${AWS_REGION}
+                    """).trim()
+
+                    if (activeDeployments) {
+                        echo "Found active deployment(s): ${activeDeployments}. Attempting to stop them."
+                        // 각 활성 배포에 대해 중지 명령 실행
+                        activeDeployments.split('\t').each { deploymentId ->
+                            echo "Stopping deployment ${deploymentId}..."
+                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
+                        }
+                        // CodeDeploy가 배포를 중지하는 데 시간이 걸릴 수 있으므로 잠시 대기
+                        sleep 10
+                        echo "Active deployments stopped or being stopped. Proceeding with new deployment."
+                    } else {
+                        echo "No active CodeDeploy deployments found. Proceeding with new deployment."
+                    }
+                    // =================================================================
+                    
+                    // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
                     aws deploy create-deployment \\
                       --application-name ${CODEDEPLOY_APPLICATION} \\
