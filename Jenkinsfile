@@ -84,21 +84,36 @@ pipeline {
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
                 script {
-                    echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
+                   echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
                     def appspecContent = readFile('appspec.yml')
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     writeFile(file: 'appspec.yml', text: appspecContent)
                     
-                    // ECR_IMAGE 값을 담은 파일 생성
                     def ecrImageFullPath = "${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}"
                     echo "Generating ECR_IMAGE_VALUE.txt with: ${ecrImageFullPath}"
                     writeFile(file: 'ECR_IMAGE_VALUE.txt', text: ecrImageFullPath)
-                    // =================================================================
                     
+                    echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
+                    
+                    sh "cp -r ${BACKEND_DIR}/scripts ." 
+                    sh "ls -l scripts/"
+                    sh "test -d scripts/ && test -f scripts/clean_old_images.sh || error 'scripts directory or clean_old_images.sh not found after copy!'"
+
+                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ." 
+                    sh "ls -l app.jar"
+                    sh "test -f app.jar || error 'app.jar not found after copy!'"
+
+                    echo "DEBUG: All artifacts copied to Jenkins workspace root."
+
+                    // 3. CodeDeploy 배포 번들 (deployment.zip) 생성
                     sh """
                     zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt
                     """
+                    
+                    // 4. 임시로 복사한 파일들 정리
+                    sh "rm -rf scripts app.jar ECR_IMAGE_VALUE.txt" # 생성한 텍스트 파일도 정리
+                    // =================================================================
                     
                     // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
                     sh """
