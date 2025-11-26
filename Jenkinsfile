@@ -45,7 +45,7 @@ pipeline {
                     
                     // Docker 이미지 빌드 (Dockerfile은 프로젝트 루트에 있다고 가정)
                     sh """
-                    docker build -t ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER} .
+                    docker build -t ${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER} -f recipe/Dockerfile .
                     """
                     
                     // Docker 이미지를 ECR에 푸시
