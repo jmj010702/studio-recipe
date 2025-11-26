@@ -1,25 +1,35 @@
 #!/bin/bash
-set -eux # -e: 에러 발생 시 즉시 중단, -u: 정의되지 않은 변수 사용 시 에러 (이것 때문에 unbound variable 발생), -x: 실행되는 명령 출력
+set -eux # -e: 에러 발생 시 즉시 중단, -u: 정의되지 않은 변수 사용 시 에러, -x: 실행되는 명령 출력
 
 echo "--- Starting Application: recipe-app-container ---"
 
-ECR_IMAGE=""
+# ECR_IMAGE 값을 파일에서 읽어오기
+# CodeDeploy Agent의 arguments 전달 문제를 강제로 우회하는 방법
+# EC2 인스턴스에 복사된 ECR_IMAGE_VALUE.txt 파일 경로
+ECR_IMAGE_FILE="/home/ubuntu/ECR_IMAGE_VALUE.txt"
 
-# 모든 명령행 인자를 순회하며 '--ECR_IMAGE='로 시작하는 인자를 찾습니다.
-for arg in "$@"; do
-  if [[ "$arg" == "--ECR_IMAGE="* ]]; then
-    ECR_IMAGE="${arg#*=}" # '=' 뒤의 값을 추출하여 ECR_IMAGE에 할당
-    break
-  fi
-done
+if [ -f "$ECR_IMAGE_FILE" ]; then
+  ECR_IMAGE=$(cat "$ECR_IMAGE_FILE")
+  echo "DEBUG: ECR_IMAGE read from file: $ECR_IMAGE"
+else
+  # 파일이 없는 경우, 이전 방식으로 명령행 인자나 환경 변수 확인
+  echo "DEBUG: ECR_IMAGE_VALUE.txt not found. Attempting to get ECR_IMAGE from arguments or environment."
+  
+  # ECR_IMAGE 변수를 미리 선언 (set -u 옵션 때문)
+  ECR_IMAGE=""
 
-# ECR_IMAGE가 파싱된 후에도 비어있다면, 현재 환경 변수에 ECR_IMAGE가 있는지 확인합니다.
-# (이전에 CodeDeploy가 환경 변수로 주입했을 때의 Fallback)
-# 그래도 ECR_IMAGE가 설정되지 않았다면 오류를 발생시킵니다.
-: "${ECR_IMAGE:=${ECR_IMAGE_FROM_ENV:-}}" # ECR_IMAGE_FROM_ENV가 정의되지 않았다면 비어있는 문자열로 대체
-: "${ECR_IMAGE:?ERROR: ECR_IMAGE variable was not provided via arguments or environment.}"
+  # 모든 명령행 인자를 순회하며 '--ECR_IMAGE='로 시작하는 인자를 찾음.
+  for arg in "$@"; do
+    if [[ "$arg" == "--ECR_IMAGE="* ]]; then
+      ECR_IMAGE="${arg#*=}" # '=' 뒤의 값을 추출하여 ECR_IMAGE에 할당
+      break
+    fi
+  done
 
-echo "DEBUG: Final ECR_IMAGE variable used: $ECR_IMAGE"
+  : "${ECR_IMAGE:=${ECR_IMAGE_FROM_ENV:-}}" # ECR_IMAGE_FROM_ENV가 정의되지 않았다면 비어있는 문자열로 대체
+  : "${ECR_IMAGE:?ERROR: ECR_IMAGE variable was not provided via file, arguments or environment.}"
+fi
+
 
 
 # Docker 로그인 및 이미지 다운로드
@@ -62,7 +72,7 @@ ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 
 ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
+ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" # prod 프로파일 활성화
 
 
 # 기존 컨테이너 정리 로직
