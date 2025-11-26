@@ -112,7 +112,7 @@ pipeline {
                     """
                     
                     // 4. 임시로 복사한 파일들 정리
-                    sh "rm -rf scripts app.jar ECR_IMAGE_VALUE.txt" # 생성한 텍스트 파일도 정리
+                    sh "rm -rf scripts app.jar ECR_IMAGE_VALUE.txt"
                     // =================================================================
                     
                     // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
