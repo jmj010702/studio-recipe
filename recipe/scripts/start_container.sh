@@ -1,11 +1,25 @@
 #!/bin/bash
-set -eux # 스크립트 실행 중 에러 발생 시 즉시 중단 및 실행된 명령 출력, 정의되지 않은 변수 사용 시 에러
+set -eux # -e: 에러 발생 시 즉시 중단, -u: 정의되지 않은 변수 사용 시 에러 (이것 때문에 unbound variable 발생), -x: 실행되는 명령 출력
 
 echo "--- Starting Application: recipe-app-container ---"
 
-# ECR_IMAGE 변수 유효성 검사 및 디버깅 (appspec.yml -> Jenkinsfile에서 치환된 환경변수)
-echo "DEBUG: ECR_IMAGE environment variable: $ECR_IMAGE"
-: "${ECR_IMAGE:?ERROR: ECR_IMAGE environment variable is empty. Check Jenkinsfile for correct BUILD_NUMBER substitution.}"
+ECR_IMAGE=""
+
+# 모든 명령행 인자를 순회하며 '--ECR_IMAGE='로 시작하는 인자를 찾습니다.
+for arg in "$@"; do
+  if [[ "$arg" == "--ECR_IMAGE="* ]]; then
+    ECR_IMAGE="${arg#*=}" # '=' 뒤의 값을 추출하여 ECR_IMAGE에 할당
+    break
+  fi
+done
+
+# ECR_IMAGE가 파싱된 후에도 비어있다면, 현재 환경 변수에 ECR_IMAGE가 있는지 확인합니다.
+# (이전에 CodeDeploy가 환경 변수로 주입했을 때의 Fallback)
+# 그래도 ECR_IMAGE가 설정되지 않았다면 오류를 발생시킵니다.
+: "${ECR_IMAGE:=${ECR_IMAGE_FROM_ENV:-}}" # ECR_IMAGE_FROM_ENV가 정의되지 않았다면 비어있는 문자열로 대체
+: "${ECR_IMAGE:?ERROR: ECR_IMAGE variable was not provided via arguments or environment.}"
+
+echo "DEBUG: Final ECR_IMAGE variable used: $ECR_IMAGE"
 
 
 # Docker 로그인 및 이미지 다운로드
@@ -48,7 +62,7 @@ ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 
 ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" # prod 프로파일 활성화
+ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
 
 
 # 기존 컨테이너 정리 로직
@@ -75,7 +89,7 @@ sudo docker run -d \
   $ENV_ARGS \
   "$ECR_IMAGE"
 
-echo "🚀 Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
+echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
 
 
 # 컨테이너 시작 상태 확인 (디버깅용)
