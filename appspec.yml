@@ -20,20 +20,20 @@ permissions:
 
 hooks:
   ApplicationStop:
-    - location: scripts/stop_container.sh
+    - location: recipe/scripts/stop_container.sh
       timeout: 60
       runas: ubuntu
   BeforeInstall:
-    - location: scripts/clean_old_images.sh
+    - location: recipe/scripts/clean_old_images.sh
       timeout: 60
       runas: ubuntu
   ApplicationStart:
-    - location: scripts/start_container.sh
+    - location: recipe/scripts/start_container.sh
       timeout: 300
       runas: ubuntu
       arguments:
         ECR_IMAGE: "516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app:${BUILD_NUMBER}"
   ValidateService:
-    - location: scripts/validate_service.sh
+    - location: recipe/scripts/validate_service.sh
       timeout: 180
       runas: ubuntu
