@@ -114,11 +114,9 @@ pipeline {
                     
                     echo "--- Checking for and stopping any active CodeDeploy deployments ---"
                     
-                    // list-deployments 명령으로 활성 상태의 배포 ID를 조회
-                    // key=value 쉼표 구분 문법 사용
                     def activeDeployments = sh(returnStdout: true, script: """
                         aws deploy list-deployments \\
-                            --filters applicationName=${CODEDEPLOY_APPLICATION},deploymentGroupName=${CODEDEPLOY_DEPLOYMENT_GROUP},status=InProgress,status=Pending,status=Queued,status=Created,status=Ready \\
+                            --filters 'applicationName=${CODEDEPLOY_APPLICATION},deploymentGroupName=${CODEDEPLOY_DEPLOYMENT_GROUP},status=InProgress,status=Pending,status=Queued,status=Created,status=Ready' \\
                             --query 'deployments' \\
                             --output text \\
                             --region ${AWS_REGION}
@@ -137,6 +135,7 @@ pipeline {
                     } else {
                         echo "No active CodeDeploy deployments found. Proceeding with new deployment."
                     }
+                    // =================================================================
                     
                     // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
