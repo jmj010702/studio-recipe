@@ -83,29 +83,29 @@ pipeline {
 
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
-                script {
+                script {                    
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // 1. appspec.yml 파일 내용 읽기
                     def appspecContent = readFile('appspec.yml')
-                    
-                    // 2. BUILD_NUMBER 플레이스홀더 치환
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
-                    
-                    // 3. 수정된 appspec.yml 내용을 원본 파일에 다시 쓰기
                     writeFile(file: 'appspec.yml', text: appspecContent)
                     
-                    // CodeDeploy 배포 번들 (deployment.zip) 생성
+                    sh "cp -r ${BACKEND_DIR}/scripts ."
+                    
+                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ."
+
                     sh """
-                    zip -r deployment.zip appspec.yml ${BACKEND_DIR}/scripts ${BACKEND_DIR}/build/libs/app.jar
+                    zip -r deployment.zip appspec.yml scripts app.jar
                     """
                     
-                    // 5. 생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
+                    sh "rm -rf scripts app.jar"
+                    
+                    //  생성된 배포 번들 ZIP 파일을 S3 버킷에 업로드
                     sh """
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    // 6. AWS CodeDeploy API를 호출하여 배포 시작
+                    //  AWS CodeDeploy API를 호출하여 배포 시작
                     sh """
                     aws deploy create-deployment \\
                       --application-name ${CODEDEPLOY_APPLICATION} \\
