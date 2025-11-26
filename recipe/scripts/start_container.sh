@@ -1,8 +1,9 @@
 #!/bin/bash
-set -eux 
+set -eux # 스크립트 실행 중 에러 발생 시 즉시 중단 및 실행된 명령 출력, 정의되지 않은 변수 사용 시 에러
 
 echo "--- Starting Application: recipe-app-container ---"
 
+# ECR_IMAGE 변수 유효성 검사 및 디버깅 (appspec.yml -> Jenkinsfile에서 치환된 환경변수)
 echo "DEBUG: ECR_IMAGE environment variable: $ECR_IMAGE"
 : "${ECR_IMAGE:?ERROR: ECR_IMAGE environment variable is empty. Check Jenkinsfile for correct BUILD_NUMBER substitution.}"
 
@@ -16,6 +17,7 @@ echo "DEBUG: Pulling Docker image: $ECR_IMAGE"
 sudo docker pull "$ECR_IMAGE" || (echo "ERROR: Failed to pull Docker image: $ECR_IMAGE. Exiting." && exit 1)
 
 
+# Secrets Manager에서 환경 변수 가져오기
 echo "DEBUG: Fetching secrets from AWS Secrets Manager..."
 SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id recipe-app-secrets --query SecretString --output text --region ap-northeast-2)
 
@@ -32,6 +34,7 @@ REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
 
 MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
+# ENV_ARGS 문자열 빌드
 ENV_ARGS=""
 ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
 ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
@@ -45,10 +48,10 @@ ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 
 ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" 
+ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod" # prod 프로파일 활성화
 
 
-#  기존 컨테이너 정리 로직
+# 기존 컨테이너 정리 로직
 CONTAINER_NAME="recipe-app-container"
 echo "DEBUG: Checking for existing container '$CONTAINER_NAME'..."
 if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -72,7 +75,7 @@ sudo docker run -d \
   $ENV_ARGS \
   "$ECR_IMAGE"
 
-echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
+echo "🚀 Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
 
 
 # 컨테이너 시작 상태 확인 (디버깅용)
@@ -84,6 +87,5 @@ sudo docker ps -a
 
 echo "DEBUG: Checking Docker container logs for initial startup messages..."
 sudo docker logs "$CONTAINER_NAME" --tail 50
-# ================================================================
 
 echo "--- ApplicationStart script finished ---"
