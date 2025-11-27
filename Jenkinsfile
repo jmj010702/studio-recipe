@@ -122,7 +122,7 @@ pipeline {
                     // applicationName과 deploymentGroupName을 직접 인자로 전달
                     // --query로 deploymentIds만 추출
                     def allDeploymentIds = sh(returnStdout: true, script: """
-                        aws deploy list-deployments \\ // <<-- 이 부분이 제대로 반영되어야 합니다.
+                        aws deploy list-deployments \\
                             --application-name ${CODEDEPLOY_APPLICATION} \\
                             --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
                             --query 'deployments' \\
