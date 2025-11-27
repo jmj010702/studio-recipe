@@ -58,10 +58,15 @@ REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
 
 MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
+echo "DEBUG: Raw SECRET_STRING: $SECRET_STRING"
+echo "DEBUG: Parsed DB_HOST=${DB_HOST}, DB_PORT=${DB_PORT}, DB_USER=${DB_USER}, DB_PASSWORD=${DB_PASSWORD}"
+echo "DEBUG: Parsed REDIS_HOST=${REDIS_HOST}, REDIS_PORT=${REDIS_PORT}"
+echo "DEBUG: Parsed MAIL_USERNAME=${MAIL_USERNAME}, MAIL_PASSWORD=${MAIL_PASSWORD}"
+echo "DEBUG: Parsed MY_APP_SECRET=${MY_APP_SECRET}"
+
 # ENV_ARGS 문자열 빌드
 ENV_ARGS=""
-# ===== 표준 스프링 부트 데이터소스 프로퍼티 이름으로 변경 ======
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
+ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'" # <<< 이 DRIVER_URL에 완전한 URL이 들어갑니다.
 ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
 ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
 
@@ -71,9 +76,11 @@ ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
 ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
 
-ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}" 
-
+ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
+
+# Debugging: 최종 Docker run 명령에 전달될 ENV_ARGS 확인
+echo "DEBUG: Final ENV_ARGS for Docker: ${ENV_ARGS}"
 
 # 기존 컨테이너 정리 로직
 CONTAINER_NAME="recipe-app-container"
