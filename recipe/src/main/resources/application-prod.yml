@@ -42,7 +42,7 @@ spring:
        port: ${REDIS_PORT}
 
 jwt:
-  secret: dI5pBjrtgy9xFHiZtMs3fM7P8OR/wvxrexu/mybWcKc=
+  secret: ${MY_APP_SECRET}
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 604800
 
