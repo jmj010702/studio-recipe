@@ -60,12 +60,13 @@ MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
 # ENV_ARGS 문자열 빌드
 ENV_ARGS=""
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
-ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
-ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
+# ===== 표준 스프링 부트 데이터소스 프로퍼티 이름으로 변경 ======
+ENV_ARGS+=" -e SPRING_DATASOURCE_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
+ENV_ARGS+=" -e SPRING_DATASOURCE_USERNAME=${DB_USER}"
+ENV_ARGS+=" -e SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}"
 
-ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
-ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
+ENV_ARGS+=" -e SPRING_REDIS_HOST=${REDIS_HOST}"
+ENV_ARGS+=" -e SPRING_REDIS_PORT=${REDIS_PORT}"
 
 ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
 ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
