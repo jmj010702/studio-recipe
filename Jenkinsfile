@@ -112,19 +112,21 @@ pipeline {
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
+                    // CodeDeploy 배포 그룹의 활성 배포 확인 및 중지
+                    // - aws deploy list-deployments 명령으로 applicationName과 deploymentGroupName을 직접 필터링
                     echo "--- Checking for and stopping any active CodeDeploy deployments ---"
                     
-                    // 활성 상태로 간주할 배포 상태 목록
                     def activeStatuses = ['InProgress', 'Pending', 'Queued', 'Created', 'Ready']
                     
-                    // list-deployments-by-application 명령으로 모든 배포 ID를 조회
+                    // list-deployments 명령으로 활성 상태의 배포 ID를 조회
+                    // applicationName과 deploymentGroupName을 직접 인자로 전달
                     // --query로 deploymentIds만 추출
                     def allDeploymentIds = sh(returnStdout: true, script: """
-                        aws deploy list-deployments-by-application \
-                            --application-name ${CODEDEPLOY_APPLICATION} \
-                            --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \
-                            --query 'deployments' \
-                            --output text \
+                        aws deploy list-deployments \\ // <<-- 이 부분이 제대로 반영되어야 합니다.
+                            --application-name ${CODEDEPLOY_APPLICATION} \\
+                            --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
+                            --query 'deployments' \\
+                            --output text \\
                             --region ${AWS_REGION}
                     """).trim()
 
@@ -133,16 +135,19 @@ pipeline {
                     // 모든 배포 ID에 대해 상세 정보를 가져와서 상태 필터링 (Jenkins Groovy 단에서 수행)
                     if (allDeploymentIds) {
                         allDeploymentIds.split('\t').each { deploymentId -> // AWS CLI text output은 탭으로 구분될 수 있음
-                            def deploymentInfo = sh(returnStdout: true, script: """
-                                aws deploy get-deployment \
-                                    --deployment-id ${deploymentId} \
-                                    --query 'deploymentInfo.status' \
-                                    --output text \
-                                    --region ${AWS_REGION}
-                            """).trim()
-                            
-                            if (activeStatuses.contains(deploymentInfo)) {
-                                activeDeployments.add(deploymentId)
+                            // 빈 문자열이 split 결과에 포함될 수 있으므로 유효성 검사 추가
+                            if (deploymentId.trim() != '') { 
+                                def deploymentInfo = sh(returnStdout: true, script: """
+                                    aws deploy get-deployment \
+                                        --deployment-id ${deploymentId.trim()} \
+                                        --query 'deploymentInfo.status' \
+                                        --output text \
+                                        --region ${AWS_REGION}
+                                """).trim()
+                                
+                                if (activeStatuses.contains(deploymentInfo)) {
+                                    activeDeployments.add(deploymentId.trim())
+                                }
                             }
                         }
                     }
@@ -160,7 +165,6 @@ pipeline {
                     } else {
                         echo "No active CodeDeploy deployments found. Proceeding with new deployment."
                     }
-                    // =================================================================
                     
                     // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
