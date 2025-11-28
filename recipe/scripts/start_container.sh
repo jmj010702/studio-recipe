@@ -1,80 +1,96 @@
 #!/bin/bash
-set -eux # -e: 에러 발생 시 즉시 중단, -u: 정의되지 않은 변수 사용 시 에러, -x: 실행되는 명령 출력
 
-echo "--- Starting Application: recipe-app-container ---"
+# Define constants
+CONTAINER_NAME="recipe-app-container"
+ECR_IMAGE="${IMAGE_URI}" # Jenkinsfile 또는 CodeDeploy AppSpec.yml에서 넘어온 IMAGE_URI 변수를 사용합니다.
 
-# ECR_IMAGE 값을 파일에서 읽어오기
-# CodeDeploy Agent의 arguments 전달 문제를 강제로 우회하는 방법
-# EC2 인스턴스에 복사된 ECR_IMAGE_VALUE.txt 파일 경로
-ECR_IMAGE_FILE="/home/ubuntu/ECR_IMAGE_VALUE.txt"
+# ECR 로그인
+ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1)
+echo "Logging in to ECR: ${ECR_REGISTRY}"
+aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+if [ $? -ne 0 ]; then
+    echo "ERROR: ECR login failed."
+    exit 1
+fi
+echo "ECR login successful."
 
-if [ -f "$ECR_IMAGE_FILE" ]; then
-  ECR_IMAGE=$(cat "$ECR_IMAGE_FILE")
-  echo "DEBUG: ECR_IMAGE read from file: $ECR_IMAGE"
-else
-  # 파일이 없는 경우, 이전 방식으로 명령행 인자나 환경 변수 확인
-  echo "DEBUG: ECR_IMAGE_VALUE.txt not found. Attempting to get ECR_IMAGE from arguments or environment."
-  
-  # ECR_IMAGE 변수를 미리 선언 (set -u 옵션 때문)
-  ECR_IMAGE=""
-
-  # 모든 명령행 인자를 순회하며 '--ECR_IMAGE='로 시작하는 인자를 찾음.
-  for arg in "$@"; do
-    if [[ "$arg" == "--ECR_IMAGE="* ]]; then
-      ECR_IMAGE="${arg#*=}" # '=' 뒤의 값을 추출하여 ECR_IMAGE에 할당
-      break
-    fi
-  done
-
-  : "${ECR_IMAGE:=${ECR_IMAGE_FROM_ENV:-}}" # ECR_IMAGE_FROM_ENV가 정의되지 않았다면 비어있는 문자열로 대체
-  : "${ECR_IMAGE:?ERROR: ECR_IMAGE variable was not provided via file, arguments or environment.}"
+# 이전 컨테이너가 실행 중이면 중지 및 삭제
+if sudo docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q .; then
+    echo "Stopping existing container: ${CONTAINER_NAME}"
+    sudo docker stop ${CONTAINER_NAME}
+    echo "Removing existing container: ${CONTAINER_NAME}"
+    sudo docker rm ${CONTAINER_NAME}
 fi
 
+# ==============================================================================
+# SECRET_ID="recipe-app-secrets"
+# Secrets Manager가 위치한 AWS 리전
+# REGION="ap-northeast-2" 
+
+# echo "Fetching secrets from AWS Secrets Manager for ${SECRET_ID} in ${REGION}..."
+# SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id ${SECRET_ID} --region ${REGION} --query SecretString --output text)
+
+# if [ $? -ne 0 ]; then
+#     echo "ERROR: Failed to retrieve secrets from Secrets Manager. Check AWS CLI configuration and permissions."
+#     exit 1
+# fi
+
+# # Secrets Manager JSON 파싱 및 개별 변수 할당
+# DB_HOST=$(echo "$SECRET_STRING" | jq -r '.DATABASE_HOST')
+# DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
+# DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
+# DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
+
+# MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
+# MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
+
+# REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
+# REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
+
+# MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
 
-# Docker 로그인 및 이미지 다운로드
-echo "DEBUG: Logging in to ECR..."
-aws ecr get-login-password --region ap-northeast-2 \
-| sudo docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com || true
-
-echo "DEBUG: Pulling Docker image: $ECR_IMAGE"
-sudo docker pull "$ECR_IMAGE" || (echo "ERROR: Failed to pull Docker image: $ECR_IMAGE. Exiting." && exit 1)
+# ==============================================================================
+# 하드코딩된 값으로 DB/Redis/Mail/APP_SECRET 변수 할당 (Secrets Manager 우회)
 
 
-# Secrets Manager에서 환경 변수 가져오기
-echo "DEBUG: Fetching secrets from AWS Secrets Manager..."
-SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id recipe-app-secrets --query SecretString --output text --region ap-northeast-2)
+echo "DEBUG: Using hardcoded DB/Redis/Mail/APP_SECRET values for testing."
 
-DB_HOST=$(echo "$SECRET_STRING" | jq -r '.DATABASE_HOST')
-DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
-DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
-DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
+DB_HOST="recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com" 
+DB_PORT="3306"
+DB_USER="admin"   
+DB_PASSWORD="tlwkrdmldkdlA!" 
 
-MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
-MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
+REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" 
+REDIS_PORT="6379"
 
-REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
-REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
+MAIL_USERNAME="stay_on_track@naver.com"
+MAIL_PASSWORD="KVRG8UGYM9ZJ"
 
-MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
 
-echo "DEBUG: Raw SECRET_STRING: $SECRET_STRING"
-echo "DEBUG: Parsed DB_HOST=${DB_HOST}, DB_PORT=${DB_PORT}, DB_USER=${DB_USER}, DB_PASSWORD=${DB_PASSWORD}"
-echo "DEBUG: Parsed REDIS_HOST=${REDIS_HOST}, REDIS_PORT=${REDIS_PORT}"
-echo "DEBUG: Parsed MAIL_USERNAME=${MAIL_USERNAME}, MAIL_PASSWORD=${MAIL_PASSWORD}"
-echo "DEBUG: Parsed MY_APP_SECRET=${MY_APP_SECRET}"
+MY_APP_SECRET="dI5pBjrtgy9xFHiZtMs3fM7P8OR/wvxrexu/mybWcKc=" 
 
-# ENV_ARGS 문자열 빌드
+# ==============================================================================
+
+
+# Debugging: 개별 DB/Redis/Mail/APP_SECRET 변수들이 제대로 할당되었는지 확인
+echo "DEBUG: Assigned DB_HOST=${DB_HOST}, DB_PORT=${DB_PORT}, DB_USER=${DB_USER}"
+echo "DEBUG: Assigned REDIS_HOST=${REDIS_HOST}, REDIS_PORT=${REDIS_PORT}"
+echo "DEBUG: Assigned MAIL_USERNAME=${MAIL_USERNAME}, MAIL_PASSWORD=${MAIL_PASSWORD}"
+echo "DEBUG: Assigned MY_APP_SECRET=${MY_APP_SECRET}"
+
+
+# Docker 컨테이너에 전달할 환경 변수 문자열 빌드
 ENV_ARGS=""
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'" # <<< 이 DRIVER_URL에 완전한 URL이 들어갑니다.
+ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
 ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
 ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
 
 ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
 ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
 
-ENV_ARGS+=" -e REDIS_HOST=${REDIS_HOST}"
-ENV_ARGS+=" -e REDIS_PORT=${REDIS_PORT}"
+ENV_ARGS+=" -e SPRING_REDIS_HOST=${REDIS_HOST}" 
+ENV_ARGS+=" -e SPRING_REDIS_PORT=${REDIS_PORT}"
 
 ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
 ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
@@ -82,41 +98,18 @@ ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
 # Debugging: 최종 Docker run 명령에 전달될 ENV_ARGS 확인
 echo "DEBUG: Final ENV_ARGS for Docker: ${ENV_ARGS}"
 
-# 기존 컨테이너 정리 로직
-CONTAINER_NAME="recipe-app-container"
-echo "DEBUG: Checking for existing container '$CONTAINER_NAME'..."
-if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "DEBUG: Stopping and removing existing container: $CONTAINER_NAME"
-  sudo docker stop "$CONTAINER_NAME" || true
-  sudo docker rm "$CONTAINER_NAME" || true
-else
-  echo "DEBUG: No existing container '$CONTAINER_NAME' found. Skipping stop/remove."
-fi
-
-
-# 새 Docker 컨테이너 실행
-echo "DEBUG: Running new Docker container '$CONTAINER_NAME' with image '$ECR_IMAGE' and environment variables..."
+# Docker 컨테이너 실행
+echo "Starting Docker container: ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 sudo docker run -d \
   -p 8080:8080 \
-  --name "$CONTAINER_NAME" \
-  --health-cmd="curl -f http://localhost:8080/studio-recipe/health || exit 1" \
-  --health-interval=30s \
-  --health-timeout=10s \
-  --health-retries=3 \
-  $ENV_ARGS \
-  "$ECR_IMAGE"
+  -p 50000:50000 \
+  --name ${CONTAINER_NAME} \
+  ${ENV_ARGS} \
+  "${ECR_IMAGE}"
 
-echo "Docker container '$CONTAINER_NAME' started successfully with image '$ECR_IMAGE' on port 8080."
+if [ $? -ne 0 ]; then
+    echo "ERROR: Docker container failed to start."
+    exit 1
+fi
 
-
-# 컨테이너 시작 상태 확인 (디버깅용)
-echo "DEBUG: Docker container command issued. Giving it some time to start up..."
-sleep 5
-
-echo "DEBUG: Current Docker processes:"
-sudo docker ps -a
-
-echo "DEBUG: Checking Docker container logs for initial startup messages..."
-sudo docker logs "$CONTAINER_NAME" --tail 50
-
-echo "--- ApplicationStart script finished ---"
+echo "Docker container ${CONTAINER_NAME} started successfully."
