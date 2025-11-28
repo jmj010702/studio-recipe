@@ -37,7 +37,7 @@ spring:
    data:
      redis:
        host: localhost
-       prot: 6379
+       port: 6379
 
 jwt:
   secret: ${JWT_SECRET_KEY}
@@ -62,3 +62,9 @@ logging.level:
    org.hibernate.SQL: debug
    org.hibernate.orm.jdbc.bind: TRACE
    org.springframework.security.web: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"

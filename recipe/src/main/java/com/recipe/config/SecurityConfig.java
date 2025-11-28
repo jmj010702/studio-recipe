@@ -81,7 +81,8 @@ public class SecurityConfig {
                                         "/v3/api-docs/**",
                                         "/v3/api-docs",
                                         "/error",
-                                        "/test/**"
+                                        "/test/**",
+                                        "/actuator/**"
                                 ).permitAll() // 위의 경로들은 인증 없이 접근 허용
 
                                 // 나머지 모든 요청은 인증된 사용자만 허용

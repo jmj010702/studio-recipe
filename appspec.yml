@@ -1,0 +1,45 @@
+version: 0.0
+os: linux
+files:
+  - source: /scripts
+    destination: /home/ubuntu/scripts
+  - source: /app.jar
+    destination: /home/ubuntu/app/app.jar
+  - source: /ECR_IMAGE_VALUE.txt
+    destination: /home/ubuntu/
+
+permissions:
+  - object: /home/ubuntu/scripts
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+  - object: /home/ubuntu/app
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+  - object: /home/ubuntu/ECR_IMAGE_VALUE.txt
+    owner: ubuntu
+    group: ubuntu
+    mode: 644
+
+hooks:
+  ApplicationStop:
+    - location: scripts/stop_container.sh
+      timeout: 60
+      runas: ubuntu
+  BeforeInstall:
+    - location: scripts/clean_old_images.sh
+      timeout: 60
+      runas: ubuntu
+  ApplicationStart:
+    - location: scripts/start_container.sh
+      timeout: 300
+      runas: ubuntu
+      arguments:
+        ECR_IMAGE: "NOT_USED_ANYMORE_WILL_READ_FROM_FILE"
+  ValidateService:
+    - location: scripts/validate_service.sh
+      timeout: 180
+      runas: ubuntu

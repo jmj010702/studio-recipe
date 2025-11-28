@@ -31,8 +31,8 @@ services:
 
   backend:
     build:
-      context: . #Dokcerifle 경로
-      dockerfile: Dockerfile
+      context: .. #Dokcerifle 경로
+      dockerfile: ../Dockerfile
     container_name: studio-recipe
   #env_file:
   #  - ./.env # .env 파일의 모든 변수가 컨테이너로 주입된다.
