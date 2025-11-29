@@ -21,7 +21,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "--- Checking out source code ---"
-                git branch: 'main', credentialsId: 'JG2', url: 'https://github.com/stayonasDev/studio-recipe.git'
+                git branch: 'main', credentialsId: 'JG', url: 'https://github.com/stayonasDev/studio-recipe.git'
                 //script {
                     //checkout([$class: 'GitSCM', branches: [[name: 'main']],
                             //extensions: [],
