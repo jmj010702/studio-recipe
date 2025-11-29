@@ -2,10 +2,24 @@
 
 # Define constants
 CONTAINER_NAME="recipe-app-container"
-ECR_IMAGE="${IMAGE_URI}" # Jenkinsfile 또는 CodeDeploy AppSpec.yml에서 넘어온 IMAGE_URI 변수를 사용합니다.
+
+# ECR_IMAGE_VALUE.txt 파일에서 이미지 URI를 읽어옴
+# CodeDeploy 에이전트가 스크립트를 실행하는 경로는 deployment-archive 하위
+# ECR_IMAGE_VALUE.txt 파일은 deployment-archive 최상위에 복사
+if [ -f "ECR_IMAGE_VALUE.txt" ]; then
+    ECR_IMAGE=$(cat ECR_IMAGE_VALUE.txt)
+    echo "DEBUG: ECR_IMAGE read from file is ${ECR_IMAGE}"
+else
+    echo "ERROR: ECR_IMAGE_VALUE.txt not found!"
+    exit 1
+fi
 
 # ECR 로그인
 ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1)
+
+echo "DEBUG: ECR_IMAGE is ${ECR_IMAGE}"
+echo "DEBUG: ECR_REGISTRY is ${ECR_REGISTRY}"
+
 echo "Logging in to ECR: ${ECR_REGISTRY}"
 aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 if [ $? -ne 0 ]; then
@@ -13,14 +27,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "ECR login successful."
-
-# 이전 컨테이너가 실행 중이면 중지 및 삭제
-if sudo docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q .; then
-    echo "Stopping existing container: ${CONTAINER_NAME}"
-    sudo docker stop ${CONTAINER_NAME}
-    echo "Removing existing container: ${CONTAINER_NAME}"
-    sudo docker rm ${CONTAINER_NAME}
-fi
 
 # ==============================================================================
 # SECRET_ID="recipe-app-secrets"
