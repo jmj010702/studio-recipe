@@ -8,6 +8,7 @@ spring:
    jpa:
       hibernate:
          ddl-auto: create
+      database-platform: org.hibernate.dialect.MariaDBDialect
       properties:
          hibernate:
             format_sql: true
