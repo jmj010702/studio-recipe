@@ -3,14 +3,32 @@
 # Define constants
 CONTAINER_NAME="recipe-app-container"
 
-# ECR_IMAGE_VALUE.txt 파일에서 이미지 URI를 읽어옴
-# CodeDeploy 에이전트가 스크립트를 실행하는 경로는 deployment-archive 하위
-# ECR_IMAGE_VALUE.txt 파일은 deployment-archive 최상위에 복사
-if [ -f "ECR_IMAGE_VALUE.txt" ]; then
-    ECR_IMAGE=$(cat ECR_IMAGE_VALUE.txt)
-    echo "DEBUG: ECR_IMAGE read from file is ${ECR_IMAGE}"
+
+# 스크립트가 실행되는 디렉토리 (deploy/scripts/)를 얻기
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+APP_ROOT_DIR="$(dirname "$SCRIPT_DIR")" 
+
+
+ECR_IMAGE_FILE_PATH="${APP_ROOT_DIR}/ECR_IMAGE_VALUE.txt"
+
+
+echo "DEBUG: ----------------------------------------------------"
+echo "DEBUG: Executing scripts/start_container.sh"
+echo "DEBUG: SCRIPT_DIR is: ${SCRIPT_DIR}"
+echo "DEBUG: APP_ROOT_DIR is: ${APP_ROOT_DIR}"
+echo "DEBUG: ECR_IMAGE_FILE_PATH is: ${ECR_IMAGE_FILE_PATH}"
+echo "DEBUG: Files in APP_ROOT_DIR:"
+ls -alF "${APP_ROOT_DIR}" # APP_ROOT_DIR에 어떤 파일들이 있는지 확인
+echo "DEBUG: Files in SCRIPT_DIR:"
+ls -alF "${SCRIPT_DIR}" # scripts/ 디렉토리에 어떤 파일들이 있는지 확인
+echo "DEBUG: ----------------------------------------------------"
+
+
+if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
+    ECR_IMAGE=$(cat "${ECR_IMAGE_FILE_PATH}")
+    echo "DEBUG: ECR_IMAGE read from file (${ECR_IMAGE_FILE_PATH}) is ${ECR_IMAGE}"
 else
-    echo "ERROR: ECR_IMAGE_VALUE.txt not found!"
+    echo "ERROR: ECR_IMAGE_VALUE.txt not found at expected path: ${ECR_IMAGE_FILE_PATH}!"
     exit 1
 fi
 
