@@ -106,7 +106,7 @@ echo "DEBUG: Assigned MY_APP_SECRET=${MY_APP_SECRET}"
 
 # Docker 컨테이너에 전달할 환경 변수 문자열 빌드
 ENV_ARGS=""
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
+ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db'"
 ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
 ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
 
