@@ -82,7 +82,7 @@ echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 sudo docker run -d \
   --name "${CONTAINER_NAME}" \
   --network host \
-  -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul" \
+  -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" \
   -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
   -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
   -e SPRING_MAIL_HOST="${MAIL_HOST}" \
