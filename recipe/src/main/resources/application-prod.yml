@@ -40,8 +40,10 @@ spring:
 
    data:
      redis:
-       host: ${SPRING_DATA_REDIS_HOST}
-       port: ${SPRING_DATA_REDIS_PORT}
+       cluster:
+         nodes:
+           - ${SPRING_DATA_REDIS_HOST}:6379 # ElastiCache 클러스터의 Configuration Endpoint
+       timeout: 5000ms
        
 jwt:
   secret: ${MY_APP_SECRET}
