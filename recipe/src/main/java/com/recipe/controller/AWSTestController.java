@@ -2,6 +2,7 @@ package com.recipe.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 //Prd Test 용
 @RestController
