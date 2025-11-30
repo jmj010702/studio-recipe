@@ -42,7 +42,7 @@ spring:
      redis:
        cluster:
          nodes:
-           - ${SPRING_DATA_REDIS_HOST}:6379 # ElastiCache 클러스터의 Configuration Endpoint
+           - ${SPRING_DATA_REDIS_HOST}
        timeout: 5000ms
        
 jwt:
