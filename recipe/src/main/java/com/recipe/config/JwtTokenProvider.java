@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider {
 
     private final Key key;
-    private final long accessTokenValiditySeconds;
-    private final long refreshTokenValiditySeconds;
+    private final long accessTokenValiditySeconds = 3600L; // 1시간
+    private final long refreshTokenValiditySeconds 604800L; // 7일
 
     public JwtTokenProvider(
             // @Value("${jwt.secret}") String secretKey,
@@ -37,9 +37,6 @@ public class JwtTokenProvider {
             /*@Value("${jwt.refresh-token-validity-in-seconds}") long refreshTokenValiditySeconds*/) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
-
-        this.accessTokenValidityInSeconds = 3600L; // 1시간
-        this.refreshTokenValidityInSeconds = 604800L; // 7일
     }
 
     //Access Token, Refresh Token 모두 사용 이유 -> 둘의 구분은 시간이다.
@@ -126,6 +123,7 @@ public class JwtTokenProvider {
         return null;
     }
 }
+
 
 
 
