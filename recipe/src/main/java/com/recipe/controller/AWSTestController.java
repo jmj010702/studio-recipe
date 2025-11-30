@@ -5,8 +5,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 //Prd Test 용
 @RestController
+@RequestMapping("/asw-test")
 public class AWSTestController {
-    @GetMapping("/aws-test")
+    @GetMapping("/hello")
     public String awsTest(){
         return "AWS TEST COMPLETE";
     }
