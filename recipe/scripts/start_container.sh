@@ -79,28 +79,32 @@ fi
 echo "ECR login successful."
 
 # 5. 도커 컨테이너 실행
-echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
-sudo docker run -d \
-  --name "${CONTAINER_NAME}" \
-  --network host \
-  -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" \
-  -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
-  -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
-  -e SPRING_MAIL_HOST="${MAIL_HOST}" \
-  -e SPRING_MAIL_PORT="${MAIL_PORT}" \
-  -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
-  -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
-  -e MY_APP_SECRET="${MY_APP_SECRET}" \
-  -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
-  -v /var/lib/docker/data:/app/data \
-  --entrypoint java \
-  "${ECR_IMAGE}" \ 
-  -Djava.net.preferIPv4Stack=true \
-  -Djava.net.preferIPv6Addresses=false \
-  -Dio.netty.resolver.useNativeCache=false \
-  -Dio.netty.resolver.noCache=true \
-  -jar /app/app.jar
+# echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
+# sudo docker run -d \
+#   --name "${CONTAINER_NAME}" \
+#   --network host \
+#   -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" \
+#   -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
+#   -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
+#   -e SPRING_MAIL_HOST="${MAIL_HOST}" \
+#   -e SPRING_MAIL_PORT="${MAIL_PORT}" \
+#   -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
+#   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
+#   -e MY_APP_SECRET="${MY_APP_SECRET}" \
+#   -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
+#   -v /var/lib/docker/data:/app/data \
+#   --entrypoint java \
+#   "${ECR_IMAGE}" \ 
+#   -Djava.net.preferIPv4Stack=true \
+#   -Djava.net.preferIPv6Addresses=false \
+#   -Dio.netty.resolver.useNativeCache=false \
+#   -Dio.netty.resolver.noCache=true \
+#   -jar /app/app.jar
   # Redis Cluster Ipv6로 찾아서 문제, JVM이 Ipv4 우선적으로 찾게 함
+
+# 공백 문제? 가능성 두고 한 줄 작성
+echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
+sudo docker run -d --name "${CONTAINER_NAME}" --network host -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" -e SPRING_MAIL_HOST="${MAIL_HOST}" -e SPRING_MAIL_PORT="${MAIL_PORT}" -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" -e MY_APP_SECRET="${MY_APP_SECRET}" -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" -v /var/lib/docker/data:/app/data --entrypoint java "${ECR_IMAGE}" -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true -jar /app/app.jar
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to run Docker container."
