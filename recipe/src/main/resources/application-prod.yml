@@ -32,7 +32,7 @@ spring:
        mail.smtp.auth: true
        # mail.smtp.ssl.enable: true
         mail.smtp.ssl.enable: true
-        mail.smtp.debug: false # true라면 로그 확인 가
+        mail.smtp.debug: true # true라면 로그 확인 가
 #       mail.smtp.starttls.enable: true //TLS 사용 시 port 587로 바꾸고 사용
 #       mail.smtp.starttls.required: true
 
