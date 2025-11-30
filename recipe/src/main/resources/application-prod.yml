@@ -21,6 +21,7 @@ spring:
          initialize-schema: always # Spring Batch 메타데이터 테이블 자동 생성
       job:
          enabled: false # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
+         job-names: NON_EXISTENT_JOB #존재하지 않는 이름 지정하여 아무 잡도 실행되지 않게 함
 
    mail:
      host: ${SPRING_MAIL_HOST}
