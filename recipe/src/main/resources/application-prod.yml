@@ -45,6 +45,7 @@ spring:
        cluster:
          nodes:
            - ${SPRING_DATA_REDIS_HOST}
+       port: ${SPRING_DATA_REDIS_PORT} # 
        timeout: 5000ms
        
 jwt:
