@@ -28,7 +28,7 @@ public class JwtTokenProvider {
 
     private final Key key;
     private final long accessTokenValiditySeconds = 3600L; // 1시간
-    private final long refreshTokenValiditySeconds 604800L; // 7일
+    private final long refreshTokenValiditySeconds = 604800L; // 7일
 
     public JwtTokenProvider(
             // @Value("${jwt.secret}") String secretKey,
@@ -123,6 +123,7 @@ public class JwtTokenProvider {
         return null;
     }
 }
+
 
 
 
