@@ -91,9 +91,10 @@ sudo docker run -d \
   -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
   -e MY_APP_SECRET="${MY_APP_SECRET}" \
-  # -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   -v /var/lib/docker/data:/app/data \
   "${ECR_IMAGE}"
+
+  # -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   # java \
   # -Djava.net.preferIPv4Stack=true \
   # -Dio.netty.resolver.useNativeCache=false \
