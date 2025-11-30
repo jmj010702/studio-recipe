@@ -1,16 +1,14 @@
 spring:
    datasource:
      driver-class-name: org.mariadb.jdbc.Driver
-     # driver-class-name: com.mysql.cj.jdbc.Driver
-     url: jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?characterEncoding=UTF-8&serverTimezone=UTC
-     username: admin
-     password: tlwkrdmldkdlA!
+     url: ${SPRING_DATASOURCE_URL}
+     username: ${SPRING_DATASOURCE_USERNAME}
+     password: ${SPRING_DATASOURCE_PASSWORD}
 
    jpa:
       hibernate:
          ddl-auto: create
       database-platform: org.hibernate.dialect.MariaDBDialect
-      # database-platform: org.hibernate.dialect.MySQL8Dialect
       properties:
          hibernate:
             format_sql: true
@@ -27,8 +25,8 @@ spring:
    mail:
      host: smtp.naver.com
      port: 465
-     username: stay_on_track@naver.com
-     password: KVRG8UGYM9ZJ
+     username: ${MAIL_USERNAME}
+     password: ${MAIL_PASSWORD}
      properties:
        mail.smtp.auth: true
        mail.smtp.ssl.enable: true
@@ -41,14 +39,11 @@ spring:
 
    data:
      redis:
-       # host: ${REDIS_HOST} 
-       # port: ${REDIS_PORT}
+       host: ${REDIS_HOST} 
+       port: ${REDIS_PORT}
        
-       host: clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379
-       port: 6379
-
 jwt:
-  secret: dI5pBjrtgy9xFHiZtMs3fM7P8OR/wvxrexu/mybWcKc=
+  secret: ${MY_APP_SECRET}
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 604800
 
