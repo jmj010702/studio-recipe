@@ -40,10 +40,12 @@ spring:
 
    data:
      redis:
-       cluster:
-         nodes:
-           - ${SPRING_DATA_REDIS_HOST}
-       timeout: 5000ms
+       host: clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com
+       port: 6379
+       # cluster:
+         # nodes:
+           # - ${SPRING_DATA_REDIS_HOST}
+       # timeout: 5000ms
        
 jwt:
   secret: ${MY_APP_SECRET}
