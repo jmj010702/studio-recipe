@@ -3,7 +3,7 @@
 APP_PORT=8080
 APP_CONTEXT_PATH="/studio-recipe"
 
-HEALTH_CHECK_URL="http://localhost:${APP_PORT}/actuator/health"
+HEALTH_CHECK_URL="http://localhost:${APP_PORT}/studio-recipe/actuator/"
 
 MAX_RETRIES=15
 RETRY_INTERVAL=10
