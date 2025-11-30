@@ -29,9 +29,6 @@ public class JwtTokenProvider {
     private final Key key;
     private final long accessTokenValiditySeconds;
     private final long refreshTokenValiditySeconds;
-    
-    private static final long DEFAULT_ACCESS_TOKEN_VALIDITY = 3600L; // 1시간
-    private static final long DEFAULT_REFRESH_TOKEN_VALIDITY = 604800L; // 7일
 
     public JwtTokenProvider(
             // @Value("${jwt.secret}") String secretKey,
@@ -41,8 +38,8 @@ public class JwtTokenProvider {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
 
-        this.accessTokenValidityInSeconds = DEFAULT_ACCESS_TOKEN_VALIDITY;
-        this.refreshTokenValidityInSeconds = DEFAULT_REFRESH_TOKEN_VALIDITY;
+        this.accessTokenValidityInSeconds = 3600L; // 1시간
+        this.refreshTokenValidityInSeconds = 604800L; // 7일
     }
 
     //Access Token, Refresh Token 모두 사용 이유 -> 둘의 구분은 시간이다.
@@ -129,5 +126,6 @@ public class JwtTokenProvider {
         return null;
     }
 }
+
 
 
