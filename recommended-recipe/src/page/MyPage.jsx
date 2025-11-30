@@ -17,6 +17,13 @@ function MyPage() {
   const [subTab, setSubTab] = useState('draft');
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // 냉장고 재료 관련 state
+  const [ingredients, setIngredients] = useState([]);
+  const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '', unit: '', memo: '' });
+  const [recommendedRecipes, setRecommendedRecipes] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recipesPerPage = 5;
   
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -37,7 +44,6 @@ function MyPage() {
         setUserInfo(data.userInfo);
         const liked = data.likedList || [];
         setLikedList(liked);
-        setSavedList(liked);
         
         console.log('📦 좋아요한 레시피:', liked.length, '개');
         if (liked.length > 0) {
@@ -48,6 +54,23 @@ function MyPage() {
         const myRecipesResponse = await api.get('/api/mypages/my-recipes');
         console.log('✅ 내가 작성한 레시피:', myRecipesResponse.data);
         setAuthoredList(myRecipesResponse.data || []);
+
+        // 3. 찜한 레시피 별도 조회
+        const bookmarkedResponse = await api.get('/api/mypages/bookmarked-recipes');
+        console.log('✅ 찜한 레시피:', bookmarkedResponse.data);
+        setSavedList(bookmarkedResponse.data || []);
+
+        // 4. 냉장고 재료 조회
+        const ingredientsResponse = await api.get('/api/mypages/ingredients');
+        console.log('✅ 냉장고 재료:', ingredientsResponse.data);
+        setIngredients(ingredientsResponse.data || []);
+        
+        // ✅ 5. 재료 기반 추천 레시피 조회 (재료가 있을 때만)
+        if (ingredientsResponse.data && ingredientsResponse.data.length > 0) {
+          const recipesResponse = await api.get('/api/mypages/recommended-recipes');
+          console.log('✅ 재료 기반 추천 레시피:', recipesResponse.data);
+          setRecommendedRecipes(recipesResponse.data || []);
+        }
       
       } catch (error) {
         console.error('❌ 마이페이지 정보 조회 실패:', error);
@@ -64,14 +87,99 @@ function MyPage() {
     navigate('/recipe/write'); 
   };
 
-  // ✅ recipeId를 안전하게 가져오는 함수
+  // 재료 추가 함수
+  const handleAddIngredient = async () => {
+    if (!newIngredient.name.trim()) {
+      alert('재료 이름을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const response = await api.post('/api/mypages/ingredients', newIngredient);
+      setIngredients([...ingredients, response.data]);
+      setNewIngredient({ name: '', quantity: '', unit: '', memo: '' });
+      alert('재료가 추가되었습니다.');
+      
+      // 재료 기반 레시피 추천 조회
+      fetchRecommendedRecipes();
+    } catch (error) {
+      console.error('재료 추가 실패:', error);
+      alert('재료 추가에 실패했습니다.');
+    }
+  };
+
+  // 재료 삭제 함수
+  const handleDeleteIngredient = async (ingredientId) => {
+    try {
+      await api.delete(`/api/mypages/ingredients/${ingredientId}`);
+      setIngredients(ingredients.filter(item => item.id !== ingredientId));
+      alert('재료가 삭제되었습니다.');
+      fetchRecommendedRecipes();
+    } catch (error) {
+      console.error('재료 삭제 실패:', error);
+      alert('재료 삭제에 실패했습니다.');
+    }
+  };
+
+  // 재료 기반 레시피 추천 조회
+  const fetchRecommendedRecipes = async () => {
+    try {
+      const response = await api.get('/api/mypages/recommended-recipes');
+      console.log('🔄 추천 레시피 갱신:', response.data);
+      setRecommendedRecipes(response.data || []);
+      setCurrentPage(1); // 페이지 초기화
+    } catch (error) {
+      console.error('추천 레시피 조회 실패:', error);
+    }
+  };
+
+  // 페이지네이션 계산
+  const indexOfLastRecipe = currentPage * recipesPerPage;
+  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
+  const currentRecipes = recommendedRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+  const totalPages = Math.ceil(recommendedRecipes.length / recipesPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // recipeId를 안전하게 가져오는 함수
   const getRecipeId = (recipe) => {
     return recipe.recipeId || recipe.rcpSno || recipe.id;
   };
 
-  // ✅ 필드명 호환성 함수들
+  // 필드명 호환성 함수들
   const getTitle = (recipe) => recipe.title || recipe.rcpTtl || '제목 없음';
-  const getImageUrl = (recipe) => recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg';
+  const getImageUrl = (recipe) => {
+  const imageUrl = recipe.imageUrl || recipe.rcpImgUrl;
+  
+  if (!imageUrl) {
+    return '/default-image.jpg';
+  }
+  
+  // 이미 완전한 URL인 경우
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // /studio-recipe/images/로 시작하는 경우
+  if (imageUrl.startsWith('/studio-recipe/')) {
+    return `http://localhost:8080${imageUrl}`;
+  }
+  
+  // /images/로 시작하는 경우 ⭐ 요게 핵심!
+  if (imageUrl.startsWith('/images/')) {
+    return `http://localhost:8080/studio-recipe${imageUrl}`;
+  }
+  
+  // images/로 시작하는 경우
+  if (imageUrl.startsWith('images/')) {
+    return `http://localhost:8080/studio-recipe/${imageUrl}`;
+  }
+  
+  // 그 외
+  return `http://localhost:8080/studio-recipe/images/${imageUrl}`;
+};
   const getViewCount = (recipe) => recipe.viewCount || recipe.inqCnt || 0;
   const getLikeCount = (recipe) => recipe.likeCount || recipe.rcmmCnt || 0;
 
@@ -130,8 +238,7 @@ function MyPage() {
               <div className="form-row">
                 <span className="form-label">아이디(이메일)</span>
                 <div className="form-value-wrapper">
-                  <span className="form-value">{userInfo.email}</span> 
-                  <button type="button" className="btn-inline">이메일 변경</button>
+                  <span className="form-value">{userInfo.email}</span>
                 </div>
               </div>
 
@@ -179,6 +286,355 @@ function MyPage() {
           <div className="my-ingredients-container">
             <h2><FaStar /> 나의 냉장고 재료</h2>
             <p>내가 가진 재료를 등록하고 관리합니다.</p>
+            
+{/* 재료 등록 폼 - 개선 버전 */}
+<div className="ingredient-form" style={{ 
+  background: '#f8f9fa',
+  padding: '25px',
+  borderRadius: '8px',
+  marginTop: '20px',
+  marginBottom: '30px'
+}}>
+  <h3 style={{ 
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  }}>
+    <span style={{ 
+      background: '#4CAF50',
+      color: 'white',
+      width: '24px',
+      height: '24px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '14px'
+    }}>1</span>
+    재료 정보
+  </h3>
+  
+  <div style={{ 
+    display: 'flex', 
+    gap: '12px', 
+    alignItems: 'stretch',
+    marginBottom: '15px'
+  }}>
+    <input 
+      type="text" 
+      placeholder="재료 이름 (예: 돼지고기)" 
+      value={newIngredient.name}
+      onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddIngredient()}
+      style={{ 
+        flex: 2.5,
+        padding: '12px 16px',
+        border: '1px solid #ddd',
+        borderRadius: '6px',
+        fontSize: '15px',
+        background: 'white'
+      }}
+    />
+    <input 
+      type="text" 
+      placeholder="수량" 
+      value={newIngredient.quantity}
+      onChange={(e) => setNewIngredient({...newIngredient, quantity: e.target.value})}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddIngredient()}
+      style={{ 
+        flex: 1,
+        padding: '12px 16px',
+        border: '1px solid #ddd',
+        borderRadius: '6px',
+        fontSize: '15px',
+        background: 'white'
+      }}
+    />
+    <input 
+      type="text" 
+      placeholder="단위" 
+      value={newIngredient.unit}
+      onChange={(e) => setNewIngredient({...newIngredient, unit: e.target.value})}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddIngredient()}
+      style={{ 
+        flex: 1,
+        padding: '12px 16px',
+        border: '1px solid #ddd',
+        borderRadius: '6px',
+        fontSize: '15px',
+        background: 'white'
+      }}
+    />
+    <input 
+      type="text" 
+      placeholder="비고 (선택사항)" 
+      value={newIngredient.memo}
+      onChange={(e) => setNewIngredient({...newIngredient, memo: e.target.value})}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddIngredient()}
+      style={{ 
+        flex: 2,
+        padding: '12px 16px',
+        border: '1px solid #ddd',
+        borderRadius: '6px',
+        fontSize: '15px',
+        background: 'white'
+      }}
+    />
+    <button 
+      onClick={handleAddIngredient}
+      style={{ 
+        padding: '12px 24px',
+        background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontWeight: '600',
+        fontSize: '15px',
+        whiteSpace: 'nowrap',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s'
+      }}
+      onMouseOver={(e) => {
+        e.target.style.transform = 'translateY(-1px)';
+        e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+      }}
+      onMouseOut={(e) => {
+        e.target.style.transform = 'translateY(0)';
+        e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      }}
+    >
+      + 재료 추가
+    </button>
+  </div>
+
+  {/* 등록된 재료 목록 */}
+  {ingredients.length > 0 && (
+    <div style={{ 
+      marginTop: '25px',
+      paddingTop: '20px',
+      borderTop: '1px solid #e0e0e0'
+    }}>
+      <h4 style={{ 
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: '15px'
+      }}>
+        등록된 재료 ({ingredients.length}개)
+      </h4>
+      <div style={{ 
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        {ingredients.map(item => (
+          <div 
+            key={item.id} 
+            style={{ 
+              padding: '10px 16px',
+              background: 'white',
+              border: '1px solid #e0e0e0',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.borderColor = '#4CAF50';
+              e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.1)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = '#e0e0e0';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+            }}
+          >
+            <span style={{ 
+              fontSize: '14px',
+              color: '#333',
+              fontWeight: '500'
+            }}>
+              {item.name} {item.quantity}{item.unit}
+              {item.memo && <span style={{ color: '#999', fontSize: '13px' }}> ({item.memo})</span>}
+            </span>
+            <button 
+              onClick={() => handleDeleteIngredient(item.id)}
+              style={{ 
+                background: 'none',
+                border: 'none',
+                color: '#999',
+                cursor: 'pointer',
+                fontSize: '20px',
+                lineHeight: '1',
+                padding: '0',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = '#f44336';
+                e.target.style.color = 'white';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'none';
+                e.target.style.color = '#999';
+              }}
+              title="삭제"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
+
+            {/* 추천 레시피 */}
+            {ingredients.length > 0 && (
+              <div className="recommended-recipes">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3><FaHeart style={{ color: '#ff6b6b' }} /> 내가 등록한 재료로 만들 수 있는 레시피</h3>
+                </div>
+
+                {recommendedRecipes.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                    <p>등록된 재료로 만들 수 있는 레시피를 찾는 중...</p>
+                    <p style={{ fontSize: '14px', marginTop: '10px' }}>레시피가 없다면 재료를 더 추가해보세요!</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="recipes-grid">
+                      {currentRecipes.map(recipe => (
+                        <div 
+                          key={getRecipeId(recipe)} 
+                          className="recipe-card" 
+                          onClick={() => handleRecipeClick(recipe)}
+                        >
+                          <div className="recipe-image-wrapper">
+                            <img src={getImageUrl(recipe)} alt={getTitle(recipe)} />
+                          </div>
+                          <div className="recipe-info">
+                            <h4>{getTitle(recipe)}</h4>
+                            <div className="recipe-stats">
+                              <span>👁️ {getViewCount(recipe)}</span>
+                              <span>❤️ {getLikeCount(recipe)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 페이지네이션 */}
+                    {totalPages > 1 && (
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        gap: '5px',
+                        marginTop: '30px'
+                      }}>
+                        <button 
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          style={{ 
+                            padding: '8px 12px', 
+                            border: '1px solid #ddd', 
+                            background: 'white',
+                            borderRadius: '4px',
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === 1 ? 0.5 : 1
+                          }}
+                        >
+                          처음
+                        </button>
+                        <button 
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          style={{ 
+                            padding: '8px 12px', 
+                            border: '1px solid #ddd', 
+                            background: 'white',
+                            borderRadius: '4px',
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === 1 ? 0.5 : 1
+                          }}
+                        >
+                          이전
+                        </button>
+                        
+                        {[...Array(totalPages)].map((_, index) => {
+                          const pageNum = index + 1;
+                          if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                          ) {
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                style={{
+                                  padding: '8px 12px',
+                                  border: '1px solid #ddd',
+                                  background: currentPage === pageNum ? '#4CAF50' : 'white',
+                                  color: currentPage === pageNum ? 'white' : 'black',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontWeight: currentPage === pageNum ? 'bold' : 'normal'
+                                }}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          }
+                          return null;
+                        })}
+
+                        <button 
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          style={{ 
+                            padding: '8px 12px', 
+                            border: '1px solid #ddd', 
+                            background: 'white',
+                            borderRadius: '4px',
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === totalPages ? 0.5 : 1
+                          }}
+                        >
+                          다음
+                        </button>
+                        <button 
+                          onClick={() => handlePageChange(totalPages)}
+                          disabled={currentPage === totalPages}
+                          style={{ 
+                            padding: '8px 12px', 
+                            border: '1px solid #ddd', 
+                            background: 'white',
+                            borderRadius: '4px',
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === totalPages ? 0.5 : 1
+                          }}
+                        >
+                          마지막
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         );
 
@@ -214,7 +670,7 @@ function MyPage() {
                         onClick={() => handleRecipeClick(recipe)}
                       >
                         <div className="recipe-image-wrapper">
-                          <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
+                          <img src={getImageUrl(recipe)} />
                         </div>
                         <div className="recipe-info">
                           <h4>{recipe.title || recipe.rcpTtl}</h4>
@@ -257,7 +713,7 @@ function MyPage() {
                     onClick={() => handleRecipeClick(recipe)}
                   >
                     <div className="recipe-image-wrapper">
-                      <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
+                      <img src={getImageUrl(recipe)} />
                       <div className="like-badge">
                         <FaHeart />
                       </div>
@@ -297,7 +753,7 @@ function MyPage() {
                     onClick={() => handleRecipeClick(recipe)}
                   >
                     <div className="recipe-image-wrapper">
-                      <img src={recipe.imageUrl || recipe.rcpImgUrl || '/default-image.jpg'} alt={recipe.title || recipe.rcpTtl} />
+                      <img src={getImageUrl(recipe)} alt={getTitle(recipe)} />
                       <div className="saved-badge">
                         <FaStar />
                       </div>
@@ -313,13 +769,6 @@ function MyPage() {
                 ))}
               </div>
             )}
-          </div>
-        );
-        
-      case 'iconMenu':
-        return (
-          <div className="icon-menu-container">
-            <h2><FaBookOpen /> 아이콘 메뉴</h2>
           </div>
         );
 
@@ -348,9 +797,6 @@ function MyPage() {
         </button>
         <button className={`nav-item ${activeMenu === 'myAuthoredRecipes' ? 'active' : ''}`} onClick={() => setActiveMenu('myAuthoredRecipes')}>
           <FaBookOpen /> 내가 작성한 레시피
-        </button>
-        <button className={`nav-item ${activeMenu === 'iconMenu' ? 'active' : ''}`} onClick={() => setActiveMenu('iconMenu')}>
-          <FaBookOpen /> 
         </button>
       </nav>
 

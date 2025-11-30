@@ -127,51 +127,90 @@ function MainPage() {
     return selected;
   };
 
-  // 로그인 상태 확인
+  // ⭐ 로그인 상태 확인 useEffect 추가
   useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
+    const checkLoginStatus = () => {
+      const loggedIn = isAuthenticated();
+      console.log('🔐 로그인 상태 확인:', loggedIn);
+      setIsLoggedIn(loggedIn);
+    };
+
+    checkLoginStatus();
   }, []);
-  
+
+  // 레시피 데이터 로드
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
         setLoading(true);
         setError(null);
         
+        console.log('🔍 API 호출 시작: /api/mainPages');
         const response = await api.get('/api/mainPages');
+        console.log('✅ API 응답 전체:', response.data);
+        
         const data = response.data?.data || {};
         const recommended = data['recommended-recipe'] || [];
         const top = data.recipe || [];
         
+        console.log('📦 recommended 데이터 개수:', recommended.length);
+        console.log('📦 top 데이터 개수:', top.length);
+        
         const todayUniqueRecipes = get5DayUniqueRecipes(recommended, 10);
         
-        // 데이터 구조 확인용 로그
+        // 🔍 데이터 구조 상세 확인 (이미지 URL 집중 체크)
         if (todayUniqueRecipes.length > 0) {
-          console.log('=== 첫 번째 레시피 데이터 확인 ===');
-          console.log(todayUniqueRecipes[0]); 
+          console.log('=== 첫 번째 레시피 데이터 상세 확인 ===');
+          const firstRecipe = todayUniqueRecipes[0];
+          console.log('전체 객체:', firstRecipe);
+          console.log('rcpSno (ID):', firstRecipe.rcpSno);
+          console.log('rcpTtl (제목):', firstRecipe.rcpTtl);
+          console.log('rcpImgUrl (이미지 URL):', firstRecipe.rcpImgUrl);
+          console.log('imageUrl 필드:', firstRecipe.imageUrl);
+          console.log('모든 키:', Object.keys(firstRecipe));
         }
 
         setTodayRecipes(todayUniqueRecipes); 
         setTopRecipes(top);
 
+        // ⭐ 로그인 상태 체크 후 좋아요한 레시피 불러오기
         if (isLoggedIn) {
           try {
+            console.log('🔍 좋아요한 레시피 조회 시작');
             const likedResponse = await api.get('/api/user/liked-recipes');
             const recipes = likedResponse.data?.data || likedResponse.data || [];
+            
+            console.log('❤️ 좋아요한 레시피 개수:', recipes.length);
+            
+            // ⭐ 좋아요한 레시피 이미지 URL 확인
+            if (recipes.length > 0) {
+              console.log('=== 좋아요한 레시피 데이터 상세 확인 ===');
+              recipes.forEach((recipe, index) => {
+                console.log(`레시피 ${index + 1}:`, {
+                  rcpSno: recipe.rcpSno,
+                  rcpTtl: recipe.rcpTtl,
+                  rcpImgUrl: recipe.rcpImgUrl,
+                });
+              });
+            }
             
             setLikedRecipes(recipes);
             setBookmarkedRecipes(recipes);
             
           } catch (likedError) {
+            console.error('❌ 좋아요한 레시피 조회 실패:', likedError);
             if (likedError.response?.status === 404 || likedError.response?.status === 500) {
               setLikedRecipes([]);
               setBookmarkedRecipes([]);
             }
           }
+        } else {
+          console.log('❌ 로그인 상태가 아니므로 좋아요한 레시피를 불러오지 않습니다.');
         }
 
       } catch (error) {
-        console.error("레시피 데이터를 불러오는 중 오류:", error);
+        console.error("❌ 레시피 데이터를 불러오는 중 오류:", error);
+        console.error("에러 상세:", error.response?.data);
         setError("레시피를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.");
       } finally {
         setLoading(false);

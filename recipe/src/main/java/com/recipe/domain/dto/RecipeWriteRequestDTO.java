@@ -1,9 +1,10 @@
-package com.recipe.domain.dto.recipe;
+package com.recipe.domain.dto;  // recipe 제거
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -13,19 +14,20 @@ import java.util.List;
 @AllArgsConstructor
 public class RecipeWriteRequestDTO {
     
-    private String title;           // 레시피 제목
-    private String introduction;    // 레시피 소개
-    private String videoUrl;        // 동영상 URL
-    private String tags;            // 태그
-    private List<Ingredient> ingredients;  // 재료 목록
+    private String title;           
+    private String introduction;    
+    private String videoUrl;        
+    private String tags;            
+    private MultipartFile thumbnail; 
+    private List<Ingredient> ingredients;  
     
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Ingredient {
-        private String name;    // 재료명
-        private String amount;  // 양
-        private String unit;    // 단위
-        private String note;    // 비고
+        private String name;    
+        private String amount;  
+        private String unit;    
+        private String note;    
     }
 }

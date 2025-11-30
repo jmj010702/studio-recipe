@@ -43,4 +43,9 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     @Modifying
     @Query("DELETE FROM Like l WHERE l.user.userId = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+    
+    // ▼▼▼ [추가됨] 레시피 삭제 시 좋아요 기록 일괄 삭제 ▼▼▼
+    @Modifying
+    @Query("DELETE FROM Like l WHERE l.recipe.rcpSno = :recipeId")
+    int deleteByRecipeId(@Param("recipeId") Long recipeId);
 }

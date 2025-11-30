@@ -17,7 +17,7 @@ import java.util.Optional;
 @Log4j2
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthControllerImpl implements AuthController {
 
     private final AuthService authService;

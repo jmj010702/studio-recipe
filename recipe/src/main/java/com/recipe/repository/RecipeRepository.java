@@ -35,6 +35,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecif
     @Query("SELECT r FROM Recipe r WHERE r.rcpTtl LIKE %:keyword% ORDER BY r.rcmmCnt DESC")
     List<Recipe> findByTitleContaining(@Param("keyword") String keyword);
     
+    // ========== 재료 기반 검색 메서드 ==========
+    
+    /**
+     * ✅ 특정 재료를 포함하는 레시피 검색
+     * 냉장고 기반 추천 레시피에 사용
+     */
+    List<Recipe> findByckgMtrlCnContaining(String ingredientName);
+    
     // ========== 사용자 관련 메서드 ==========
 
     /**
@@ -47,7 +55,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecif
      * 사용자가 작성한 레시피 조회 (간단한 버전)
      * MyPageService에서 사용됩니다.
      */
-    List<Recipe> findByUserId(Long userId);  // 👈 이 메서드 추가!
+    List<Recipe> findByUserId(Long userId);
 
     /**
      * 사용자가 작성한 레시피 일괄 삭제

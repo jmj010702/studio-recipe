@@ -1,5 +1,7 @@
 package com.recipe.config;
 
+import com.recipe.config.JwtAuthenticationFilter;
+import com.recipe.config.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +25,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -31,6 +32,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    
     @Value("${front.url}")
     private String frontUrl;
 
@@ -47,7 +49,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-
+        
         corsConfiguration.setAllowedOriginPatterns(List.of(frontUrl));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
@@ -66,37 +68,52 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
                 .authorizeHttpRequests(authorize ->
                         authorize
-                                // ✅ 특정 POST 엔드포인트만 인증 필요 (가장 먼저 선언!)
-                                .requestMatchers("/api/details/likes").authenticated()
-                                .requestMatchers("/api/details/completion").authenticated()
+                                // OPTIONS 요청 허용
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 
-                                // ✅ GET 요청은 인증 불필요
+                                // 정적 리소스 허용
+                                .requestMatchers("/images/**").permitAll()
+                                
+                                // 기본 페이지 허용
+                                .requestMatchers("/", "/error").permitAll()
+                                
+                                // 프론트엔드 라우트 허용 (추가)
+                                .requestMatchers("/details/**").permitAll()
+                                .requestMatchers("/search/**").permitAll()
+                                .requestMatchers("/mypage/**").permitAll()
+                                .requestMatchers("/write/**").permitAll()
+                                
+                                // 인증 관련 API
+                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers("/api/auth/**").permitAll()
+                                
+                                // 공개 API (GET)
+                                .requestMatchers(HttpMethod.GET, "/api/mainPages").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/details/**").permitAll()
                                 
-                                // ✅ 나머지 인증 불필요한 엔드포인트
-                                .requestMatchers(
-                                    "/",
-                                    "/api/mainPages",
-                                    "/api/recipes/**",
-                                    "/api/search/**",
-                                    "/api/admin/**",
-                                    "/auth/**",
-                                    "/batch/run-recipe-csv",
-                                    "/swagger-ui/**",
-                                    "/v3/api-docs/**",
-                                    "/v3/api-docs",
-                                    "/error",
-                                    "/test/**"
-                                ).permitAll()
-
-                                // 나머지 모든 요청은 인증된 사용자만 허용
+                                // 개발/테스트용
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                .requestMatchers("/api/admin/**", "/batch/**").permitAll()
+                                .requestMatchers("/test/**").permitAll()
+                                
+                                // 인증 필요 API (POST/PUT/DELETE)
+                                .requestMatchers(HttpMethod.POST, "/api/recipes/write").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/likes").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/bookmarks").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/completion").authenticated()
+                                .requestMatchers("/api/recommendations/**").authenticated()
+                                .requestMatchers("/api/users/**").authenticated()
+                                .requestMatchers("/api/user/**").authenticated()
+                                .requestMatchers("/api/mypages/**").authenticated()
+                                .requestMatchers("/api/mypage/**").authenticated()
+                                
+                                // 나머지 요청은 인증 필요
                                 .anyRequest().authenticated()
                 )
-                
-                // JWT 필터 적용
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

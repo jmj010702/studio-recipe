@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Data
 public class RecipeResponseDTO {
     private Long rcpSno;
+    private Long userId;  // ✅ 추가: 작성자 ID
     private String rcpTtl;
     private String ckgNm;
     private Integer inqCnt;
@@ -24,7 +25,6 @@ public class RecipeResponseDTO {
     private String ckgDodfNm;
     private String ckgTimeNm;
     
-    // ✅ 이 애노테이션 추가!
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime firstRegDt;
     
@@ -34,6 +34,7 @@ public class RecipeResponseDTO {
     public static RecipeResponseDTO fromEntity(Recipe recipe) {
         return RecipeResponseDTO.builder()
                 .rcpSno(recipe.getRcpSno())
+                .userId(recipe.getUserId())  // ✅ 추가
                 .rcpTtl(recipe.getRcpTtl())
                 .ckgNm(recipe.getCkgNm())
                 .inqCnt(recipe.getInqCnt())

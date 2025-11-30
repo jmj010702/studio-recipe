@@ -19,7 +19,7 @@ function SignupPage() {
   const [passwordError, setPasswordError] = useState(''); 
   const navigate = useNavigate();
 
-  // (폼 입력 변경 핸들러 - 변경 없음)
+  // 폼 입력 변경 핸들러
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({
@@ -28,7 +28,7 @@ function SignupPage() {
     }));
   };
 
-  // (비밀번호 실시간 오류 검사 - DTO @Pattern 반영)
+  // 비밀번호 실시간 오류 검사
   useEffect(() => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=\S+$).{8,32}$/;
     if (formData.password && !passwordRegex.test(formData.password)) {
@@ -40,9 +40,7 @@ function SignupPage() {
     }
   }, [formData.password, formData.passwordConfirm]);
 
-  // ---------------------------------------------
-  // 🎯 (수정) 회원가입 제출 핸들러
-  // ---------------------------------------------
+  // 회원가입 제출 핸들러
   const handleSignup = async (e) => {
     e.preventDefault();
     
@@ -52,7 +50,7 @@ function SignupPage() {
     }
 
     try {
-      // 💡 1. ▼▼▼ [핵심] 'gender' 값을 DTO Enum('M'/'F')에 맞게 변환 ▼▼▼
+      // 1. gender 값을 DTO Enum('M'/'F')에 맞게 변환
       let apiGender = '';
       if (formData.gender === 'MALE') {
         apiGender = 'M';
@@ -64,13 +62,11 @@ function SignupPage() {
          alert('성별을 선택해주세요.');
          return;
       }
-      // 💡 1. ▲▲▲ [핵심] 'gender' 값 변환 끝 ▲▲▲
 
-
-      // 💡 2. DTO 스펙에 맞게 데이터 객체 매핑
+      // 2. DTO 스펙에 맞게 데이터 객체 매핑
       const signupData = {
         name: formData.name.trim(),
-        gender: apiGender, // 👈 "MALE" 대신 변환된 "M" 또는 "F"를 전송
+        gender: apiGender,
         birth: formData.birth,
         email: formData.email.trim(),
         id: formData.username.trim(),     
@@ -78,8 +74,8 @@ function SignupPage() {
         nickname: formData.nickname.trim()
       };
       
-      // 💡 3. API 호출
-      await api.post('/auth/signup', signupData);
+      // 3. ✅ [수정] /auth/signup -> /api/auth/signup
+      await api.post('/api/auth/signup', signupData);
       
       alert('회원가입이 완료되었습니다. 메인 페이지로 이동합니다.');
       navigate('/');
@@ -94,7 +90,7 @@ function SignupPage() {
     }
   };
 
-  // (중복 확인 핸들러 - 변경 없음)
+  // 중복 확인 핸들러
   const handleCheckDuplication = async (type) => {
     const value = formData[type].trim();
     if (!value) {
@@ -104,7 +100,8 @@ function SignupPage() {
     const apiType = type === 'username' ? 'id' : type;
 
     try {
-      await api.get(`/auth/check/${apiType}?value=${value}`);
+      // ✅ [수정] /auth/check -> /api/auth/check
+      await api.get(`/api/auth/check/${apiType}?value=${value}`);
       alert(`'${value}'는 사용 가능한 ${type === 'username' ? '아이디' : '닉네임'}입니다.`);
     } catch (error) {
       if (error.response && error.response.status === 409) {
@@ -117,7 +114,6 @@ function SignupPage() {
 
 
   return (
-    // --- (JSX 렌더링 부분은 변경 없음) ---
     <div className="signup-page-container">
       <div className="signup-box">
         <h2>회원가입</h2>

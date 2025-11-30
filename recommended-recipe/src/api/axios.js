@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/studio-recipe',
+  // ✅ baseURL 제거 - Vite 프록시 사용
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

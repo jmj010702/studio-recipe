@@ -109,4 +109,19 @@ public class UserReferencesService {
             throw e;
         }
     }
+
+    /**
+     * ✅ 레시피 삭제 시 해당 레시피의 모든 사용자 참조 기록 삭제
+     * @param recipeId 삭제할 레시피 ID
+     */
+    @Transactional
+    public void deleteByRecipeId(Long recipeId) {
+        try {
+            int deletedCount = userReferencesRepository.deleteByRecipe_RcpSno(recipeId);
+            log.info("사용자 참조 기록 삭제 완료 - recipeId: {}, count: {}", recipeId, deletedCount);
+        } catch (Exception e) {
+            log.error("사용자 참조 기록 삭제 실패 - recipeId: {}", recipeId, e);
+            throw new RuntimeException("사용자 참조 기록 삭제 중 오류가 발생했습니다.", e);
+        }
+    }
 }

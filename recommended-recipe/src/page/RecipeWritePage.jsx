@@ -1,8 +1,8 @@
 // src/page/RecipeWritePage.jsx
-import React, { useState, useEffect } from 'react'; // 👈 1. useEffect 추가
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaTrash } from 'react-icons/fa'; 
+import { FaPlus, FaTrash, FaImage } from 'react-icons/fa'; 
 import './RecipeWritePage.css'; 
 
 function RecipeWritePage() {
@@ -12,37 +12,67 @@ function RecipeWritePage() {
   const [url, setUrl] = useState('');
   const [tags, setTags] = useState('');
   
+  // ✅ 이미지 관련 state 추가
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  
   const [ingredients, setIngredients] = useState([
     { name: '', amount: '', unit: '', note: '' }
   ]);
 
-  // ▼▼▼▼▼ 2. [추가] 로그인 확인 로직 ▼▼▼▼▼
+  // 로그인 확인
   useEffect(() => {
-    // 1. localStorage에서 토큰을 가져옵니다.
     const token = localStorage.getItem('accessToken'); 
-
-    // 2. 토큰이 없으면 (로그인하지 않았으면)
     if (!token) {
       alert('로그인을 해주시기 바랍니다.');
-      // 3. 로그인 페이지로 튕겨냅니다.
       navigate('/login');
     }
-  }, [navigate]); // 👈 페이지 로드 시 1회만 실행
-  // ▲▲▲▲▲ [추가] 로그인 확인 로직 끝 ▲▲▲▲▲
+  }, [navigate]);
 
-  // (재료 입력란 변경 핸들러 - 변경 없음)
+  // ✅ 이미지 선택 핸들러
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file) {
+      // 파일 크기 체크 (예: 5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 크기는 5MB 이하로 업로드해주세요.');
+        return;
+      }
+
+      // 이미지 파일 타입 체크
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
+
+      setImageFile(file);
+
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // ✅ 이미지 삭제 핸들러
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handleIngredientChange = (index, event) => {
     const values = [...ingredients];
     values[index][event.target.name] = event.target.value;
     setIngredients(values);
   };
 
-  // (재료 입력란 추가 - 변경 없음)
   const addIngredientField = () => {
     setIngredients([...ingredients, { name: '', amount: '', unit: '', note: '' }]);
   };
 
-  // (재료 입력란 삭제 - 변경 없음)
   const removeIngredientField = (index) => {
     if (ingredients.length <= 1) return; 
     const values = [...ingredients];
@@ -50,36 +80,61 @@ function RecipeWritePage() {
     setIngredients(values);
   };
 
-  // 3. 💡 [수정] 폼 제출 핸들러 (API 연동)
+  // ✅ 폼 제출 핸들러 (이미지 포함)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const recipeData = {
-      title,
-      introduction: intro,
-      videoUrl: url,
-      tags,
-      ingredients
-    };
-    
+
+    // 필수 입력 체크
+    if (!title.trim()) {
+      alert('레시피 제목을 입력해주세요.');
+      return;
+    }
+
     try {
-      // 💡 (Mock) 로직은 주석 처리
-      // console.log(" (Mock) 전송할 레시피 데이터:", recipeData);
+      // FormData 생성 (이미지 업로드를 위해)
+      const formData = new FormData();
       
-      // 💡 (실제) API 호출 활성화
-      // (엔드포인트는 백엔드와 협의 필요. /api/recipes/new는 예시)
-      await api.post('/api/recipes/write', recipeData); 
+      // 텍스트 데이터는 JSON으로 변환하여 추가
+      const recipeData = {
+        title,
+        introduction: intro,
+        videoUrl: url,
+        tags,
+        ingredients
+      };
+      
+      // JSON 데이터를 Blob으로 변환하여 추가
+      formData.append('recipe', new Blob([JSON.stringify(recipeData)], {
+        type: 'application/json'
+      }));
+      
+      // 이미지 파일 추가 (있는 경우에만)
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      // API 호출
+      await api.post('/api/recipes/write', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
       
       alert('레시피가 성공적으로 등록되었습니다!');
-      navigate('/mypage'); // 등록 후 마이페이지로 이동
+      navigate('/mypage');
 
     } catch (error) {
       console.error('레시피 등록 실패:', error);
-      alert('레시피 등록 중 오류가 발생했습니다.');
+      
+      if (error.response) {
+        alert(error.response.data.message || '레시피 등록 중 오류가 발생했습니다.');
+      } else {
+        alert('레시피 등록 중 오류가 발생했습니다.');
+      }
     }
   };
 
   return (
-    // --- (JSX 렌더링 부분은 변경 없음) ---
     <div className="form-page-container">
       <div className="form-box recipe-form-box">
         <h2>레시피 쓰기</h2>
@@ -99,6 +154,44 @@ function RecipeWritePage() {
             />
           </div>
 
+          {/* ✅ 레시피 이미지 업로드 */}
+          <div className="form-group">
+            <label htmlFor="image">레시피 이미지</label>
+            
+            {/* 이미지 미리보기 */}
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img 
+                  src={imagePreview} 
+                  alt="레시피 미리보기" 
+                  className="image-preview"
+                />
+                <button 
+                  type="button" 
+                  className="image-remove-btn"
+                  onClick={handleImageRemove}
+                >
+                  <FaTrash /> 이미지 삭제
+                </button>
+              </div>
+            ) : (
+              <div className="image-upload-container">
+                <label htmlFor="image-input" className="image-upload-label">
+                  <FaImage className="upload-icon" />
+                  <span>이미지 선택하기</span>
+                  <small>PC 또는 모바일에서 이미지를 선택할 수 있습니다 (최대 5MB)</small>
+                </label>
+                <input 
+                  type="file" 
+                  id="image-input"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
+            )}
+          </div>
+
           {/* 레시피 소개 */}
           <div className="form-group">
             <label htmlFor="intro">레시피 소개</label>
@@ -116,10 +209,34 @@ function RecipeWritePage() {
             <label>재료 정보</label>
             {ingredients.map((field, index) => (
               <div className="ingredient-row" key={index}>
-                <input type="text" name="name" placeholder="재료 이름" value={field.name} onChange={e => handleIngredientChange(index, e)} />
-                <input type="text" name="amount" placeholder="수량" value={field.amount} onChange={e => handleIngredientChange(index, e)} />
-                <input type="text" name="unit" placeholder="단위" value={field.unit} onChange={e => handleIngredientChange(index, e)} />
-                <input type="text" name="note" placeholder="비고" value={field.note} onChange={e => handleIngredientChange(index, e)} />
+                <input 
+                  type="text" 
+                  name="name" 
+                  placeholder="재료 이름" 
+                  value={field.name} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="amount" 
+                  placeholder="수량" 
+                  value={field.amount} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="unit" 
+                  placeholder="단위" 
+                  value={field.unit} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="note" 
+                  placeholder="비고" 
+                  value={field.note} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
                 <button 
                   type="button" 
                   className="remove-btn" 
@@ -171,34 +288,5 @@ function RecipeWritePage() {
     </div>
   );
 }
-
-const handleSubmit = async () => {
-    // 1. 데이터 유효성 검사
-    if (!title || !description) {
-      alert("제목과 소개를 입력해주세요.");
-      return;
-    }
-
-    // 2. 전송할 데이터 객체 만들기
-    const recipeData = {
-      title: title,
-      description: description,
-      ingredients: ingredients, // [{name, amount, unit, note}, ...]
-      videoUrl: videoUrl,
-      tags: tags
-    };
-
-    try {
-      // 3. 백엔드로 전송 (POST)
-      await api.post('/api/recipes/write', recipeData);
-      
-      alert("레시피가 등록되었습니다!");
-      navigate('/'); // 메인 페이지로 이동 (또는 마이페이지)
-      
-    } catch (error) {
-      console.error("등록 실패:", error);
-      alert("레시피 등록 중 오류가 발생했습니다.");
-    }
-  };
 
 export default RecipeWritePage;

@@ -7,6 +7,7 @@ import com.recipe.repository.LikeRepository;
 import com.recipe.repository.UserRepository;
 import com.recipe.repository.RecipeRepository;
 import com.recipe.repository.UserReferencesRepository;
+import com.recipe.repository.BookmarkRepository;  // ⭐ 추가
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,12 +23,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final UserReferencesRepository userReferencesRepository;
+    private final BookmarkRepository bookmarkRepository;  // ⭐ 추가
     private final PasswordEncoder passwordEncoder;
-    private final RecipeRepository recipeRepository;  // 👈 이 줄 추가!
+    private final RecipeRepository recipeRepository;
 
     // 회원 단건 조회 (PK인 userId로 조회)
     public User findByUser(Long userId){
-        return userRepository.findByUserId(userId)  // ✅ Long이므로 findByUserId 사용
+        return userRepository.findByUserId(userId)
                 .orElseThrow(UserExceptions.NOT_FOUND::getUserException);
     }
 
@@ -65,7 +67,7 @@ public class UserService {
     // 마이페이지 비밀번호 변경
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequestDTO request) {
-        User user = userRepository.findByUserId(userId)  // ✅ Long이므로 findByUserId 사용
+        User user = userRepository.findByUserId(userId)
                 .orElseThrow(UserExceptions.NOT_FOUND::getUserException);
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPwd())) {
@@ -83,7 +85,7 @@ public class UserService {
     @Transactional
     public void deleteUser(String loginId, String password) {
         // 1. 로그인 아이디(String)로 사용자 조회
-        User user = userRepository.findById(loginId)  // ✅ String이므로 findById 사용
+        User user = userRepository.findById(loginId)
                 .orElseThrow(UserExceptions.NOT_FOUND::getUserException);
 
         // 2. 비밀번호 검증
@@ -91,16 +93,29 @@ public class UserService {
             throw UserExceptions.INVALID_PASSWORD.getUserException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 3. 연관 데이터 먼저 삭제
+        // 3. 연관 데이터 먼저 삭제 (외래키 제약조건 순서 중요!)
         Long userIdPk = user.getUserId();
         
         try {
+            // ⭐ 순서 1: 좋아요 삭제
             likeRepository.deleteByUserId(userIdPk);
+            log.info("좋아요 데이터 삭제 완료 - userId: {}", userIdPk);
+            
+            // ⭐ 순서 2: 북마크(찜) 삭제 - 추가!
+            bookmarkRepository.deleteByUserId(userIdPk);
+            log.info("북마크 데이터 삭제 완료 - userId: {}", userIdPk);
+            
+            // ⭐ 순서 3: 사용자 참조 삭제
             userReferencesRepository.deleteByUserId(userIdPk);
-            // 작성한 레시피 삭제가 필요하면 아래 주석 해제
+            log.info("사용자 참조 데이터 삭제 완료 - userId: {}", userIdPk);
+            
+            // ⭐ 순서 4: 작성한 레시피 삭제
             recipeRepository.deleteByUserId(userIdPk);
+            log.info("레시피 데이터 삭제 완료 - userId: {}", userIdPk);
+            
         } catch (Exception e) {
             log.error("연관 데이터 삭제 중 오류 발생: {}", e.getMessage());
+            throw new RuntimeException("회원 탈퇴 중 오류가 발생했습니다.", e);
         }
 
         // 4. 사용자 삭제

@@ -29,6 +29,27 @@ public class RecipeDTO {
     private LocalDateTime firstRegDt;   // 등록일
     private String rcpImgUrl;           // 이미지 URL
 
+    // ✅ 별칭 필드 추가 (MyPageService 호환성을 위해)
+    public Long getRecipeId() {
+        return rcpSno;
+    }
+
+    public String getTitle() {
+        return rcpTtl;
+    }
+
+    public String getImageUrl() {
+        return rcpImgUrl;
+    }
+
+    public Integer getViewCount() {
+        return inqCnt;
+    }
+
+    public Integer getLikeCount() {
+        return rcmmCnt;
+    }
+
     // ✅ Entity → DTO 변환
     public static RecipeDTO fromEntity(Recipe recipe) {
         if (recipe == null) return null;
@@ -72,5 +93,3 @@ public class RecipeDTO {
                 .build();
     }
 }
-
-// ⚠️ 여기 아래에 다른 클래스가 있으면 모두 삭제하세요!

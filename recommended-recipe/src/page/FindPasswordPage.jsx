@@ -4,7 +4,7 @@ import api from '../api/axios';
 import './login.css'; 
 
 function FindPasswordPage() {
-  const [email, setEmail] = useState(''); // username -> email로 변경 (명확하게)
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   
   const [authKey, setAuthKey] = useState(''); 
@@ -37,10 +37,9 @@ function FindPasswordPage() {
     }
     
     try {
-      // ✅ [수정] 백엔드 주소: /auth/send-verification
-      await api.post('/auth/send-verification', { 
+      // ✅ [수정] /auth -> /api/auth로 변경
+      await api.post('/api/auth/send-verification', { 
         email: email 
-        // 백엔드 EmailRequest DTO에는 name 필드가 없을 수 있어 생략 가능하지만 보내도 무방
       });
       
       alert('인증번호가 발송되었습니다. 이메일을 확인해주세요.');
@@ -61,18 +60,17 @@ function FindPasswordPage() {
     }
 
     try {
-      // ✅ [수정] 백엔드 주소: /auth/verify-code
-      // DTO: VerifyCodeRequest (email, verificationCode, purpose)
-      const response = await api.post('/auth/verify-code', { 
+      // ✅ [수정] /auth -> /api/auth로 변경
+      const response = await api.post('/api/auth/verify-code', { 
         email: email, 
         verificationCode: authKey,
-        purpose: 'RESET_PASSWORD' // 백엔드에서 필요로 할 수 있음 (없으면 무시됨)
+        purpose: 'RESET_PASSWORD'
       });
       
-      // 백엔드가 성공 시 resetToken을 줍니다. (ResetProcessResponse)
+      // 백엔드가 성공 시 resetToken을 줍니다.
       const token = response.data.resetToken;
       if (token) {
-        setResetToken(token); // 토큰 저장 중요!
+        setResetToken(token);
         alert('인증이 완료되었습니다. 새 비밀번호를 입력하세요.');
         setIsVerified(true);
       } else {
@@ -100,10 +98,9 @@ function FindPasswordPage() {
     }
 
     try {
-      // ✅ [수정] 백엔드 주소: /auth/reset-password
-      // DTO: ResetPasswordRequest (token, newPassword)
-      await api.post('/auth/reset-password', {
-        token: resetToken, // 아까 받은 토큰
+      // ✅ [수정] /auth -> /api/auth로 변경
+      await api.post('/api/auth/reset-password', {
+        token: resetToken,
         newPassword: newPassword
       });
 
@@ -139,7 +136,6 @@ function FindPasswordPage() {
                 />
               </div>
               
-              {/* 이름 입력칸은 백엔드 로직상 필수 아닐 수 있으나 UI 유지 */}
               <div className="input-group">
                 <label htmlFor="name">이름</label>
                 <input 

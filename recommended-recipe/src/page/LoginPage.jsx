@@ -28,7 +28,7 @@ function LoginPage() {
 
     try {
       // 백엔드에 로그인 요청
-      const response = await api.post('/auth/login', loginData); 
+      const response = await api.post('/api/auth/login', loginData); 
       
       console.log('로그인 응답:', response.data);
       

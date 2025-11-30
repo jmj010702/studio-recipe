@@ -1,4 +1,4 @@
-package com.recipe.domain.entity;
+package com.recipe.domain.entity; // ⚠️ 중요: 이 파일이 있는 폴더 위치와 패키지명이 일치해야 합니다.
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,15 +15,15 @@ import java.time.LocalDateTime;
 @ToString
 @Getter
 @Setter
-@DynamicInsert  // ✅ INSERT 시 null이 아닌 필드만 포함
+@DynamicInsert // INSERT 시 null이 아닌 필드만 포함 (DB Default 값 적용에 유리)
 public class Recipe {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // ✅ 자동 증가 설정
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "RCP_SNO")
     private Long rcpSno;
 
-    @Column(name = "USER_ID")  // ✅ 작성자 ID 추가
+    @Column(name = "USER_ID")
     private Long userId;
 
     @Column(name = "RCP_TTL", length = 200)
@@ -70,7 +70,9 @@ public class Recipe {
     @Column(name = "RCP_IMG_URL", length = 500)
     private String rcpImgUrl;
 
-    // ✅ 비즈니스 로직 메서드
+    // --- 비즈니스 로직 메서드 ---
+
+    // 좋아요 수 증가
     public void likeToCountUp() {
         if (this.rcmmCnt == null) {
             this.rcmmCnt = 0;
@@ -78,13 +80,14 @@ public class Recipe {
         this.rcmmCnt++;
     }
 
+    // 좋아요 수 감소
     public void likeToCountDown() {
         if (this.rcmmCnt != null && this.rcmmCnt > 0) {
             this.rcmmCnt--;
         }
     }
     
-    // ✅ 조회수 증가
+    // 조회수 증가
     public void increaseViewCount() {
         if (this.inqCnt == null) {
             this.inqCnt = 0;
@@ -92,7 +95,7 @@ public class Recipe {
         this.inqCnt++;
     }
     
-    // ✅ 등록 전 처리 (등록일 자동 설정)
+    // 엔티티 저장 전 실행 (기본값 설정)
     @PrePersist
     public void prePersist() {
         if (this.firstRegDt == null) {
