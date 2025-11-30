@@ -48,7 +48,7 @@ spring:
        port: 6379
 
 jwt:
-  secret: ${MY_APP_SECRET}
+  secret: dI5pBjrtgy9xFHiZtMs3fM7P8OR/wvxrexu/mybWcKc=
   access-token-validity-in-seconds: 3600
   refresh-token-validity-in-seconds: 604800
 
