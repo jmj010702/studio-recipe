@@ -55,7 +55,8 @@ echo "ECR login successful."
 # 도커 컨테이너 실행
 sudo docker run -d \
   --name ${CONTAINER_NAME} \
-  -p 8080:8080 \
+  --network host \
+  -e SPRING_PROFILES_ACTIVE=prod \
   -v /var/lib/docker/data:/app/data \
   ${ECR_IMAGE}
 
