@@ -1,67 +1,100 @@
 #!/bin/bash
 
-# Define constants
+# --- 0. 필요 툴 설치 확인
+# apt-get을 사용하기 전에 업데이트를 수행
+sudo apt update -y
+
+# jq가 설치되어 있지 않으면 설치
+if ! command -v jq &> /dev/null
+then
+    echo "jq is not installed. Installing jq..."
+    sudo apt install -y jq
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to install jq. Please install it manually."
+        exit 1
+    fi
+else
+    echo "jq is already installed."
+fi
+
+# --- 1. 상수 정의 ---
 CONTAINER_NAME="recipe-app-container"
+ECR_REGION="ap-northeast-2" # ECR 리전 지정
+SECRET_ID="recipe-app-secrets"
 
-# ECR_IMAGE_VALUE.txt 파일에서 이미지 URI를 읽어옴
-# 이 파일은 Jenkins에서 동적으로 생성되어 CodeDeploy 배포 패키지에 포함
-# SCRIPT_DIR=$(dirname "$0") # 스크립트가 위치한 디렉토리
-# APP_ROOT_DIR=$(dirname "$SCRIPT_DIR") # 애플리케이션 루트 디렉토리
-# ECR_IMAGE_FILE_PATH="${APP_ROOT_DIR}/ECR_IMAGE_VALUE.txt"
-
-# 현재 스크립트의 경로를 절대 경로로 구하고, 그 상위 디렉토리를 애플리케이션 루트로 사용합니다.
-SCRIPT_FULL_PATH=$(readlink -f "$0") # 스크립트의 절대 경로
-SCRIPT_DIR=$(dirname "$SCRIPT_FULL_PATH") # 스크립트가 위치한 디렉토리
-APP_ROOT_DIR=$(dirname "$SCRIPT_DIR") # 애플리케이션 루트 디렉토리 (e.g., /home/ubuntu/recipe-app)
+# 2. ECR 이미지 URI 추출
+SCRIPT_FULL_PATH=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_FULL_PATH")
+APP_ROOT_DIR=$(dirname "$SCRIPT_DIR")
 ECR_IMAGE_FILE_PATH="${APP_ROOT_DIR}/ECR_IMAGE_VALUE.txt"
-
-# echo "DEBUG: ----------------------------------------------------"
-# echo "DEBUG: Executing scripts/start_container.sh"
-# echo "DEBUG: SCRIPT_DIR is: ${SCRIPT_DIR}"
-# echo "DEBUG: APP_ROOT_DIR is: ${APP_ROOT_DIR}"
-# echo "DEBUG: ECR_IMAGE_FILE_PATH is: ${ECR_IMAGE_FILE_PATH}"
-# echo "DEBUG: Files in APP_ROOT_DIR:"
-# ls -alF "${APP_ROOT_DIR}"
-# echo "DEBUG: Files in SCRIPT_DIR:"
-# ls -alF "${SCRIPT_DIR}"
-# echo "DEBUG: ----------------------------------------------------"
-
 
 if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
     ECR_IMAGE=$(cat "${ECR_IMAGE_FILE_PATH}")
-    # echo "DEBUG: ECR_IMAGE read from file (${ECR_IMAGE_FILE_PATH}) is ${ECR_IMAGE}"
 else
     echo "ERROR: ECR_IMAGE_VALUE.txt not found at expected path: ${ECR_IMAGE_FILE_PATH}!"
     exit 1
 fi
-
-# ECR 레지스트리 경로 추출 (도메인 부분만)
 ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1)
 
-echo "Logging in to ECR: ${ECR_REGISTRY}"
+# 3. Secrets Manager에서 비밀값 가져오기 및 파싱
+echo "Fetching secrets from AWS Secrets Manager: ${SECRET_ID}"
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${SECRET_ID}" --region "${ECR_REGION}" --query SecretString --output text)
 
-# AWS CLI를 사용하여 ECR에 로그인합니다.
-# Docker 데몬에 로그인 자격 증명을 전달합니다.
-aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to retrieve secrets from Secrets Manager. Check IAM permissions and secret ID."
+    exit 1
+fi
+
+# jq를 사용하여 JSON에서 필요한 값 추출
+DB_USERNAME=$(echo "${SECRET_JSON}" | jq -r '.DB_USERNAME')
+DB_PASSWORD=$(echo "${SECRET_JSON}" | jq -r '.DB_PASSWORD')
+DB_HOST=$(echo "${SECRET_JSON}" | jq -r '.DB_HOST')
+DB_NAME=$(echo "${SECRET_JSON}" | jq -r '.DB_NAME')
+
+MAIL_USERNAME=$(echo "${SECRET_JSON}" | jq -r '.MAIL_USERNAME')
+MAIL_PASSWORD=$(echo "${SECRET_JSON}" | jq -r '.MAIL_PASSWORD')
+MAIL_HOST=$(echo "${SECRET_JSON}" | jq -r '.MAIL_HOST')
+MAIL_PORT=$(echo "${SECRET_JSON}" | jq -r '.MAIL_PORT')
+
+MY_APP_SECRET=$(echo "${SECRET_JSON}" | jq -r '.MY_APP_SECRET')
+
+# 환경 변수가 제대로 추출되었는지 간단한 검증
+if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
+   [ -z "${MAIL_USERNAME}" ] || [ -z "${MAIL_PASSWORD}" ] || [ -z "${MAIL_HOST}" ] || [ -z "${MAIL_PORT}" ] || \
+   [ -z "${MY_APP_SECRET}" ]; then
+    echo "ERROR: One or more required secret values could not be extracted or are empty. Check Secrets Manager JSON structure."
+    exit 1
+fi
+
+echo "Secrets fetched successfully."
+
+# --- 4. ECR 로그인 ---
+echo "Logging in to ECR: ${ECR_REGISTRY}"
+aws ecr get-login-password --region "${ECR_REGION}" | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 if [ $? -ne 0 ]; then
     echo "ERROR: ECR login failed."
     exit 1
 fi
 echo "ECR login successful."
 
-# 기존 컨테이너를 중지하고 삭제합니다 (블루/그린 배포 시 기존 컨테이너는 이미 종료되지만, 안전을 위해)
-# docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME}
-
-# 도커 컨테이너 실행
+# 5. 도커 컨테이너 실행
+echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 sudo docker run -d \
-  --name ${CONTAINER_NAME} \
+  --name "${CONTAINER_NAME}" \
   --network host \
-  -e SPRING_PROFILES_ACTIVE=prod \
+  -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul" \
+  -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
+  -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
+  -e SPRING_MAIL_HOST="${MAIL_HOST}" \
+  -e SPRING_MAIL_PORT="${MAIL_PORT}" \
+  -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
+  -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
+  -e MY_APP_SECRET="${MY_APP_SECRET}" \
   -v /var/lib/docker/data:/app/data \
-  ${ECR_IMAGE}
+  "${ECR_IMAGE}"
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to run Docker container."
     exit 1
 fi
-echo "Docker container ${CONTAINER_NAME} started successfully with image ${ECR_IMAGE}."
+echo "Docker container ${CONTAINER_NAME} started successfully."
