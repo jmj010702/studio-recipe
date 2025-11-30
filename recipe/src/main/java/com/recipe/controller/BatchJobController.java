@@ -24,6 +24,7 @@ public class BatchJobController {
     private final Job recipeDataMigrationJob; // BatchConfig에서 @Bean으로 정의한 Job Bean
 
     @GetMapping("/run-recipe-csv")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> runRecipeCsv() {
         try{
         //Job 실행 시 Job 인스턴스 구분하기 위한 고유 값
@@ -47,3 +48,4 @@ public class BatchJobController {
         }
     }
 }
+
