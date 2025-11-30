@@ -93,7 +93,7 @@ sudo docker run -d \
   -e MY_APP_SECRET="${MY_APP_SECRET}" \
   # -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   -v /var/lib/docker/data:/app/data \
-  "${ECR_IMAGE}" \
+  "${ECR_IMAGE}"
   # java \
   # -Djava.net.preferIPv4Stack=true \
   # -Dio.netty.resolver.useNativeCache=false \
