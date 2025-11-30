@@ -74,6 +74,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize ->
                         authorize
+								.requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
                                 .requestMatchers(
 					"/batch/run-recipe-csv",
                                         "/auth/**",
@@ -82,7 +83,8 @@ public class SecurityConfig {
                                         "/v3/api-docs",
                                         "/error",
                                         "/test/**",
-                                        "/actuator/**"
+                                        "/actuator/**",
+									    "/aws-test/**"
                                 ).permitAll() // 위의 경로들은 인증 없이 접근 허용
 
                                 // 나머지 모든 요청은 인증된 사용자만 허용
@@ -99,4 +101,5 @@ public class SecurityConfig {
         return http.build();
     }
 }
+
 
