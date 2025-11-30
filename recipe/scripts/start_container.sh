@@ -93,8 +93,13 @@ sudo docker run -d \
   -e MY_APP_SECRET="${MY_APP_SECRET}" \
   -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   -v /var/lib/docker/data:/app/data \
+  --entrypoint java \ 
   "${ECR_IMAGE}" \
-  bash -c "java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true -jar /app/app.jar"
+  -Djava.net.preferIPv4Stack=true \
+  -Djava.net.preferIPv6Addresses=false \
+  -Dio.netty.resolver.useNativeCache=false \
+  -Dio.netty.resolver.noCache=true \
+  -jar /app/app.jar
   # Redis Cluster Ipv6로 찾아서 문제, JVM이 Ipv4 우선적으로 찾게 함
 
 if [ $? -ne 0 ]; then
