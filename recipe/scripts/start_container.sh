@@ -97,7 +97,9 @@ sudo docker run -d \
   -e SPRING_DATA_REDIS_HOST="${REDIS_HOST}" \
   -e SPRING_DATA_REDIS_PORT="${REDIS_PORT}" \
   -v /var/lib/docker/data:/app/data \
-  "${ECR_IMAGE}"
+  "${ECR_IMAGE}" \
+  java -Djava.net.preferIPv4Stack=true -jar /app/app.jar
+  # Redis Cluster Ipv6로 찾아서 문제, JVM이 Ipv4 우선적으로 찾게 함
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to run Docker container."
