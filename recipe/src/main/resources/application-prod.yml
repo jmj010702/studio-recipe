@@ -1,7 +1,7 @@
 spring:
    datasource:
      driver-class-name: org.mariadb.jdbc.Driver
-     url: jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+     url: jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db
      username: admin
      password: tlwkrdmldkdlA!
 
