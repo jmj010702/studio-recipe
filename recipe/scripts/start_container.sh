@@ -58,19 +58,18 @@ MAIL_PORT=$(echo "${SECRET_JSON}" | jq -r '.MAIL_PORT')
 
 MY_APP_SECRET=$(echo "${SECRET_JSON}" | jq -r '.MY_APP_SECRET')
 REDIS_HOST=$(echo "${SECRET_JSON}" | jq -r '.REDIS_HOST')
-REDIS_PORT=$(echo "${SECRET_JSON}" | jq -r '.REDIS_PORT')
 
 # 환경 변수가 제대로 추출되었는지 간단한 검증
 if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
    [ -z "${MAIL_USERNAME}" ] || [ -z "${MAIL_PASSWORD}" ] || [ -z "${MAIL_HOST}" ] || [ -z "${MAIL_PORT}" ] || \
    [ -z "${MY_APP_SECRET}" ] || \
-   [ -z "${REDIS_HOST}" ] || [ -z "${REDIS_PORT}" ]; then
+   [ -z "${REDIS_HOST}" ]; then
     echo "ERROR: One or more required secret values could not be extracted or are empty. Check Secrets Manager JSON structure."
-    echo "DEBUG INFO: DB_USERNAME=[${DB_USERNAME}], MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}], REDIS_HOST=[${REDIS_HOST}], REDIS_PORT=[${REDIS_PORT}]"
+    echo "DEBUG INFO: DB_USERNAME=[${DB_USERNAME}], MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}], REDIS_HOST=[${REDIS_HOST}]"
     exit 1
 fi
 
-echo "Secrets fetched successfully. DEBUG INFO: MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}], REDIS_HOST=[${REDIS_HOST}], REDIS_PORT=[${REDIS_PORT}]"
+echo "Secrets fetched successfully. DEBUG INFO: MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}], REDIS_HOST=[${REDIS_HOST}]"
 
 # --- 4. ECR 로그인 ---
 echo "Logging in to ECR: ${ECR_REGISTRY}"
@@ -95,7 +94,6 @@ sudo docker run -d \
   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
   -e MY_APP_SECRET="${MY_APP_SECRET}" \
   -e SPRING_DATA_REDIS_HOST="${REDIS_HOST}" \
-  -e SPRING_DATA_REDIS_PORT="${REDIS_PORT}" \
   -v /var/lib/docker/data:/app/data \
   "${ECR_IMAGE}" \
   java -Djava.net.preferIPv4Stack=true -jar /app/app.jar
