@@ -17,14 +17,13 @@ pipeline {
     }
 
     stages {
-        stage('Initialize & Force Git Sync') { // 스테이지 이름 변경 및 SCM 강제 동기화 추가
+        stage('Initialize & Force Git Sync') {
             steps {
                 script {
                     echo "--- Initializing workspace and forcing latest Git synchronization ---"
-                    // Jenkins 기본 SCM Checkout 이후, 최신 내용을 다시 강제로 가져와 워크스페이스에 반영
-                    sh 'git fetch origin' // 원격 저장소의 모든 변경사항을 가져옵니다.
-                    sh 'git reset --hard origin/main' // 로컬 워크스페이스를 원격 main 브랜치와 완전히 일치시킵니다.
-                    sh 'git clean -dfx' // untracked 파일 및 디렉토리까지 삭제하여 워크스페이스를 깨끗하게 만듭니다.
+                    sh 'git fetch origin'
+                    sh 'git reset --hard origin/main'
+                    sh 'git clean -dfx'
                     echo "--- Forced Git synchronization complete ---"
                 }
             }
@@ -34,9 +33,8 @@ pipeline {
             steps {
                 script {
                     echo "--- Building application with Gradle ---"
-                    // Gradle wrapper 권한 부여 및 빌드 (애플리케이션이 'recipe' 안에 있음)
-                    sh 'chmod +x recipe/gradlew' // 경로 수정: studio-recipe-main/recipe/gradlew -> recipe/gradlew
-                    sh 'cd recipe && ./gradlew clean build -x test' // 경로 수정: cd studio-recipe-main/recipe -> cd recipe
+                    sh 'chmod +x recipe/gradlew'
+                    sh 'cd recipe && ./gradlew clean build -x test'
                     echo "BUILD SUCCESSFUL"
                 }
             }
@@ -46,9 +44,8 @@ pipeline {
             steps {
                 script {
                     echo "--- Renaming JAR file to app.jar ---"
-                    def jarDirPath = "recipe/build/libs" // 경로 수정: studio-recipe-main/recipe/build/libs -> recipe/build/libs
+                    def jarDirPath = "recipe/build/libs"
                     
-                    // 정확히 *-plain.jar을 찾고 없으면 일반 .jar를 찾도록 수정
                     def plainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim().split('\n')
                     def mainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim().split('\n')
                     
@@ -78,12 +75,10 @@ pipeline {
                     sh "aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
 
                     echo "--- VERIFYING Dockerfile content BEFORE Docker build ---"
-                    // Jenkins가 빌드에 사용할 Dockerfile 내용을 직접 출력하여 확인합니다.
-                    sh "cat recipe/Dockerfile" // 경로 수정: studio-recipe-main/recipe/Dockerfile -> recipe/Dockerfile
+                    sh "cat recipe/Dockerfile"
                     echo "--- END VERIFICATION ---"
 
-                    // Dockerfile이 'recipe' 디렉토리 안에 있고, 빌드 컨텍스트도 해당 디렉토리로 설정
-                    sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe" // 경로 수정
+                    sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe"
                     
                     sh "docker push ${ECR_IMAGE}"
                 }
@@ -95,17 +90,17 @@ pipeline {
                 script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // appspec.yml이 레포지토리 루트에 존재하여 이를 직접 복사하여 ZIP에 포함시킵니다.
-                    sh "cp appspec.yml ."
+                    // 이전에 'sh "cp appspec.yml ."' 명령이 있던 자리입니다.
+                    // appspec.yml은 Jenkins 워크스페이스의 루트에 이미 존재하므로 별도의 복사 작업은 필요 없습니다.
+                    // Jenkinsfile 내부에서 appspec.yml을 동적으로 수정하는 로직이 있다면 여기에 추가할 수 있습니다.
+                    // 현재는 'appspec.yml'이 그대로 Zip에 포함될 것입니다.
 
                     writeFile file: 'ECR_IMAGE_VALUE.txt', text: "${ECR_IMAGE}"
                     echo "ECR_IMAGE_VALUE.txt generated with: ${ECR_IMAGE}"
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
-                    // 'scripts' 디렉토리와 'app.jar'는 'recipe' 아래에 있습니다.
-                    // 따라서 CodeDeploy 배포 패키지에 포함하기 위해 Jenkins 워크스페이스 루트로 복사해야 합니다.
-                    sh "cp -r recipe/scripts ." // 경로 수정
-                    sh "cp recipe/build/libs/app.jar ." // 경로 수정
+                    sh "cp -r recipe/scripts ."
+                    sh "cp recipe/build/libs/app.jar ."
                     echo "DEBUG: All artifacts copied to Jenkins workspace root."
 
                     echo "DEBUG: Zipping deployment artifacts..."
@@ -116,7 +111,6 @@ pipeline {
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    // --- CodeDeploy 배포 전 기존 활성 배포 중지 (블루/그린 배포 지원) ---
                     def activeDeployments = []
                     def activeStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
 
@@ -172,7 +166,6 @@ pipeline {
                         echo "No active CodeDeploy deployments to stop. Proceeding with new deployment."
                     }
 
-                    // --- CodeDeploy 배포 생성 ---
                     echo "--- Initiating new CodeDeploy deployment ---"
                     def deploymentResultJson = sh(returnStdout: true, script: """
                     aws deploy create-deployment \\
@@ -193,7 +186,6 @@ pipeline {
                         error "Failed to parse CodeDeploy deployment ID from create-deployment result: ${e.message}. Raw output: ${deploymentResultJson}"
                     }
 
-                    // --- CodeDeploy 배포 상태 모니터링 ---
                     echo "--- Monitoring CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status ---"
                     timeout(time: 30, unit: 'MINUTES') {
                         def deploymentStatus = ""
