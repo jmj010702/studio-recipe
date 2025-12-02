@@ -44,27 +44,33 @@ pipeline {
                     echo "--- Preparing JAR file for Docker build ---"
                     def jarDirPath = "recipe/build/libs"
                     
-                    def foundJars = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar'").trim().split('\n').findAll { it.trim() != '' }
+                    // 모든 .jar 파일을 찾습니다.
+                    def allJars = sh(returnStdout: true, script: "find ${jarDirPath} -maxdepth 1 -name '*.jar'").trim().split('\n').findAll { it.trim() != '' }
                     
                     def executableJar = ""
-                    // executable JAR (*-plain.jar이 아닌)을 우선적으로 찾습니다.
-                    def nonPlainJars = foundJars.findAll { !it.contains('-plain.jar') }
-                    
-                    if (nonPlainJars.size() == 1) {
-                        executableJar = nonPlainJars[0]
-                        echo "Found single executable JAR: ${executableJar}"
-                    } else if (foundJars.size() == 1) {
-                        executableJar = foundJars[0] // plain이더라도 유일하면 사용 (fallback)
-                        echo "Found single JAR (might be plain, but only one available): ${executableJar}"
+                    if (allJars.size() == 1) {
+                        // 유일한 JAR 파일인 경우, -plain.jar인지 확인. -plain.jar이면 오류.
+                        if (allJars[0].contains('-plain.jar')) {
+                            error "Found only '-plain.jar' which is not an executable Fat JAR: ${allJars[0]}"
+                        } else {
+                            executableJar = allJars[0]
+                        }
                     } else {
-                        error "Could not uniquely determine an executable JAR file in ${jarDirPath}. Found: ${foundJars.join(', ')}"
+                        // 여러 개의 JAR 파일 중에서 '-plain.jar'이 아닌 파일을 찾습니다.
+                        def nonPlainJars = allJars.findAll { !it.contains('-plain.jar') }
+                        if (nonPlainJars.size() == 1) {
+                            executableJar = nonPlainJars[0]
+                        } else {
+                            // 실행 가능한 JAR을 특정할 수 없는 경우 오류
+                            error "Could not uniquely determine an executable Fat JAR file in ${jarDirPath}. Found: ${allJars.join(', ')}"
+                        }
                     }
 
                     if (executableJar) {
                         sh "cp ${executableJar} recipe/app.jar"
-                        echo "Copied ${executableJar} to recipe/app.jar for Docker build."
+                        echo "Copied executable JAR (${executableJar}) to recipe/app.jar for Docker build."
                     } else {
-                        error "No suitable executable JAR file found to copy for Docker build."
+                        error "No suitable executable Fat JAR file found to copy for Docker build."
                     }
                 }
             }
@@ -115,9 +121,9 @@ pipeline {
 
                     // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
                     def activeDeploymentsToStop = []
-                    // API 문서에 명시된 "활성" 상태들만 명시
-                    def checkableStatuses = ['Created', 'Queued', 'InProgress'] 
-
+                    // CodeDeploy API의 유효한 활성 상태들 (대소문자, 띄어쓰기 없음) - API 문서에 기반하여 다시 정확히 명시
+                    def checkableStatuses = ['Created', 'Queued', 'InProgress', 'Deploying'] // API 문서 참고하여 유효한 값으로 조정
+                    
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
                     
                     try {
@@ -147,7 +153,7 @@ pipeline {
                                     def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
                                     echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
 
-                                    // 현재 진행 중인 배포만 필터링
+                                    // 현재 진행 중인 배포만 필터링 (완료, 실패, 중지 상태는 무시)
                                     if (checkableStatuses.contains(currentStatus)) {
                                         activeDeploymentsToStop.add(deploymentId)
                                     }
