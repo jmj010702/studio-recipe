@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011' // 실제 S3 버킷 이름
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy' // 실제 CodeDeploy 애플리케이션 이름
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webdeploy-group' // 실제 CodeDeploy 배포 그룹 이름
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 실제 CodeDeploy 배포 그룹 이름
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
