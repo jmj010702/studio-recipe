@@ -3,16 +3,16 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-northeast-2'
-        S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011' // 실제 S3 버킷 이름
-        CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy' // 실제 CodeDeploy 애플리케이션 이름
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 실제 CodeDeploy 배포 그룹 이름
+        S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
+        CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 김윤환8988님의 실제 배포 그룹 이름으로 수정되어야 합니다!
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
-        ECR_IMAGE = "${ECR_REGISTRY}:${env.BUILD_NUMBER}" // 빌드 번호를 태그로 사용
+        ECR_IMAGE = "${ECR_REGISTRY}:${env.BUILD_NUMBER}"
 
-        AWS_SECRETS_ID = 'recipe-app-secrets' // 김윤환8988님의 Secrets Manager ID
-        REDIS_HOST_PROBLEM = 'your-problematic-redis-dns-or-ip' // Secrets Manager에 이 값이 없다면 실제 Redis 호스트 (또는 문제 재현을 위한 플레이스홀더)
+        AWS_SECRETS_ID = 'recipe-app-secrets'
+        REDIS_HOST_PROBLEM = 'your-problematic-redis-dns-or-ip'
         REDIS_PORT_PROBLEM = '6379'
     }
 
@@ -90,11 +90,6 @@ pipeline {
                 script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // 이전에 'sh "cp appspec.yml ."' 명령이 있던 자리입니다.
-                    // appspec.yml은 Jenkins 워크스페이스의 루트에 이미 존재하므로 별도의 복사 작업은 필요 없습니다.
-                    // Jenkinsfile 내부에서 appspec.yml을 동적으로 수정하는 로직이 있다면 여기에 추가할 수 있습니다.
-                    // 현재는 'appspec.yml'이 그대로 Zip에 포함될 것입니다.
-
                     writeFile file: 'ECR_IMAGE_VALUE.txt', text: "${ECR_IMAGE}"
                     echo "ECR_IMAGE_VALUE.txt generated with: ${ECR_IMAGE}"
 
@@ -116,13 +111,15 @@ pipeline {
 
                     try {
                         echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION}..."
+                        // --- 수정: 'list-deployments-by-application' -> 'list-deployments' ---
                         def allDeploymentIdsJson = sh(returnStdout: true, script: """
-                            aws deploy list-deployments-by-application \
+                            aws deploy list-deployments \
                                 --application-name ${CODEDEPLOY_APPLICATION} \
                                 --query 'deployments' \
                                 --output json \
                                 --region ${AWS_REGION}
                         """).trim()
+                        // --- ------------------------------------------------------------- ---
 
                         def deploymentIdList = new groovy.json.JsonSlurper().parseText(allDeploymentIdsJson)
 
@@ -158,7 +155,8 @@ pipeline {
                         activeDeployments.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                            sleep 5
+                            // --- 수정: sleep 시간 단축 (30초 -> 10초) ---
+                            sleep 10
                         }
                         echo "Active deployments stop commands issued. Waiting 10 seconds for stabilization."
                         sleep 10
@@ -189,8 +187,15 @@ pipeline {
                     echo "--- Monitoring CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status ---"
                     timeout(time: 30, unit: 'MINUTES') {
                         def deploymentStatus = ""
+                        def loopCount = 0
+                        // --- 수정: sleep 시간 단축 (30초 -> 10초) 및 빠른 재시도 (loopCount) ---
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
-                            sleep 30
+                            loopCount++
+                            // 초기 몇 번은 더 빠르게 확인하고, 이후부터는 간격을 늘립니다.
+                            // 빠른 재시도: 처음 30초는 5초 간격, 그 이후부터 10초 간격
+                            def currentSleep = (loopCount <= 6) ? 5 : 10
+                            sleep currentSleep
+
                             try {
                                 def statusCheckResultJson = sh(returnStdout: true, script: """
                                     aws deploy get-deployment \
@@ -200,9 +205,9 @@ pipeline {
                                         --region ${AWS_REGION}
                                 """).trim()
                                 deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson)
-                                echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus}"
+                                echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus} (Checked ${loopCount} times)"
                             } catch (e) {
-                                echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying... Error: ${e.message}"
+                                echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying in ${currentSleep} seconds... Error: ${e.message}"
                             }
                         }
 
@@ -215,18 +220,17 @@ pipeline {
                 }
             }
         }
-    }
 
-    post {
-        always {
-            script {
-                if (currentBuild.result != 'SUCCESS') {
-                    echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
-                } else {
-                    echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
+        post {
+            always {
+                script {
+                    if (currentBuild.result != 'SUCCESS') {
+                        echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
+                    } else {
+                        echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
+                    }
                 }
+                cleanWs()
             }
-            cleanWs() // 빌드가 끝난 후 워크스페이스 정리
         }
     }
-}
