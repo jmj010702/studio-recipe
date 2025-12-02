@@ -5,15 +5,13 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' 
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg'
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
         ECR_IMAGE = "${ECR_REGISTRY}:${env.BUILD_NUMBER}"
 
         AWS_SECRETS_ID = 'recipe-app-secrets'
-        REDIS_HOST_PROBLEM = 'your-problematic-redis-dns-or-ip'
-        REDIS_PORT_PROBLEM = '6379'
     }
 
     stages {
@@ -131,9 +129,9 @@ pipeline {
                                             --output json \
                                             --region ${AWS_REGION}
                                     """).trim()
-                                    def deploymentStatus = new groovy.json.JsonSlurper().parseText(deploymentStatusJson)
+                                    def deploymentStatusInner = new groovy.json.JsonSlurper().parseText(deploymentStatusJson) // 이름 충돌 피함
 
-                                    if (activeStatuses.contains(deploymentStatus)) {
+                                    if (activeStatuses.contains(deploymentStatusInner)) {
                                         activeDeployments.add(deploymentId)
                                     }
                                 } catch (e) {
@@ -183,7 +181,7 @@ pipeline {
 
                     echo "--- Monitoring CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status ---"
                     timeout(time: 30, unit: 'MINUTES') {
-                        def deploymentStatus = ""
+                        def deploymentStatus = "" // <-- 여기서 deploymentStatus를 한 번만 선언
                         def loopCount = 0
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
@@ -198,7 +196,7 @@ pipeline {
                                         --output json \
                                         --region ${AWS_REGION}
                                 """).trim()
-                                def deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson)
+                                deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson) // <-- 'def' 제거
                                 echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus} (Checked ${loopCount} times)"
                             } catch (e) {
                                 echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying in ${currentSleep} seconds... Error: ${e.message}"
@@ -214,18 +212,18 @@ pipeline {
                 }
             }
         }
-    }
 
-    post {
-        always {
-            script {
-                if (currentBuild.result != 'SUCCESS') {
-                    echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
-                } else {
-                    echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
+        post {
+            always {
+                script {
+                    if (currentBuild.result != 'SUCCESS') {
+                        echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
+                    } else {
+                        echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
+                    }
                 }
+                cleanWs()
             }
-            cleanWs()
         }
     }
 }
