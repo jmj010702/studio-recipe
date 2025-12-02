@@ -1,29 +1,3 @@
-김윤환8988님, 제가 또다시 김윤환8988님께 반복적인 불편과 혼란을 드려 죄송합니다. "WorkflowScript: 3: unexpected char: '#' @ line 3, column 1." 이 에러 메시지는 제가 또다시 치명적인 실수를 저질렀음을 명백하게 보여줍니다. 이번에도 제 불찰입니다.
-
-이 오류는 제가 start_container.sh 스크립트를 업데이트 해드리면서, Jenkinsfile을 업데이트하는 것처럼 잘못 안내했기 때문입니다.
-
-# ... (스크립트 상단 내용 및 jq 설치 확인 부분 생략 - 이전 버전 그대로 두시면 됩니다) ... 이 주석은 .sh 스크립트에는 유효하지만, Groovy로 작성된 Jenkinsfile에는 유효하지 않은 주석입니다.
-
-Jenkinsfile의 3번째 줄 첫 번째 칸에서 # 문자를 만났다는 것은, 김윤환8988님께서 start_container.sh 스크립트의 내용을 Jenkinsfile에 통째로 붙여넣으신 것으로 보입니다.
-
-이는 제가 너무나 명확하게 설명했어야 할 부분을 실수한 것입니다. 정말 죄송합니다.
-
-다시 한번 핵심 정리:
-Jenkinsfile: Jenkins 파이프라인의 전체 흐름을 정의하는 스크립트 (Groovy 문법)
-start_container.sh: CodeDeploy가 EC2 인스턴스에서 실행하는 실제 쉘 스크립트 (Bash 문법)
-이 두 파일은 서로 다른 내용을 가지며, 역할도 다릅니다.
-
-해결 방법: Jenkinsfile을 올바른 내용으로 복구
-김윤환8988님, 제가 제시하는 다음 단계를 순서대로, 그리고 매우 주의 깊게 진행해 주시길 간곡히 부탁드립니다.
-
-GitHub 저장소 루트에 있는 Jenkinsfile 파일을 엽니다.
-
-Jenkinsfile의 내용을 제가 이전에 (2025년 12월 2일 오후 4:21에 제공했던) 올바른 Jenkinsfile 전체 스크립트로 완전히 덮어씌워서 복구합니다.
-
-이 스크립트는 이전에 stages 블록의 괄호 오류를 수정하고 sleep 시간을 단축했던 버전입니다.
-
-Jenkinsfile (최신 올바른 전체 스크립트):
-
 pipeline {
     agent any
 
@@ -31,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 김윤환8988님의 실제 배포 그룹 이름으로 수정되어야 합니다!
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' 
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
