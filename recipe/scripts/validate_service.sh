@@ -17,11 +17,9 @@ echo "INFO: Waiting for application to become healthy at ${HEALTH_CHECK_URL}"
 for i in $(seq 1 $MAX_ATTEMPTS); do
     STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_CHECK_URL}")
     
-    # curl 명령어가 실패할 경우 (예: Connection refused) HTTP 코드 000을 반환하도록 처리
     if [ $? -ne 0 ] || [ "${STATUS_CODE}" -eq 000 ]; then
         echo "Application not healthy yet at ${HEALTH_CHECK_URL} (HTTP Status: ${STATUS_CODE}), retrying in ${WAIT_SECONDS} seconds... (Attempt ${i}/${MAX_ATTEMPTS})"
     else
-        # 2xx 상태 코드를 받으면 정상으로 간주
         if [[ "${STATUS_CODE}" -ge 200 && "${STATUS_CODE}" -le 299 ]]; then
             echo "Application is healthy! (HTTP Status: ${STATUS_CODE})"
             exit 0
