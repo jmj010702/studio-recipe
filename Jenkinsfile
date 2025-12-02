@@ -68,7 +68,35 @@ pipeline {
                 }
             }
         }
-        // stage('Docker Build & Push to ECR') 이 부분은 위에 새로 제공된 내용으로 대체해야 합니다.
+        
+        stage('Docker Build & Push to ECR') {
+    steps {
+        script {
+            echo "--- Logging into ECR ---"
+            sh """
+                aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            """
+
+            echo "--- Building Docker Image ---"
+            sh """
+                docker build -t recipe-app:${BUILD_NUMBER} recipe
+            """
+
+            echo "--- Tagging Docker Image ---"
+            sh """
+                docker tag recipe-app:${BUILD_NUMBER} ${ECR_REGISTRY}:${BUILD_NUMBER}
+            """
+
+            echo "--- Pushing Docker Image to ECR ---"
+            sh """
+                docker push ${ECR_REGISTRY}:${BUILD_NUMBER}
+            """
+
+            echo "--- Docker Image Pushed: ${ECR_REGISTRY}:${BUILD_NUMBER} ---"
+        }
+    }
+}
 
 
         stage('Prepare and Deploy to CodeDeploy') {
