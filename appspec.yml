@@ -1,18 +1,18 @@
 version: 0.0
 os: linux
 files:
-  - source: / # 전체 배포 번들을 복사
+  - source: / # 전체 배포 번들을 복사 (scripts, ECR_IMAGE_VALUE.txt 포함)
     destination: /opt/codedeploy-deployment # EC2 인스턴스의 임시 디렉토리
 hooks:
   BeforeInstall:
-    - location: scripts/stop_container.sh # 기존 Docker 컨테이너 중지
+    - location: /opt/codedeploy-deployment/scripts/stop_container.sh # 절대 경로로 스크립트 지정
       timeout: 180
       runas: root
   ApplicationStart:
-    - location: scripts/start_container.sh # 새 Docker 컨테이너 시작
+    - location: /opt/codedeploy-deployment/scripts/start_container.sh # 절대 경로로 스크립트 지정
       timeout: 360
       runas: root
   ValidateService:
-    - location: scripts/validate_service.sh # 헬스 체크
+    - location: /opt/codedeploy-deployment/scripts/validate_service.sh # 절대 경로로 스크립트 지정
       timeout: 300
       runas: root
