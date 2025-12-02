@@ -1,10 +1,11 @@
 FROM eclipse-temurin:17-jdk-alpine
 
+WORKDIR /app
+
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-WORKDIR /app
+ARG JAR_FILE=build/libs/*.jar
+COPY ${JAR_FILE} app.jar
 
-COPY build/libs/app.jar /app/app.jar
-
-ENTRYPOINT ["java","-jar","/app.jar", "--spring.profiles.active=prod"] 
+ENTRYPOINT ["java","-jar","/app.jar", "--spring.profiles.active=prod"]
