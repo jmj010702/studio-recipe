@@ -118,15 +118,12 @@ stage('Prepare and Deploy to CodeDeploy') {
                     
                     // --- 여기서부터 수정된 코드 시작 (반복 오류 해결) ---
                     echo "--- Checking for and stopping any active CodeDeploy deployments ---"
-                    
-                    // list-deployments를 통해 활성 상태의 배포 ID를 조회합니다.
-                    // --status-filter를 사용하여 'InProgress'와 'Queued' 상태만 필터링하도록 쉘 스크립트 로직을 개선했습니다.
                     def activeDeploymentIds = sh(returnStdout: true, script: """
                     aws deploy list-deployments \\
                                                  --application-name ${CODEDEPLOY_APPLICATION} \\
                                                  --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
                                                  --query 'deployments' \\
-                                                 --status-filter 'InProgress,Queued' \\ // 쉼표로 연결하고 단일 인수로 전달
+                                                 --status-filter 'InProgress,Queued' \\
                                                  --output text \\
                                                  --region ${AWS_REGION}
                                                  """).trim()
