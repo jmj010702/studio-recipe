@@ -104,59 +104,66 @@ pipeline {
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    def activeDeployments = []
+                    // --- 기존 CodeDeploy 활성 배포 감지 및 중지 로직 강화 ---
+                    def activeDeploymentsForGroup = []
                     def activeStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
 
+                    echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION} and deployment group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
+                    
                     try {
-                        echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION}..."
-                        def allDeploymentIdsJson = sh(returnStdout: true, script: """
+                        def deploymentsJson = sh(returnStdout: true, script: """
                             aws deploy list-deployments \
                                 --application-name ${CODEDEPLOY_APPLICATION} \
+                                --include-only-statuses ${activeStatuses.join(',')} \
                                 --query 'deployments' \
                                 --output json \
                                 --region ${AWS_REGION}
                         """).trim()
 
-                        def deploymentIdList = new groovy.json.JsonSlurper().parseText(allDeploymentIdsJson)
-
-                        if (deploymentIdList && !deploymentIdList.isEmpty()) {
-                            deploymentIdList.each { deploymentId ->
+                        def allActiveDeployments = new groovy.json.JsonSlurper().parseText(deploymentsJson)
+                        
+                        if (allActiveDeployments && !allActiveDeployments.isEmpty()) {
+                            // 각 배포의 상세 정보를 가져와서 특정 배포 그룹에 속하는지 확인 (느릴 수 있음)
+                            // 또는 'get-deployment-group'으로 해당 배포 그룹에 연결된 deploymentId를 가져오는 방법도 고려 가능
+                            allActiveDeployments.each { deploymentId ->
                                 try {
-                                    def deploymentStatusJson = sh(returnStdout: true, script: """
+                                    def deploymentInfoJson = sh(returnStdout: true, script: """
                                         aws deploy get-deployment \
                                             --deployment-id ${deploymentId} \
-                                            --query 'deploymentInfo.status' \
+                                            --query 'deploymentInfo' \
                                             --output json \
                                             --region ${AWS_REGION}
                                     """).trim()
-                                    def deploymentStatusInner = new groovy.json.JsonSlurper().parseText(deploymentStatusJson) // 이름 충돌 피함
+                                    def deploymentInfo = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
 
-                                    if (activeStatuses.contains(deploymentStatusInner)) {
-                                        activeDeployments.add(deploymentId)
+                                    if (deploymentInfo.deploymentGroupName == CODEDEPLOY_DEPLOYMENT_GROUP) {
+                                        activeDeploymentsForGroup.add(deploymentId)
                                     }
                                 } catch (e) {
-                                    echo "WARNING: Could not get status for deployment ID ${deploymentId}. It might be too old or invalid. Error: ${e.message}"
+                                    echo "WARNING: Failed to get info for deployment ID ${deploymentId}. Error: ${e.message}"
                                 }
                             }
                         } else {
-                            echo "No existing deployments found for application ${CODEDEPLOY_APPLICATION}."
+                            echo "No active deployments found for application ${CODEDEPLOY_APPLICATION}."
                         }
 
                     } catch (e) {
-                        echo "WARNING: Failed to list or parse existing deployments. Proceeding with new deployment without stopping any. Error: ${e.message}"
+                        echo "WARNING: Failed to list or parse active deployments. Proceeding without stopping any. Error: ${e.message}"
+                        echo "This might cause 'DeploymentLimitExceededException' later. Please ensure IAM permissions are correct."
                     }
 
-                    if (!activeDeployments.isEmpty()) {
-                        echo "Found active deployment(s): ${activeDeployments.join(', ')}. Attempting to stop them before proceeding."
-                        activeDeployments.each { deploymentId ->
+                    if (!activeDeploymentsForGroup.isEmpty()) {
+                        echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsForGroup.join(', ')}. Attempting to stop them."
+                        activeDeploymentsForGroup.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                            sleep 10
+                            // stop 명령이 바로 반영되지 않을 수 있으므로 짧게 대기
+                            sleep 5
                         }
-                        echo "Active deployments stop commands issued. Waiting 10 seconds for stabilization."
-                        sleep 10
+                        echo "Active deployments stop commands issued. Waiting 30 seconds for stabilization before new deployment."
+                        sleep 30
                     } else {
-                        echo "No active CodeDeploy deployments to stop. Proceeding with new deployment."
+                        echo "No active CodeDeploy deployments to stop in group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Proceeding with new deployment."
                     }
 
                     echo "--- Initiating new CodeDeploy deployment ---"
@@ -185,7 +192,7 @@ pipeline {
                         def loopCount = 0
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
-                            def currentSleep = (loopCount <= 6) ? 5 : 10
+                            def currentSleep = (loopCount <= 6) ? 5 : 10 // 처음 6번은 5초 간격, 이후 10초 간격
                             sleep currentSleep
 
                             try {
