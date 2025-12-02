@@ -112,9 +112,9 @@ pipeline {
                     // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 오류 수정 및 디버깅 강화) ---
                     def activeDeploymentsToStop = []
                     // CodeDeploy list-deployments API 문서에 명시된 유효한 상태만 사용
-                    def checkStatuses = ['Created', 'Queued', 'In Progress', 'Ready'] 
-                    // 각 상태를 따옴표로 묶고 공백으로 구분하여 전달
-                    def statusArgs = checkStatuses.collect { "'${it}'" }.join(' ')
+                    def checkStatuses = ['Created', 'Queued', 'InProgress', 'Ready'] // "In Progress" -> "InProgress" (붙여쓰기)로 수정
+                    // AWS CLI는 --include-only-statuses에 쉼표로 구분된 하나의 문자열을 받습니다.
+                    def statusArgs = checkStatuses.join(',')
 
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
                     
@@ -123,7 +123,7 @@ pipeline {
                             aws deploy list-deployments \
                                 --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
                                 --deployment-group-name ''' + CODEDEPLOY_DEPLOYMENT_GROUP + ''' \
-                                --include-only-statuses ''' + statusArgs + ''' \
+                                --include-only-statuses "''' + statusArgs + '''" \
                                 --query "deployments" \
                                 --output json \
                                 --region ''' + AWS_REGION + '''
