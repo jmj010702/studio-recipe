@@ -3,20 +3,20 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-northeast-2'
-        S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
-        CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
+        S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011' // 실제 S3 버킷 이름
+        CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy' // 실제 CodeDeploy 애플리케이션 이름
         CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 김윤환8988님의 실제 배포 그룹 이름으로 수정되어야 합니다!
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
-        ECR_IMAGE = "${ECR_REGISTRY}:${env.BUILD_NUMBER}"
+        ECR_IMAGE = "${ECR_REGISTRY}:${env.BUILD_NUMBER}" // 빌드 번호를 태그로 사용
 
-        AWS_SECRETS_ID = 'recipe-app-secrets'
-        REDIS_HOST_PROBLEM = 'your-problematic-redis-dns-or-ip'
+        AWS_SECRETS_ID = 'recipe-app-secrets' // 김윤환8988님의 Secrets Manager ID
+        REDIS_HOST_PROBLEM = 'your-problematic-redis-dns-or-ip' // Secrets Manager에 이 값이 없다면 실제 Redis 호스트 (또는 문제 재현을 위한 플레이스홀더)
         REDIS_PORT_PROBLEM = '6379'
     }
 
-    stages {
+    stages { // <--- stages 블록 시작
         stage('Initialize & Force Git Sync') {
             steps {
                 script {
@@ -111,7 +111,6 @@ pipeline {
 
                     try {
                         echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION}..."
-                        // --- 수정: 'list-deployments-by-application' -> 'list-deployments' ---
                         def allDeploymentIdsJson = sh(returnStdout: true, script: """
                             aws deploy list-deployments \
                                 --application-name ${CODEDEPLOY_APPLICATION} \
@@ -119,7 +118,6 @@ pipeline {
                                 --output json \
                                 --region ${AWS_REGION}
                         """).trim()
-                        // --- ------------------------------------------------------------- ---
 
                         def deploymentIdList = new groovy.json.JsonSlurper().parseText(allDeploymentIdsJson)
 
@@ -155,8 +153,7 @@ pipeline {
                         activeDeployments.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                            // --- 수정: sleep 시간 단축 (30초 -> 10초) ---
-                            sleep 10
+                            sleep 10 // 시간을 10초로 단축
                         }
                         echo "Active deployments stop commands issued. Waiting 10 seconds for stabilization."
                         sleep 10
@@ -188,12 +185,9 @@ pipeline {
                     timeout(time: 30, unit: 'MINUTES') {
                         def deploymentStatus = ""
                         def loopCount = 0
-                        // --- 수정: sleep 시간 단축 (30초 -> 10초) 및 빠른 재시도 (loopCount) ---
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
-                            // 초기 몇 번은 더 빠르게 확인하고, 이후부터는 간격을 늘립니다.
-                            // 빠른 재시도: 처음 30초는 5초 간격, 그 이후부터 10초 간격
-                            def currentSleep = (loopCount <= 6) ? 5 : 10
+                            def currentSleep = (loopCount <= 6) ? 5 : 10 // 처음 30초는 5초 간격, 그 이후부터 10초 간격
                             sleep currentSleep
 
                             try {
@@ -220,6 +214,7 @@ pipeline {
                 }
             }
         }
+    } // <--- stages 블록 끝
 
     post {
         always {
@@ -233,4 +228,4 @@ pipeline {
             cleanWs() // 빌드가 끝난 후 워크스페이스 정리
         }
     }
-}
+} // <--- pipeline 블록 끝
