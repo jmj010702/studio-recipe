@@ -122,14 +122,14 @@ stage('Prepare and Deploy to CodeDeploy') {
                     // list-deployments를 통해 활성 상태의 배포 ID를 조회합니다.
                     // --status-filter를 사용하여 'InProgress'와 'Queued' 상태만 필터링하도록 쉘 스크립트 로직을 개선했습니다.
                     def activeDeploymentIds = sh(returnStdout: true, script: """
-                        aws deploy list-deployments \\
-                            --application-name ${CODEDEPLOY_APPLICATION} \\
-                            --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
-                            --query 'deployments' \\
-                            --status-filter 'InProgress' 'Queued' \\
-                            --output text \\
-                            --region ${AWS_REGION}
-                    """).trim()
+                    aws deploy list-deployments \\
+                                                 --application-name ${CODEDEPLOY_APPLICATION} \\
+                                                 --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
+                                                 --query 'deployments' \\
+                                                 --status-filter 'InProgress,Queued' \\ // 쉼표로 연결하고 단일 인수로 전달
+                                                 --output text \\
+                                                 --region ${AWS_REGION}
+                                                 """).trim()
 
                     // AWS CLI의 text 출력은 줄 바꿈(\n)이나 탭(\t)으로 분리될 수 있습니다.
                     // Groovy에서 trim() 후 공백 기준으로 분리하여 배열로 만듭니다.
