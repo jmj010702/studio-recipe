@@ -92,25 +92,33 @@ pipeline {
                     echo "ECR_IMAGE_VALUE.txt generated with: ${ECR_IMAGE}"
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
-                    // REMOVED: sh "cp recipe/build/libs/app.jar ." // app.jar은 Docker 이미지 내부에 있습니다. CodeDeploy 번들에 포함하지 않습니다.
-                    echo "DEBUG: All deployment scripts and ECR image value prepared for zipping."
+                    sh "cp -r recipe/scripts ."
+                    // app.jar을 CodeDeploy 번들에 다시 포함합니다.
+                    // CodeDeploy 에이전트가 어떤 이유로 이 파일을 찾는 동작을 하기 때문에 임시 방안으로 재포함합니다.
+                    sh "cp recipe/app.jar ." // Docker build를 위해 recipe/app.jar로 복사된 파일을 가져옵니다.
+                    echo "DEBUG: All deployment scripts, ECR image value, and app.jar prepared for zipping."
 
-                    echo "DEBUG: Zipping deployment artifacts (appspec.yml, scripts, ECR_IMAGE_VALUE.txt)..."
-                    sh "zip -r deployment.zip appspec.yml scripts ECR_IMAGE_VALUE.txt" // REMOVED: app.jar
+                    echo "DEBUG: Zipping deployment artifacts (appspec.yml, scripts, app.jar, ECR_IMAGE_VALUE.txt)..."
+                    sh "zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt" // app.jar 다시 포함
                     echo "DEBUG: deployment.zip created."
 
                     echo "DEBUG: Uploading deployment.zip to S3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 오류 수정) ---
+                    // --- Debugging appspec.yml content ---
+                    echo "--- VERIFYING appspec.yml content for CodeDeploy ---"
+                    sh "cat appspec.yml" // Jenkins workspace root에 있는 appspec.yml 출력
+                    echo "--- END appspec.yml VERIFICATION ---"
+
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 ---
                     def activeDeploymentsToStop = []
                     def checkStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
 
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
                     
                     try {
-                        // --include-only-statuses에 공백으로 구분된 상태 목록 전달 (이전에는 쉼표 구분이라 오류 발생)
+                        // --include-only-statuses에 공백으로 구분된 상태 목록 전달
                         def deploymentsJson = sh(returnStdout: true, script: '''
                             aws deploy list-deployments \
                                 --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
