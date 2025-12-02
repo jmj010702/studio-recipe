@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg'
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 김윤환8988님의 실제 배포 그룹 이름으로 수정되어야 합니다!
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
@@ -189,42 +189,4 @@ pipeline {
                             sleep currentSleep
 
                             try {
-                                def statusCheckResultJson = sh(returnStdout: true, script: """
-                                    aws deploy get-deployment \
-                                        --deployment-id ${env.CODEDEPLOY_DEPLOYMENT_ID} \
-                                        --query 'deploymentInfo.status' \
-                                        --output json \
-                                        --region ${AWS_REGION}
-                                """).trim()
-                                deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson) // <-- 'def' 제거
-                                echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus} (Checked ${loopCount} times)"
-                            } catch (e) {
-                                echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying in ${currentSleep} seconds... Error: ${e.message}"
-                            }
-                        }
-
-                        if (deploymentStatus == "Failed" || deploymentStatus == "Stopped" || deploymentStatus == "Skipped") {
-                            error "CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} failed or was stopped. Current status: ${deploymentStatus}"
-                        } else {
-                            echo "CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} succeeded!"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-        post {
-            always {
-                script {
-                    if (currentBuild.result != 'SUCCESS') {
-                        echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
-                    } else {
-                        echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
-                    }
-                }
-                cleanWs()
-            }
-        }
-    }
-}
+                                def statusCheckResultJson = 
