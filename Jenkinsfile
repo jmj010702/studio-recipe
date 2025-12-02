@@ -57,8 +57,10 @@ pipeline {
                     }
 
                     if (jarToRename) {
-                        sh "mv ${jarToRename} ${jarDirPath}/app.jar"
-                        echo "Renamed ${jarToRename} to ${jarDirPath}/app.jar."
+                        // sh "mv ${jarToRename} ${jarDirPath}/app.jar"
+                        // echo "Renamed ${jarToRename} to ${jarDirPath}/app.jar."
+                        sh "mv ${jarToRename} recipe/app.jar" // JAR 파일을 recipe/app.jar 로 옮깁니다.
+                        echo "Renamed ${jarToRename} to recipe/app.jar."
                     } else {
                         error "No suitable JAR file found to rename in ${jarDirPath} directory."
                     }
@@ -93,7 +95,7 @@ pipeline {
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
                     sh "cp -r recipe/scripts ."
-                    sh "cp recipe/build/libs/app.jar ."
+                    // sh "cp recipe/build/libs/app.jar ."
                     echo "DEBUG: All artifacts copied to Jenkins workspace root."
 
                     echo "DEBUG: Zipping deployment artifacts..."
