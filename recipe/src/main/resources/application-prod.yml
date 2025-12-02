@@ -34,10 +34,10 @@ spring:
       mail:
         smtp:
           auth: true
-          starttls:
-            enable: true
           ssl:
             enable: true
+          starttls:
+            enable: false
 
   data:
     redis:
