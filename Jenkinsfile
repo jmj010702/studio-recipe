@@ -44,7 +44,7 @@ pipeline {
                     echo "--- Preparing JAR file for Docker build ---"
                     def jarDirPath = "recipe/build/libs"
                     
-                    // 모든 .jar 파일을 찾습니다.
+                    // -plain.jar을 제외한 모든 JAR 파일을 찾습니다. (실행 가능한 Fat JAR만 대상)
                     def allJars = sh(returnStdout: true, script: "find ${jarDirPath} -maxdepth 1 -name '*.jar'").trim().split('\n').findAll { it.trim() != '' }
                     
                     def executableJar = ""
@@ -69,6 +69,8 @@ pipeline {
                     if (executableJar) {
                         sh "cp ${executableJar} recipe/app.jar"
                         echo "Copied executable JAR (${executableJar}) to recipe/app.jar for Docker build."
+                        // 복사된 app.jar의 유형 확인을 위한 디버그 로그 추가
+                        sh "file recipe/app.jar"
                     } else {
                         error "No suitable executable Fat JAR file found to copy for Docker build."
                     }
@@ -76,22 +78,8 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push to ECR') {
-            steps {
-                script {
-                    echo "--- Building Docker image and pushing to ECR ---"
-                    sh "aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+        // stage('Docker Build & Push to ECR') 이 부분은 위에 새로 제공된 내용으로 대체해야 합니다.
 
-                    echo "--- VERIFYING Dockerfile content BEFORE Docker build ---"
-                    sh "cat recipe/Dockerfile"
-                    echo "--- END VERIFICATION ---"
-                    
-                    sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe"
-                    
-                    sh "docker push ${ECR_IMAGE}"
-                }
-            }
-        }
 
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
@@ -121,8 +109,7 @@ pipeline {
 
                     // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
                     def activeDeploymentsToStop = []
-                    // CodeDeploy API의 유효한 활성 상태들 (대소문자, 띄어쓰기 없음) - API 문서에 기반하여 다시 정확히 명시
-                    def checkableStatuses = ['Created', 'Queued', 'InProgress', 'Deploying'] // API 문서 참고하여 유효한 값으로 조정
+                    def checkableStatuses = ['Created', 'Queued', 'InProgress', 'Deploying']
                     
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
                     
@@ -153,12 +140,10 @@ pipeline {
                                     def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
                                     echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
 
-                                    // 현재 진행 중인 배포만 필터링 (완료, 실패, 중지 상태는 무시)
                                     if (checkableStatuses.contains(currentStatus)) {
                                         activeDeploymentsToStop.add(deploymentId)
                                     }
                                 } catch (e) {
-                                    // get-deployment 호출 실패 시 (e.g., 이미 삭제되었거나 유효하지 않은 배포 ID) 경고만 출력하고 건너뜀
                                     echo "WARNING: Failed to get status for deployment ${deploymentId}. It might be invalid or already cleaned up. Error: ${e.message}"
                                 }
                             }
@@ -176,7 +161,6 @@ pipeline {
                         echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsToStop.join(', ')}. Attempting to stop them."
                         activeDeploymentsToStop.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
-                            // stop-deployment 명령이 이미 종료된 배포에 대해 오류를 반환해도 파이프라인이 중단되지 않도록 '|| true' 추가
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION} || true"
                             sleep 5
                         }
