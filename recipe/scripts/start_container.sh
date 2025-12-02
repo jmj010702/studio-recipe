@@ -31,7 +31,7 @@ SPRING_DATASOURCE_USERNAME=$(echo "$SECRET_JSON" | jq -r '.DB_USERNAME')
 SPRING_DATASOURCE_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.DB_PASSWORD')
 SPRING_MAIL_USERNAME=$(echo "$SECRET_JSON" | jq -r '.MAIL_USERNAME')
 SPRING_MAIL_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.MAIL_PASSWORD')
-JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET')   # <-- Secrets JSON에 JWT_SECRET 키 존재 가정
+JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET')   # Secrets JSON에 JWT_SECRET 키가 있어야 함
 
 # 4. 고정 값들 (RDS, 메일, Redis 등)
 SPRING_DATASOURCE_URL="jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
@@ -39,11 +39,11 @@ SPRING_DATASOURCE_URL="jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.
 SPRING_MAIL_HOST="smtp.naver.com"
 SPRING_MAIL_PORT="465"
 
-# Redis는 host / port 분리 (클러스터 노드 문자열 아님)
+# Redis는 host / port 분리 (중요: host에 :포트 붙이면 안 됨)
 SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com"
 SPRING_DATA_REDIS_PORT="6379"
 
-# 5. 필수 값들 유효성 체크 (비어 있으면 바로 실패)
+# 5. 필수 값들 유효성 체크
 if [[ -z "${SPRING_DATASOURCE_USERNAME}" || -z "${SPRING_DATASOURCE_PASSWORD}" ]]; then
   echo "ERROR: SPRING_DATASOURCE_USERNAME or SPRING_DATASOURCE_PASSWORD is empty. Check Secrets Manager (DB_USERNAME / DB_PASSWORD)."
   exit 1
@@ -106,4 +106,4 @@ docker run -d \
   -e JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true" \
   "${ECR_IMAGE}"
 
-echo "Docker container started. Check 'docker logs recipe-app-container' if application does not become healthy."
+echo "Docker container started. If deployment fails, check 'docker logs recipe-app-container'."
