@@ -77,7 +77,7 @@ MAIL_PASSWORD=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_PASSWORD')
 MAIL_HOST=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_HOST')
 MAIL_PORT=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_PORT')
 
-JWT_SECRET=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MY_APP_SECRET')
+JWT_SECRET=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.JWT_SECRET')
 
 if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
    [ -z "${MAIL_USERNAME}" ] || [ -z "${MAIL_PASSWORD}" ] || [ -z "${MAIL_HOST}" ] || [ -z "${MAIL_PORT}" ] || \
@@ -131,6 +131,7 @@ sudo docker run -d \
   -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
   -e JWT_SECRET="${JWT_SECRET}" \
+
   -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   -e SPRING_PROFILES_ACTIVE="prod" \
   -e JAVA_TOOL_OPTIONS="${JVM_OPTS}" \

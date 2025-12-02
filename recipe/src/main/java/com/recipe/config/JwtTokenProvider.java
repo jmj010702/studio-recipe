@@ -32,7 +32,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             // @Value("${jwt.secret}") String secretKey,
-            @Value("${MY_APP_SECRET}") String secretKey
+            @Value("${JWT_SECRET}") String secretKey
             /*,@Value("${jwt.access-token-validity-in-seconds}") long accessTokenValiditySeconds,*/
             /*@Value("${jwt.refresh-token-validity-in-seconds}") long refreshTokenValiditySeconds*/) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
