@@ -111,13 +111,13 @@ pipeline {
 
                     // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
                     def activeDeploymentsToStop = []
-                    // CodeDeploy API의 유효한 활성 상태들 (대문자, 언더스코어 포함)
-                    def activeApiStatuses = ['Created', 'Queued', 'In Progress', 'Ready', 'Deploying', 'Pending', 'AppSpec Content Validation Failed', 'Traffic Rerouting', 'BeforeInstall', 'AfterInstall', 'ApplicationStop', 'ApplicationStart', 'Install', 'StartService', 'StopService', 'BeforeAllowTraffic', 'AllowTraffic', 'AfterAllowTraffic', 'BeforeBlockTraffic', 'BlockTraffic', 'AfterBlockTraffic', 'ValidateService'] // 배포 진행 중인 모든 세부 상태 포함
-
+                    // CodeDeploy API의 유효한 활성 상태들 (대문자, 띄어쓰기 없음) - API 문서에 기반하여 다시 정확히 명시
+                    def activeApiStatuses = ['Created', 'Queued', 'InProgress', 'Ready', 'Deploying', 'Pending'] // API 문서 참고하여 유효한 값으로 조정
+                    
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
                     
                     try {
-                        // 모든 배포를 가져오되, --include-only-statuses 파라미터는 사용하지 않습니다.
+                        // 모든 배포를 가져온 다음, Groovy 내부에서 상태 필터링
                         def allDeploymentsJson = sh(returnStdout: true, script: '''
                             aws deploy list-deployments \
                                 --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
@@ -144,12 +144,12 @@ pipeline {
                                     def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
                                     echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
 
-                                    // Groovy 리스트에서 상태 확인 (API가 보고하는 문자열과 일치하는지 확인)
+                                    // API가 반환하는 상태값은 대문자로 반환되는 경향이 있으므로, 비교 시에도 일관성 유지
                                     if (activeApiStatuses.contains(currentStatus) && currentStatus != 'Succeeded' && currentStatus != 'Failed' && currentStatus != 'Stopped') {
                                         activeDeploymentsToStop.add(deploymentId)
                                     }
                                 } catch (e) {
-                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. Error: ${e.message}"
+                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. It might have already completed/failed. Error: ${e.message}"
                                 }
                             }
                             echo "DEBUG: Identified active deployments to stop after filtering: ${activeDeploymentsToStop}"
