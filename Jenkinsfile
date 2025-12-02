@@ -44,23 +44,27 @@ pipeline {
                     echo "--- Preparing JAR file for Docker build ---"
                     def jarDirPath = "recipe/build/libs"
                     
-                    def plainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim().split('\n')
-                    def mainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim().split('\n')
+                    def foundJars = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar'").trim().split('\n').findAll { it.trim() != '' }
                     
-                    def jarToUse = ""
-                    if (plainJarCandidates.size() == 1 && plainJarCandidates[0] != "") {
-                        jarToUse = plainJarCandidates[0]
-                    } else if (mainJarCandidates.size() == 1 && mainJarCandidates[0] != "") {
-                        jarToUse = mainJarCandidates[0]
+                    def executableJar = ""
+                    // executable JAR (*-plain.jar이 아닌)을 우선적으로 찾습니다.
+                    def nonPlainJars = foundJars.findAll { !it.contains('-plain.jar') }
+                    
+                    if (nonPlainJars.size() == 1) {
+                        executableJar = nonPlainJars[0]
+                        echo "Found single executable JAR: ${executableJar}"
+                    } else if (foundJars.size() == 1) {
+                        executableJar = foundJars[0] // plain이더라도 유일하면 사용 (fallback)
+                        echo "Found single JAR (might be plain, but only one available): ${executableJar}"
                     } else {
-                        error "Could not uniquely determine JAR file in ${jarDirPath}. Found: Plain: ${plainJarCandidates}, Main: ${mainJarCandidates}"
+                        error "Could not uniquely determine an executable JAR file in ${jarDirPath}. Found: ${foundJars.join(', ')}"
                     }
 
-                    if (jarToUse) {
-                        sh "cp ${jarToUse} recipe/app.jar"
-                        echo "Copied ${jarToUse} to recipe/app.jar for Docker build."
+                    if (executableJar) {
+                        sh "cp ${executableJar} recipe/app.jar"
+                        echo "Copied ${executableJar} to recipe/app.jar for Docker build."
                     } else {
-                        error "No suitable JAR file found to copy for Docker build."
+                        error "No suitable executable JAR file found to copy for Docker build."
                     }
                 }
             }
@@ -93,11 +97,11 @@ pipeline {
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
                     sh "cp -r recipe/scripts ."
-                    sh "cp recipe/app.jar ." // app.jar 다시 포함
+                    sh "cp recipe/app.jar ." // app.jar 다시 포함 (이번에는 올바른 JAR)
                     echo "DEBUG: All deployment scripts, ECR image value, and app.jar prepared for zipping."
 
                     echo "DEBUG: Zipping deployment artifacts (appspec.yml, scripts, app.jar, ECR_IMAGE_VALUE.txt)..."
-                    sh "zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt" // app.jar 다시 포함
+                    sh "zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt"
                     echo "DEBUG: deployment.zip created."
 
                     echo "DEBUG: Uploading deployment.zip to S3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
@@ -106,12 +110,13 @@ pipeline {
 
                     // --- Debugging appspec.yml content ---
                     echo "--- VERIFYING appspec.yml content for CodeDeploy ---"
-                    sh "cat appspec.yml" // Jenkins workspace root에 있는 appspec.yml 출력
+                    sh "cat appspec.yml"
                     echo "--- END appspec.yml VERIFICATION ---"
 
                     // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
                     def activeDeploymentsToStop = []
-                    def activeApiStatuses = ['Created', 'Queued', 'InProgress', 'Ready', 'Deploying', 'Pending'] 
+                    // API 문서에 명시된 "활성" 상태들만 명시
+                    def checkableStatuses = ['Created', 'Queued', 'InProgress'] 
 
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
                     
@@ -142,11 +147,13 @@ pipeline {
                                     def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
                                     echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
 
-                                    if (activeApiStatuses.contains(currentStatus) && currentStatus != 'Succeeded' && currentStatus != 'Failed' && currentStatus != 'Stopped') {
+                                    // 현재 진행 중인 배포만 필터링
+                                    if (checkableStatuses.contains(currentStatus)) {
                                         activeDeploymentsToStop.add(deploymentId)
                                     }
                                 } catch (e) {
-                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. It might have already completed/failed. Error: ${e.message}"
+                                    // get-deployment 호출 실패 시 (e.g., 이미 삭제되었거나 유효하지 않은 배포 ID) 경고만 출력하고 건너뜀
+                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. It might be invalid or already cleaned up. Error: ${e.message}"
                                 }
                             }
                             echo "DEBUG: Identified active deployments to stop after filtering: ${activeDeploymentsToStop}"
@@ -163,7 +170,8 @@ pipeline {
                         echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsToStop.join(', ')}. Attempting to stop them."
                         activeDeploymentsToStop.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
-                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
+                            // stop-deployment 명령이 이미 종료된 배포에 대해 오류를 반환해도 파이프라인이 중단되지 않도록 '|| true' 추가
+                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION} || true"
                             sleep 5
                         }
                         echo "Active deployments stop commands issued. Waiting 30 seconds for stabilization before new deployment."
