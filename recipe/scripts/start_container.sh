@@ -131,8 +131,7 @@ sudo docker run -d \
   -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
   -e JWT_SECRET="${JWT_SECRET}" \
-  -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com" \
-  -e SPRING_DATA_REDIS_PORT="6379" \
+  -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" \
   -e SPRING_PROFILES_ACTIVE="prod" \
   -e JAVA_TOOL_OPTIONS="${JVM_OPTS}" \
   "${ECR_IMAGE}"
