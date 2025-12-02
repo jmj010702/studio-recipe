@@ -37,30 +37,17 @@ pipeline {
                 }
             }
         }
-
         stage('Rename JAR file') {
             steps {
                 script {
                     echo "--- Renaming JAR file to app.jar ---"
                     def jarDirPath = "recipe/build/libs"
-                    
-                    def plainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim().split('\n')
-                    def mainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim().split('\n')
-                    
-                    def jarToRename = ""
-                    if (plainJarCandidates.size() == 1 && plainJarCandidates[0] != "") {
-                        jarToRename = plainJarCandidates[0]
-                    } else if (mainJarCandidates.size() == 1 && mainJarCandidates[0] != "") {
-                        jarToRename = mainJarCandidates[0]
-                    } else {
-                        error "Could not uniquely determine JAR file to rename in ${jarDirPath}. Found: Plain: ${plainJarCandidates}, Main: ${mainJarCandidates}"
-                    }
-
+                    // ... (파일 찾기 로직 생략, jarToRename 변수 생성까지는 동일)
+            
                     if (jarToRename) {
-                        // sh "mv ${jarToRename} ${jarDirPath}/app.jar"
-                        // echo "Renamed ${jarToRename} to ${jarDirPath}/app.jar."
-                        sh "mv ${jarToRename} recipe/app.jar" // JAR 파일을 recipe/app.jar 로 옮깁니다.
-                        echo "Renamed ${jarToRename} to recipe/app.jar."
+                        // mv 대신 cp를 사용하여 Jenkins 워크스페이스 루트로 복사합니다.
+                        sh "cp ${jarToRename} app.jar" 
+                        echo "Copied ${jarToRename} to app.jar in Jenkins root."
                     } else {
                         error "No suitable JAR file found to rename in ${jarDirPath} directory."
                     }
@@ -77,6 +64,9 @@ pipeline {
                     echo "--- VERIFYING Dockerfile content BEFORE Docker build ---"
                     sh "cat recipe/Dockerfile"
                     echo "--- END VERIFICATION ---"
+                    
+                    sh "cp app.jar recipe/"
+                    echo "Copied app.jar from root to recipe/ for Docker build context."
 
                     sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe"
                     
