@@ -109,40 +109,57 @@ pipeline {
                     sh "cat appspec.yml" // Jenkins workspace root에 있는 appspec.yml 출력
                     echo "--- END appspec.yml VERIFICATION ---"
 
-                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 오류 수정 및 디버깅 강화) ---
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
                     def activeDeploymentsToStop = []
-                    // CodeDeploy list-deployments API 문서에 명시된 유효한 상태만 사용
-                    def checkStatuses = ['Created', 'Queued', 'InProgress', 'Ready'] // "In Progress" -> "InProgress" (붙여쓰기)로 수정
-                    // AWS CLI는 --include-only-statuses에 쉼표로 구분된 하나의 문자열을 받습니다.
-                    def statusArgs = checkStatuses.join(',')
+                    // CodeDeploy API의 유효한 활성 상태들 (대문자, 언더스코어 포함)
+                    def activeApiStatuses = ['Created', 'Queued', 'In Progress', 'Ready', 'Deploying', 'Pending', 'AppSpec Content Validation Failed', 'Traffic Rerouting', 'BeforeInstall', 'AfterInstall', 'ApplicationStop', 'ApplicationStart', 'Install', 'StartService', 'StopService', 'BeforeAllowTraffic', 'AllowTraffic', 'AfterAllowTraffic', 'BeforeBlockTraffic', 'BlockTraffic', 'AfterBlockTraffic', 'ValidateService'] // 배포 진행 중인 모든 세부 상태 포함
 
-                    echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
+                    echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
                     
                     try {
-                        def deploymentsJson = sh(returnStdout: true, script: '''
+                        // 모든 배포를 가져오되, --include-only-statuses 파라미터는 사용하지 않습니다.
+                        def allDeploymentsJson = sh(returnStdout: true, script: '''
                             aws deploy list-deployments \
                                 --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
                                 --deployment-group-name ''' + CODEDEPLOY_DEPLOYMENT_GROUP + ''' \
-                                --include-only-statuses "''' + statusArgs + '''" \
                                 --query "deployments" \
                                 --output json \
                                 --region ''' + AWS_REGION + '''
                         ''').trim()
 
-                        echo "DEBUG: Raw output from list-deployments: ${deploymentsJson}"
+                        echo "DEBUG: Raw output from list-deployments (all statuses) for group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${allDeploymentsJson}"
                         
-                        def deploymentIds = new groovy.json.JsonSlurper().parseText(deploymentsJson)
+                        def allDeploymentIds = new groovy.json.JsonSlurper().parseText(allDeploymentsJson)
                         
-                        if (deploymentIds && !deploymentIds.isEmpty()) {
-                            activeDeploymentsToStop.addAll(deploymentIds)
-                            echo "DEBUG: Identified active deployments to stop: ${activeDeploymentsToStop}"
+                        if (allDeploymentIds && !allDeploymentIds.isEmpty()) {
+                            allDeploymentIds.each { deploymentId ->
+                                try {
+                                    def deploymentInfoJson = sh(returnStdout: true, script: '''
+                                        aws deploy get-deployment \
+                                            --deployment-id ''' + deploymentId + ''' \
+                                            --query "deploymentInfo.status" \
+                                            --output json \
+                                            --region ''' + AWS_REGION + '''
+                                    ''').trim()
+                                    def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
+                                    echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
+
+                                    // Groovy 리스트에서 상태 확인 (API가 보고하는 문자열과 일치하는지 확인)
+                                    if (activeApiStatuses.contains(currentStatus) && currentStatus != 'Succeeded' && currentStatus != 'Failed' && currentStatus != 'Stopped') {
+                                        activeDeploymentsToStop.add(deploymentId)
+                                    }
+                                } catch (e) {
+                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. Error: ${e.message}"
+                                }
+                            }
+                            echo "DEBUG: Identified active deployments to stop after filtering: ${activeDeploymentsToStop}"
                         } else {
-                            echo "No active deployments found for application ${CODEDEPLOY_APPLICATION} in group ${CODEDEPLOY_DEPLOYMENT_GROUP}."
+                            echo "No deployments found at all for application ${CODEDEPLOY_APPLICATION} in group ${CODEDEPLOY_DEPLOYMENT_GROUP}."
                         }
 
                     } catch (e) {
-                        echo "WARNING: Failed to list active deployments for group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Error: ${e.message}"
-                        echo "This might lead to 'DeploymentLimitExceededException'. Please ensure IAM permissions are correct and the deployment group exists."
+                        echo "ERROR: Failed to list or process deployments for group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Error: ${e.message}"
+                        error "CodeDeploy deployment listing failed. Please ensure IAM permissions are correct and the deployment group exists."
                     }
 
                     if (!activeDeploymentsToStop.isEmpty()) {
@@ -155,7 +172,7 @@ pipeline {
                         echo "Active deployments stop commands issued. Waiting 30 seconds for stabilization before new deployment."
                         sleep 30
                     } else {
-                        echo "No active CodeDeploy deployments to stop in group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Proceeding with new deployment."
+                        echo "No currently active CodeDeploy deployments to stop in group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Proceeding with new deployment."
                     }
 
                     echo "--- Initiating new CodeDeploy deployment ---"
