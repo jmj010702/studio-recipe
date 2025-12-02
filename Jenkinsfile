@@ -93,20 +93,18 @@ pipeline {
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
                     sh "cp -r recipe/scripts ."
-                    // 이 라인은 불필요하므로 제거합니다.
-                    // sh "cp recipe/build/libs/app.jar ." 
-                    echo "DEBUG: All artifacts (scripts) copied to Jenkins workspace root."
+                    // REMOVED: sh "cp recipe/build/libs/app.jar ." // app.jar은 Docker 이미지 내부에 있습니다. CodeDeploy 번들에 포함하지 않습니다.
+                    echo "DEBUG: All deployment scripts and ECR image value prepared for zipping."
 
-                    echo "DEBUG: Zipping deployment artifacts..."
-                    // zip 명령어에서 app.jar 제거
-                    sh "zip -r deployment.zip appspec.yml scripts ECR_IMAGE_VALUE.txt"
+                    echo "DEBUG: Zipping deployment artifacts (appspec.yml, scripts, ECR_IMAGE_VALUE.txt)..."
+                    sh "zip -r deployment.zip appspec.yml scripts ECR_IMAGE_VALUE.txt" // REMOVED: app.jar
                     echo "DEBUG: deployment.zip created."
 
                     echo "DEBUG: Uploading deployment.zip to S3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 오류 수정) ---
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 ---
                     def activeDeploymentsToStop = []
                     def checkStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
 
