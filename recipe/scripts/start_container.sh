@@ -3,13 +3,12 @@
 # --- 스크립트 실행 시작 알림 ---
 echo "--- start_container.sh script initiated ---"
 echo "Running as user: $(whoami)"
-echo "Current directory: $(pwd)"
+echo "Current directory: $(pwd)" # 이 로그를 통해 스크립트가 실행되는 실제 디렉토리를 확인합니다.
 
 # 스크립트 실행 중 오류 발생 시 즉시 종료 (파이프라인 전체 실패)
 set -eo pipefail
 
-# --- 0. jq 설치 확인 (CodeDeploy Agent 환경에 따라 필요할 수 있으나, 보통 기본 설치되어 있음) ---
-# 이 부분은 환경마다 다르므로, 필요시 주석을 해제하여 사용하거나, AMI 생성 시 jq를 포함하여 만듭니다.
+# --- 0. jq 설치 확인 ---
 if ! command -v jq &> /dev/null
 then
     echo "jq is not installed. Attempting to install jq..."
@@ -25,10 +24,22 @@ ECR_REGION="ap-northeast-2"
 SECRET_ID="recipe-app-secrets" # Secrets Manager의 Secret ID
 
 # --- 2. ECR 이미지 URI 추출 ---
-# REVISION_LOCATION은 CodeDeploy가 배포 번트(deployment-archive)가 압축 해제된 경로를 제공하는 공식 환경 변수입니다.
-ECR_IMAGE_FILE_PATH="${REVISION_LOCATION}/ECR_IMAGE_VALUE.txt"
+# appspec.yml에서 스크립트가 /opt/codedeploy-deployment/scripts/start_container.sh 로 실행되므로,
+# ECR_IMAGE_VALUE.txt는 /opt/codedeploy-deployment/ECR_IMAGE_VALUE.txt 에 있습니다.
+# 스크립트 실행 디렉토리 (Current directory)가 /opt/codedeploy-deployment/scripts가 아닌
+# /opt/codedeploy-deployment 에서 실행되도록 appspec.yml을 수정합니다.
+# 이렇게 되면 ECR_IMAGE_FILE_PATH는 './ECR_IMAGE_VALUE.txt'가 됩니다.
+# BUT, 현재 appspec.yml hooks location이 절대경로로 지정되어 있기 때문에,
+# 현재 디렉토리 (cwd)를 스크립트 시작 부분에서 확인하고, ECR_IMAGE_VALUE.txt의 절대경로를 추론해야 합니다.
 
-echo "DEBUG: REVISION_LOCATION (deployment-archive root) = ${REVISION_LOCATION}"
+# CodeDeploy 에이전트는 훅 스크립트를 /opt/codedeploy-agent/deployment-root/.../deployment-archive/scripts 디렉토리에서 실행하는 경우가 많습니다.
+# ECR_IMAGE_VALUE.txt는 deployment-archive/ 루트에 있습니다.
+# 따라서 REVISION_LOCATION 대신 ECR_IMAGE_VALUE.txt가 있는 절대 경로를 명시적으로 지정합니다.
+# appspec.yml에 destination: /opt/codedeploy-deployment 로 했으므로, 파일은 저기로 복사됩니다.
+# 따라서 스크립트가 실행되는 워킹 디렉토리와 무관하게, 항상 파일이 복사된 절대 경로를 참조합니다.
+ECR_IMAGE_FILE_PATH="/opt/codedeploy-deployment/ECR_IMAGE_VALUE.txt"
+
+
 echo "DEBUG: ECR_IMAGE_FILE_PATH = ${ECR_IMAGE_FILE_PATH}"
 
 if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
@@ -37,6 +48,7 @@ if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
 else
     echo "ERROR: ECR_IMAGE_VALUE.txt not found at expected path: ${ECR_IMAGE_FILE_PATH}!"
     echo "       Please ensure ECR_IMAGE_VALUE.txt is included in your CodeDeploy bundle."
+    echo "       And make sure appspec.yml has 'destination: /opt/codedeploy-deployment' for files."
     exit 1
 fi
 ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1) # ECR 레지스트리 주소 추출 (로그인용)
@@ -45,30 +57,25 @@ echo "DEBUG: ECR_REGISTRY = ${ECR_REGISTRY}"
 # --- 3. Secrets Manager에서 비밀값 가져오기 및 파싱 ---
 echo "Fetching secrets from AWS Secrets Manager: ${SECRET_ID} in region ${ECR_REGION}"
 
-# aws secretsmanager 명령을 실행하고 표준 출력과 에러를 모두 'SECRET_JSON_OUTPUT' 변수에 저장합니다.
 SECRET_JSON_OUTPUT=$(aws secretsmanager get-secret-value --secret-id "${SECRET_ID}" --region "${ECR_REGION}" --query SecretString --output text 2>&1)
 
 echo "DEBUG: Raw output from 'aws secretsmanager get-secret-value' command:"
 echo "${SECRET_JSON_OUTPUT}"
 echo "DEBUG: End of raw output."
 
-# AWS CLI 명령 실행 자체의 성공/실패를 먼저 검증합니다.
-# 만약 'SECRET_JSON_OUTPUT'에 "An error occurred"와 같은 AWS CLI 에러 메시지가 포함되어 있다면 실패로 처리합니다.
 if echo "${SECRET_JSON_OUTPUT}" | grep -q "An error occurred"; then
     echo "ERROR: AWS CLI failed to retrieve secrets from Secrets Manager for '${SECRET_ID}'."
     echo "       Please check IAM permissions of this EC2 instance, network connectivity, and secret ID."
-    echo "       AWS CLI Error Output: ${SECRET_JSON_OUTPUT}" # 상세 에러 메시지 출력
+    echo "       AWS CLI Error Output: ${SECRET_JSON_OUTPUT}"
     exit 1
 fi
 
-# SecretString이 비어있거나 'null', 'None'인 경우 처리합니다.
 if [ -z "${SECRET_JSON_OUTPUT}" ] || [ "${SECRET_JSON_OUTPUT}" == "null" ] || [ "${SECRET_JSON_OUTPUT}" == "None" ]; then
     echo "ERROR: SecretString is empty, null, or not found in Secrets Manager for ID '${SECRET_ID}'."
     echo "       This could mean the secret exists but has no SecretString value, or the value is invalid."
     exit 1
 fi
 
-# 이제 SECRET_JSON_OUTPUT이 유효한 JSON 형식인지 간단히 검증합니다.
 echo "DEBUG: Validating if output is valid JSON using 'jq -e .'."
 if ! echo "${SECRET_JSON_OUTPUT}" | jq -e . > /dev/null 2>&1; then
     echo "ERROR: Retrieved SecretString is not a valid JSON format."
@@ -79,7 +86,6 @@ if ! echo "${SECRET_JSON_OUTPUT}" | jq -e . > /dev/null 2>&1; then
 fi
 echo "DEBUG: SecretString successfully validated as valid JSON."
 
-# jq를 사용하여 JSON에서 필요한 값 추출
 DB_USERNAME=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_USERNAME')
 DB_PASSWORD=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_PASSWORD')
 DB_HOST=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_HOST')
@@ -92,7 +98,6 @@ MAIL_PORT=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_PORT')
 
 JWT_SECRET=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MY_APP_SECRET')
 
-# 환경 변수가 제대로 추출되었는지 검증 (DEBUG INFO 추가)
 if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
    [ -z "${MAIL_USERNAME}" ] || [ -z "${MAIL_PASSWORD}" ] || [ -z "${MAIL_HOST}" ] || [ -z "${MAIL_PORT}" ] || \
    [ -z "${JWT_SECRET}" ]; then
@@ -117,14 +122,12 @@ echo "ECR login successful."
 # --- 5. 도커 컨테이너 실행 ---
 echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 
-# 기존에 실행 중인 컨테이너가 있다면 중지 및 삭제 (안정성을 위해)
 if sudo docker ps -a --format '{{.Names}}' | grep -q "${CONTAINER_NAME}"; then
     echo "Existing container ${CONTAINER_NAME} found. Stopping and removing it."
     sudo docker stop "${CONTAINER_NAME}" || true
     sudo docker rm "${CONTAINER_NAME}" || true
 fi
 
-# JVM 옵션을 JAVA_TOOL_OPTIONS 환경 변수를 통해 전달
 JVM_OPTS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true"
 
 echo "Running Docker container with following environment variables and JVM options:"
@@ -138,7 +141,6 @@ echo "SPRING_DATA_REDIS_PORT=6379"
 echo "SPRING_PROFILES_ACTIVE=prod"
 echo "JAVA_TOOL_OPTIONS=${JVM_OPTS}"
 
-# Docker 컨테이너 실행
 sudo docker run -d \
   --name "${CONTAINER_NAME}" \
   --network host \
@@ -162,7 +164,6 @@ if [ $? -ne 0 ]; then
 fi
 echo "Docker container ${CONTAINER_NAME} started successfully."
 
-# --- 컨테이너가 정상적으로 실행되는지 10초 대기 후 간단히 확인 (선택 사항) ---
 sleep 10
 CONTAINER_STATUS=$(sudo docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Status}}")
 echo "DEBUG: Initial status of ${CONTAINER_NAME} after 10s: ${CONTAINER_STATUS}"
