@@ -221,16 +221,16 @@ pipeline {
             }
         }
 
-        post {
-            always {
-                script {
-                    if (currentBuild.result != 'SUCCESS') {
-                        echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
-                    } else {
-                        echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
-                    }
+    post {
+        always {
+            script {
+                if (currentBuild.result != 'SUCCESS') {
+                    echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
+                } else {
+                    echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
                 }
-                cleanWs()
             }
+            cleanWs() // 빌드가 끝난 후 워크스페이스 정리
         }
     }
+}
