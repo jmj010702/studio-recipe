@@ -28,7 +28,7 @@ SPRING_DATASOURCE_USERNAME=$(echo "$SECRET_JSON" | jq -r '.DB_USERNAME')
 SPRING_DATASOURCE_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.DB_PASSWORD')
 SPRING_MAIL_USERNAME=$(echo "$SECRET_JSON" | jq -r '.MAIL_USERNAME')
 SPRING_MAIL_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.MAIL_PASSWORD')
-JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.MY_APP_SECRET')
+JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET')
 
 SPRING_DATASOURCE_URL="jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
 SPRING_MAIL_HOST="smtp.naver.com"
