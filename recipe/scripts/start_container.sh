@@ -21,17 +21,14 @@ fi
 
 # --- 1. 상수 정의 ---
 CONTAINER_NAME="recipe-app-container"
-# Secrets Manager Secret ID는 환경 변수 또는 직접 명시 가능. CodeDeploy는 ECR_REGION만 넘겨주므로 Secret ID는 스크립트에 명시
 ECR_REGION="ap-northeast-2"
 SECRET_ID="recipe-app-secrets" # Secrets Manager의 Secret ID
 
 # --- 2. ECR 이미지 URI 추출 ---
-# CodeDeploy 배포 아카이브는 /opt/codedeploy-agent/deployment-root/.../deployment-archive/ 에 압축 해제됩니다.
-# ECR_IMAGE_VALUE.txt는 deployment-archive의 root에 있습니다.
-# $APPREPO_DIR은 appspec.yml의 files.destination에 해당하며, deployment-archive의 경로를 CodeDeploy가 자동으로 넘겨줍니다.
-ECR_IMAGE_FILE_PATH="${APPREPO_DIR}/ECR_IMAGE_VALUE.txt"
+# REVISION_LOCATION은 CodeDeploy가 배포 번트(deployment-archive)가 압축 해제된 경로를 제공하는 공식 환경 변수입니다.
+ECR_IMAGE_FILE_PATH="${REVISION_LOCATION}/ECR_IMAGE_VALUE.txt"
 
-echo "DEBUG: APPREPO_DIR (deployment-archive root) = ${APPREPO_DIR}"
+echo "DEBUG: REVISION_LOCATION (deployment-archive root) = ${REVISION_LOCATION}"
 echo "DEBUG: ECR_IMAGE_FILE_PATH = ${ECR_IMAGE_FILE_PATH}"
 
 if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
@@ -72,7 +69,6 @@ if [ -z "${SECRET_JSON_OUTPUT}" ] || [ "${SECRET_JSON_OUTPUT}" == "null" ] || [ 
 fi
 
 # 이제 SECRET_JSON_OUTPUT이 유효한 JSON 형식인지 간단히 검증합니다.
-# 'jq -e .'는 유효한 JSON이면 0을, 아니면 1을 반환합니다.
 echo "DEBUG: Validating if output is valid JSON using 'jq -e .'."
 if ! echo "${SECRET_JSON_OUTPUT}" | jq -e . > /dev/null 2>&1; then
     echo "ERROR: Retrieved SecretString is not a valid JSON format."
@@ -84,7 +80,6 @@ fi
 echo "DEBUG: SecretString successfully validated as valid JSON."
 
 # jq를 사용하여 JSON에서 필요한 값 추출
-# 이 키 이름들은 Secrets Manager의 JSON에 저장된 키 이름과 정확히 일치해야 합니다. (대소문자 구분!)
 DB_USERNAME=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_USERNAME')
 DB_PASSWORD=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_PASSWORD')
 DB_HOST=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.DB_HOST')
@@ -95,7 +90,7 @@ MAIL_PASSWORD=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_PASSWORD')
 MAIL_HOST=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_HOST')
 MAIL_PORT=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MAIL_PORT')
 
-JWT_SECRET=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MY_APP_SECRET') # Secrets Manager 키와 매핑
+JWT_SECRET=$(echo "${SECRET_JSON_OUTPUT}" | jq -r '.MY_APP_SECRET')
 
 # 환경 변수가 제대로 추출되었는지 검증 (DEBUG INFO 추가)
 if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
@@ -103,7 +98,7 @@ if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || 
    [ -z "${JWT_SECRET}" ]; then
     echo "ERROR: One or more required secret values could not be extracted or are empty from Secrets Manager."
     echo "       Please check that the JSON keys (e.g., 'DB_USERNAME', 'MY_APP_SECRET') in Secrets Manager match your script and contain non-empty values."
-    echo "DEBUG INFO: DB_USERNAME='${DB_USERNAME}', DB_HOST='${DB_HOST}', MAIL_HOST='${MAIL_HOST}', JWT_SECRET has value (length: ${#JWT_SECRET})." # 실제 값 노출 방지
+    echo "DEBUG INFO: DB_USERNAME='${DB_USERNAME}', DB_HOST='${DB_HOST}', MAIL_HOST='${MAIL_HOST}', JWT_SECRET has value (length: ${#JWT_SECRET})."
     echo "       Full SecretString JSON was: ${SECRET_JSON_OUTPUT}"
     exit 1
 fi
@@ -125,8 +120,8 @@ echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 # 기존에 실행 중인 컨테이너가 있다면 중지 및 삭제 (안정성을 위해)
 if sudo docker ps -a --format '{{.Names}}' | grep -q "${CONTAINER_NAME}"; then
     echo "Existing container ${CONTAINER_NAME} found. Stopping and removing it."
-    sudo docker stop "${CONTAINER_NAME}" || true # 오류 발생해도 스크립트 진행 (이미 중지되었을 수 있음)
-    sudo docker rm "${CONTAINER_NAME}" || true # 오류 발생해도 스크립트 진행
+    sudo docker stop "${CONTAINER_NAME}" || true
+    sudo docker rm "${CONTAINER_NAME}" || true
 fi
 
 # JVM 옵션을 JAVA_TOOL_OPTIONS 환경 변수를 통해 전달
@@ -177,6 +172,5 @@ if echo "${CONTAINER_STATUS}" | grep -q "Exited"; then
     echo "ERROR: Container ${CONTAINER_NAME} failed to stay running after start. Please check container logs for application-specific errors."
     exit 1
 fi
-
 
 echo "--- start_container.sh script finished ---"
