@@ -5,24 +5,15 @@ echo "--- start_container.sh script initiated ---"
 
 DEPLOY_DIR="/opt/codedeploy-deployment"
 
-# ECR 이미지 값 읽기
-if [ ! -f "${DEPLOY_DIR}/ECR_IMAGE_VALUE.txt" ]; then
-  echo "ERROR: ${DEPLOY_DIR}/ECR_IMAGE_VALUE.txt not found."
-  exit 1
-fi
-
 ECR_IMAGE=$(tr -d ' \n' < "${DEPLOY_DIR}/ECR_IMAGE_VALUE.txt")
-
-if [ -z "${ECR_IMAGE}" ]; then
-  echo "ERROR: ECR_IMAGE is empty. Check ECR_IMAGE_VALUE.txt contents."
-  exit 1
-fi
-
 echo "Using ECR image: ${ECR_IMAGE}"
 
-# Secrets Manager 에서 시크릿 가져오기
+SECRET_ID="recipe-app-secrets" 
+
+echo "Fetching secret: ${SECRET_ID}"
+
 SECRET_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id recipe-app-secret \
+  --secret-id "$SECRET_ID" \
   --query SecretString \
   --output text \
   --region ap-northeast-2)
@@ -33,7 +24,6 @@ echo "${SECRET_JSON}" | jq -e '.' >/dev/null 2>&1
 echo "DEBUG: SecretString successfully validated as valid JSON."
 echo "Secrets fetched and parsed successfully."
 
-# 개별 값 파싱
 SPRING_DATASOURCE_USERNAME=$(echo "$SECRET_JSON" | jq -r '.DB_USERNAME')
 SPRING_DATASOURCE_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.DB_PASSWORD')
 SPRING_MAIL_USERNAME=$(echo "$SECRET_JSON" | jq -r '.MAIL_USERNAME')
@@ -43,26 +33,17 @@ JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.MY_APP_SECRET')
 SPRING_DATASOURCE_URL="jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
 SPRING_MAIL_HOST="smtp.naver.com"
 SPRING_MAIL_PORT="465"
-SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379"
+SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com"
+SPRING_DATA_REDIS_PORT="6379"
 
 echo "Logging in to ECR: 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com"
 aws ecr get-login-password --region ap-northeast-2 \
   | docker login --username AWS --password-stdin 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com
 echo "ECR login successful."
 
-# 기존 컨테이너 삭제
 docker rm -f recipe-app-container 2>/dev/null || true
 
 echo "Starting Docker container recipe-app-container with image ${ECR_IMAGE}"
-echo "Running Docker container with following environment variables and JVM options:"
-echo "SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}"
-echo "SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}"
-echo "SPRING_MAIL_HOST=${SPRING_MAIL_HOST}"
-echo "SPRING_MAIL_PORT=${SPRING_MAIL_PORT}"
-echo "SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}"
-echo "SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST}"
-echo "SPRING_PROFILES_ACTIVE=prod"
-echo "JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true"
 
 docker run -d \
   --name recipe-app-container \
@@ -76,8 +57,7 @@ docker run -d \
   -e SPRING_MAIL_USERNAME="${SPRING_MAIL_USERNAME}" \
   -e SPRING_MAIL_PASSWORD="${SPRING_MAIL_PASSWORD}" \
   -e SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST}" \
+  -e SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT}" \
   -e JWT_SECRET="${JWT_SECRET}" \
   -e JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true" \
   "${ECR_IMAGE}"
-
-echo "Container started successfully."
