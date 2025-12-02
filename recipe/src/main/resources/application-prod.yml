@@ -44,6 +44,7 @@ spring:
       cluster:
         nodes:
           - ${SPRING_DATA_REDIS_CLUSTER_NODES} 
+      timeout: 5000ms
           
       # AWS ElastiCache Redis (Key-Value) 기본 형태 (단일 엔드포인트 방식)
       # host: ${SPRING_DATA_REDIS_HOST}
