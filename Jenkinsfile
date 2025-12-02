@@ -85,12 +85,12 @@ pipeline {
             }
         }
 
-        stage('Prepare and Deploy to CodeDeploy') {
+stage('Prepare and Deploy to CodeDeploy') {
             steps {
                 script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // appspec.yml 치환 및 ECR_IMAGE_VALUE.txt 생성
+                    // appspec.yml 치환 및 ECR_IMAGE_VALUE.txt 생성 (생략: 기존 코드와 동일)
                     def appspecContent = readFile('appspec.yml')
                     appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
                     writeFile(file: 'appspec.yml', text: appspecContent)
@@ -116,44 +116,26 @@ pipeline {
                     aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
                     """
                     
-                    // CodeDeploy 배포 그룹의 활성 배포 확인 및 중지
-                    // - aws deploy list-deployments 명령으로 applicationName과 deploymentGroupName을 직접 필터링
+                    // --- 여기서부터 수정된 코드 시작 (반복 오류 해결) ---
                     echo "--- Checking for and stopping any active CodeDeploy deployments ---"
                     
-                    def activeStatuses = ['InProgress', 'Pending', 'Queued', 'Created', 'Ready']
-                    
-                    // list-deployments 명령으로 활성 상태의 배포 ID를 조회
-                    // applicationName과 deploymentGroupName을 직접 인자로 전달
-                    // --query로 deploymentIds만 추출
-                    def allDeploymentIds = sh(returnStdout: true, script: """
+                    // list-deployments를 통해 활성 상태의 배포 ID를 조회합니다.
+                    // --status-filter를 사용하여 'InProgress'와 'Queued' 상태만 필터링하도록 쉘 스크립트 로직을 개선했습니다.
+                    def activeDeploymentIds = sh(returnStdout: true, script: """
                         aws deploy list-deployments \\
                             --application-name ${CODEDEPLOY_APPLICATION} \\
                             --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
                             --query 'deployments' \\
+                            --status-filter 'InProgress' 'Queued' \\
                             --output text \\
                             --region ${AWS_REGION}
                     """).trim()
 
+                    // AWS CLI의 text 출력은 줄 바꿈(\n)이나 탭(\t)으로 분리될 수 있습니다.
+                    // Groovy에서 trim() 후 공백 기준으로 분리하여 배열로 만듭니다.
                     def activeDeployments = []
-
-                    // 모든 배포 ID에 대해 상세 정보를 가져와서 상태 필터링 (Jenkins Groovy 단에서 수행)
-                    if (allDeploymentIds) {
-                        allDeploymentIds.split('\t').each { deploymentId -> // AWS CLI text output은 탭으로 구분될 수 있음
-                            // 빈 문자열이 split 결과에 포함될 수 있으므로 유효성 검사 추가
-                            if (deploymentId.trim() != '') { 
-                                def deploymentInfo = sh(returnStdout: true, script: """
-                                    aws deploy get-deployment \
-                                        --deployment-id ${deploymentId.trim()} \
-                                        --query 'deploymentInfo.status' \
-                                        --output text \
-                                        --region ${AWS_REGION}
-                                """).trim()
-                                
-                                if (activeStatuses.contains(deploymentInfo)) {
-                                    activeDeployments.add(deploymentId.trim())
-                                }
-                            }
-                        }
+                    if (activeDeploymentIds) {
+                        activeDeployments = activeDeploymentIds.split('\\s+').findAll { it != '' }
                     }
 
                     if (activeDeployments) {
@@ -169,6 +151,8 @@ pipeline {
                     } else {
                         echo "No active CodeDeploy deployments found. Proceeding with new deployment."
                     }
+                    
+                    // --- 수정된 코드 끝 ---
                     
                     // AWS CodeDeploy API를 호출하여 새 배포 시작
                     sh """
