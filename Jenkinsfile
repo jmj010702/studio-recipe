@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy'
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 김윤환8988님의 실제 배포 그룹 이름으로 수정되어야 합니다!
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg'
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
@@ -104,57 +104,39 @@ pipeline {
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    // --- 기존 CodeDeploy 활성 배포 감지 및 중지 로직 강화 ---
-                    def activeDeploymentsForGroup = []
-                    def activeStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 강화 (MISSING ARG FIX) ---
+                    def activeDeploymentsToStop = []
+                    def checkStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
 
-                    echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION} and deployment group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
+                    echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
                     
                     try {
                         def deploymentsJson = sh(returnStdout: true, script: """
                             aws deploy list-deployments \
                                 --application-name ${CODEDEPLOY_APPLICATION} \
-                                --include-only-statuses ${activeStatuses.join(',')} \
+                                --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \ // <-- MISSING ARGUMENT ADDED HERE
+                                --include-only-statuses ${checkStatuses.join(',')} \
                                 --query 'deployments' \
                                 --output json \
                                 --region ${AWS_REGION}
                         """).trim()
 
-                        def allActiveDeployments = new groovy.json.JsonSlurper().parseText(deploymentsJson)
+                        def deploymentIds = new groovy.json.JsonSlurper().parseText(deploymentsJson)
                         
-                        if (allActiveDeployments && !allActiveDeployments.isEmpty()) {
-                            // 각 배포의 상세 정보를 가져와서 특정 배포 그룹에 속하는지 확인 (느릴 수 있음)
-                            // 또는 'get-deployment-group'으로 해당 배포 그룹에 연결된 deploymentId를 가져오는 방법도 고려 가능
-                            allActiveDeployments.each { deploymentId ->
-                                try {
-                                    def deploymentInfoJson = sh(returnStdout: true, script: """
-                                        aws deploy get-deployment \
-                                            --deployment-id ${deploymentId} \
-                                            --query 'deploymentInfo' \
-                                            --output json \
-                                            --region ${AWS_REGION}
-                                    """).trim()
-                                    def deploymentInfo = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
-
-                                    if (deploymentInfo.deploymentGroupName == CODEDEPLOY_DEPLOYMENT_GROUP) {
-                                        activeDeploymentsForGroup.add(deploymentId)
-                                    }
-                                } catch (e) {
-                                    echo "WARNING: Failed to get info for deployment ID ${deploymentId}. Error: ${e.message}"
-                                }
-                            }
+                        if (deploymentIds && !deploymentIds.isEmpty()) {
+                            activeDeploymentsToStop.addAll(deploymentIds) // 필터링이 이미 API에서 되었으므로 그대로 추가
                         } else {
-                            echo "No active deployments found for application ${CODEDEPLOY_APPLICATION}."
+                            echo "No active deployments found for application ${CODEDEPLOY_APPLICATION} in group ${CODEDEPLOY_DEPLOYMENT_GROUP}."
                         }
 
                     } catch (e) {
-                        echo "WARNING: Failed to list or parse active deployments. Proceeding without stopping any. Error: ${e.message}"
-                        echo "This might cause 'DeploymentLimitExceededException' later. Please ensure IAM permissions are correct."
+                        echo "WARNING: Failed to list active deployments for group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Error: ${e.message}"
+                        echo "This might lead to 'DeploymentLimitExceededException'. Please ensure IAM permissions are correct and the deployment group exists."
                     }
 
-                    if (!activeDeploymentsForGroup.isEmpty()) {
-                        echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsForGroup.join(', ')}. Attempting to stop them."
-                        activeDeploymentsForGroup.each { deploymentId ->
+                    if (!activeDeploymentsToStop.isEmpty()) {
+                        echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsToStop.join(', ')}. Attempting to stop them."
+                        activeDeploymentsToStop.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
                             // stop 명령이 바로 반영되지 않을 수 있으므로 짧게 대기
@@ -219,7 +201,7 @@ pipeline {
                 }
             }
         }
-    } // stages 블록 닫는 괄호
+    } 
     
     post {
         always {
