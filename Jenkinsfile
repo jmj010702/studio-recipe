@@ -45,39 +45,29 @@ pipeline {
                     def jarDirPath = "recipe/build/libs"
                     
                     // -plain.jar을 제외한 모든 JAR 파일을 찾습니다. (실행 가능한 Fat JAR만 대상)
-                    def allJars = sh(returnStdout: true, script: "find ${jarDirPath} -maxdepth 1 -name '*.jar'").trim().split('\n').findAll { it.trim() != '' }
+                    def executableJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -maxdepth 1 -name '*.jar' ! -name '*-plain.jar'").trim().split('\n').findAll { it.trim() != '' }
                     
                     def executableJar = ""
-                    if (allJars.size() == 1) {
-                        // 유일한 JAR 파일인 경우, -plain.jar인지 확인. -plain.jar이면 오류.
-                        if (allJars[0].contains('-plain.jar')) {
-                            error "Found only '-plain.jar' which is not an executable Fat JAR: ${allJars[0]}"
-                        } else {
-                            executableJar = allJars[0]
-                        }
+                    if (executableJarCandidates.size() == 1) {
+                        executableJar = executableJarCandidates[0]
+                        echo "Found single executable Fat JAR: ${executableJar}"
+                    } else if (executableJarCandidates.size() > 1) {
+                        error "Multiple executable Fat JAR files found. Cannot determine which one to use: ${executableJarCandidates.join(', ')}. Please refine your Gradle build or specify manually."
                     } else {
-                        // 여러 개의 JAR 파일 중에서 '-plain.jar'이 아닌 파일을 찾습니다.
-                        def nonPlainJars = allJars.findAll { !it.contains('-plain.jar') }
-                        if (nonPlainJars.size() == 1) {
-                            executableJar = nonPlainJars[0]
-                        } else {
-                            // 실행 가능한 JAR을 특정할 수 없는 경우 오류
-                            error "Could not uniquely determine an executable Fat JAR file in ${jarDirPath}. Found: ${allJars.join(', ')}"
-                        }
+                        // 실행 가능한 JAR 파일이 하나도 없는 경우 오류
+                        error "No executable Fat JAR file (non-plain.jar) found in ${jarDirPath}. Please check your Gradle build process. Ensure 'bootJar' is configured and producing a Fat JAR."
                     }
 
                     if (executableJar) {
                         sh "cp ${executableJar} recipe/app.jar"
                         echo "Copied executable JAR (${executableJar}) to recipe/app.jar for Docker build."
-                        // 복사된 app.jar의 유형 확인을 위한 디버그 로그 추가
-                        sh "file recipe/app.jar"
+                        // 이곳에서 "file recipe/app.jar" 명령어를 제거했습니다.
                     } else {
-                        error "No suitable executable Fat JAR file found to copy for Docker build."
+                        error "Logical error: executableJar should have been set. Please re-check script logic."
                     }
                 }
             }
         }
-
         // stage('Docker Build & Push to ECR') 이 부분은 위에 새로 제공된 내용으로 대체해야 합니다.
 
 
