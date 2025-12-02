@@ -3,7 +3,7 @@ FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
 
 ARG JAR_FILE=build/libs/*.jar
-COPY ${JAR_FILE} app.jar
+COPY ${JAR_FILE} ./
 
 RUN chmod +x /app/app.jar
 RUN ls -al /app
