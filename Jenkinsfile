@@ -95,7 +95,7 @@ pipeline {
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
                     sh "cp -r recipe/scripts ."
-                    // sh "cp recipe/build/libs/app.jar ."
+                    sh "cp recipe/build/libs/app.jar ."
                     echo "DEBUG: All artifacts copied to Jenkins workspace root."
 
                     echo "DEBUG: Zipping deployment artifacts..."
