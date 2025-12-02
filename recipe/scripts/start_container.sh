@@ -3,12 +3,10 @@
 # --- 스크립트 실행 시작 알림 ---
 echo "--- start_container.sh script initiated ---"
 echo "Running as user: $(whoami)"
-echo "Current directory: $(pwd)" # 이 로그를 통해 스크립트가 실행되는 실제 디렉토리를 확인합니다.
+echo "Current directory: $(pwd)"
 
-# 스크립트 실행 중 오류 발생 시 즉시 종료 (파이프라인 전체 실패)
 set -eo pipefail
 
-# --- 0. jq 설치 확인 ---
 if ! command -v jq &> /dev/null
 then
     echo "jq is not installed. Attempting to install jq..."
@@ -18,27 +16,11 @@ else
     echo "jq is already installed."
 fi
 
-# --- 1. 상수 정의 ---
 CONTAINER_NAME="recipe-app-container"
 ECR_REGION="ap-northeast-2"
-SECRET_ID="recipe-app-secrets" # Secrets Manager의 Secret ID
+SECRET_ID="recipe-app-secrets"
 
-# --- 2. ECR 이미지 URI 추출 ---
-# appspec.yml에서 스크립트가 /opt/codedeploy-deployment/scripts/start_container.sh 로 실행되므로,
-# ECR_IMAGE_VALUE.txt는 /opt/codedeploy-deployment/ECR_IMAGE_VALUE.txt 에 있습니다.
-# 스크립트 실행 디렉토리 (Current directory)가 /opt/codedeploy-deployment/scripts가 아닌
-# /opt/codedeploy-deployment 에서 실행되도록 appspec.yml을 수정합니다.
-# 이렇게 되면 ECR_IMAGE_FILE_PATH는 './ECR_IMAGE_VALUE.txt'가 됩니다.
-# BUT, 현재 appspec.yml hooks location이 절대경로로 지정되어 있기 때문에,
-# 현재 디렉토리 (cwd)를 스크립트 시작 부분에서 확인하고, ECR_IMAGE_VALUE.txt의 절대경로를 추론해야 합니다.
-
-# CodeDeploy 에이전트는 훅 스크립트를 /opt/codedeploy-agent/deployment-root/.../deployment-archive/scripts 디렉토리에서 실행하는 경우가 많습니다.
-# ECR_IMAGE_VALUE.txt는 deployment-archive/ 루트에 있습니다.
-# 따라서 REVISION_LOCATION 대신 ECR_IMAGE_VALUE.txt가 있는 절대 경로를 명시적으로 지정합니다.
-# appspec.yml에 destination: /opt/codedeploy-deployment 로 했으므로, 파일은 저기로 복사됩니다.
-# 따라서 스크립트가 실행되는 워킹 디렉토리와 무관하게, 항상 파일이 복사된 절대 경로를 참조합니다.
 ECR_IMAGE_FILE_PATH="/opt/codedeploy-deployment/ECR_IMAGE_VALUE.txt"
-
 
 echo "DEBUG: ECR_IMAGE_FILE_PATH = ${ECR_IMAGE_FILE_PATH}"
 
@@ -51,10 +33,9 @@ else
     echo "       And make sure appspec.yml has 'destination: /opt/codedeploy-deployment' for files."
     exit 1
 fi
-ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1) # ECR 레지스트리 주소 추출 (로그인용)
+ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1)
 echo "DEBUG: ECR_REGISTRY = ${ECR_REGISTRY}"
 
-# --- 3. Secrets Manager에서 비밀값 가져오기 및 파싱 ---
 echo "Fetching secrets from AWS Secrets Manager: ${SECRET_ID} in region ${ECR_REGION}"
 
 SECRET_JSON_OUTPUT=$(aws secretsmanager get-secret-value --secret-id "${SECRET_ID}" --region "${ECR_REGION}" --query SecretString --output text 2>&1)
@@ -110,7 +91,6 @@ fi
 
 echo "Secrets fetched and parsed successfully."
 
-# --- 4. ECR 로그인 ---
 echo "Logging in to ECR: ${ECR_REGISTRY}"
 sudo aws ecr get-login-password --region "${ECR_REGION}" | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 if [ $? -ne 0 ]; then
@@ -119,7 +99,6 @@ if [ $? -ne 0 ]; then
 fi
 echo "ECR login successful."
 
-# --- 5. 도커 컨테이너 실행 ---
 echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
 
 if sudo docker ps -a --format '{{.Names}}' | grep -q "${CONTAINER_NAME}"; then
