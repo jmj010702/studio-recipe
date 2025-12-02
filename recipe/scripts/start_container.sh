@@ -143,7 +143,8 @@ JVM_OPTS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -
 # -e SPRING_PROFILES_ACTIVE="prod": 프로파일 명시적으로 활성화 (Dockerfile ENTRYPOINT에도 지정되어 있으나 명시적 재설정)
 sudo docker run -d \
   --name "${CONTAINER_NAME}" \
-  --network host \
+  # --network host \
+  -p 8080:8080 \
   -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" \
   -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
   -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
