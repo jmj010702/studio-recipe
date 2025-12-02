@@ -68,6 +68,7 @@ public class SecurityConfig {
                 
                 .authorizeHttpRequests(authorize ->
                         authorize
+                                       .requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
                                 // ✅ 인증 필요한 엔드포인트 (먼저 선언)
                                 .requestMatchers("/api/details/likes").authenticated()
                                 .requestMatchers("/api/details/completion").authenticated()
@@ -94,9 +95,11 @@ public class SecurityConfig {
                                     
                                     // 기타
                                     "/error",
-                                    "/test/**"
+                                    "/test/**",
+                                        "/actuator/**",
+                                  "/aws-test/**"
+                                  
                                 ).permitAll()
-
                                 // 나머지 모든 요청은 인증된 사용자만 허용
                                 .anyRequest().authenticated()
                 )

@@ -1,0 +1,20 @@
+.main-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  background-color: #f9f9f9;
+  padding-top: 30px;
+}
+
+.footer-divider-wrapper {
+  width: 100%;
+  padding: 20px 0 40px 0;
+  background-color: #f9f9f9;
+}
+
+.footer-divider {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 20px;
+  border-bottom: 2px dashed #e0e0e0;
+}

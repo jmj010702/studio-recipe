@@ -1,0 +1,125 @@
+/* src/page/signup.css */
+
+/* 페이지 전체를 중앙 정렬하기 위한 컨테이너 (login.css와 동일) */
+.signup-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 50px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #f9f9f9;
+}
+
+/* 회원가입 폼 흰색 박스 (login.css와 거의 동일) */
+.signup-box {
+  width: 100%;
+  max-width: 500px; /* 로그인 폼보다 약간 넓게 */
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.signup-box h2 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 35px;
+  color: #333;
+}
+
+/* 인풋 그룹 (레이블 + 인풋) (login.css와 동일) */
+.input-group {
+  margin-bottom: 25px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 15px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+/* 기본 인풋 스타일 (밑줄) */
+.input-group input,
+.input-group select {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #e0e0e0;
+  padding: 10px 4px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  background-color: transparent; /* select 배경 투명하게 */
+}
+
+/* 인풋 클릭 시 밑줄 색상 변경 (login.css와 동일) */
+.input-group input:focus,
+.input-group select:focus {
+  border-bottom-color: #4CAF50;
+}
+
+/* select 태그 기본 화살표 숨기기 (선택적) */
+.input-group select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* 중복확인 버튼이 있는 인풋 그룹 */
+.input-group.with-button .input-wrapper {
+  display: flex; 
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.input-group.with-button .input-wrapper input {
+  flex-grow: 1;
+}
+
+/* 중복확인 버튼 (주황색, 작은 버튼) */
+.check-btn {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background-color: #ff9800;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.check-btn:hover {
+  background-color: #f57c00;
+}
+
+/* 회원가입 제출 버튼 (초록색, 큰 버튼) */
+.signup-submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 50px;
+  font-size: 17px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  background-color: #4CAF50;
+  margin-top: 20px;
+}
+
+.signup-submit-btn:hover {
+  transform: translateY(-2px);
+}
+
+.error-message {
+  color: #e53e3e; 
+  font-size: 13px; 
+  margin-top: 5px; 
+  padding-left: 4px; 
+}

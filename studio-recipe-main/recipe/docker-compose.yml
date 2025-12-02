@@ -1,0 +1,64 @@
+services:
+  mariadb:
+    image: mariadb:10.11.14
+    container_name: recipe-mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    #데이터 지속성을 위한 볼륨
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck: # DB 준비 상태를 확인하는 헬스체크
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6-alpine
+    container_name: recipe-redis
+    ports:
+      - "6378:6379"
+    command: redis-server --appendonly yes # AOF(Append Only File) 지속성 활성화
+    volumes:
+      - redis_data:/data
+    restart: always
+
+
+  backend:
+    build:
+      context: . #Dokcerifle 경로
+      dockerfile: Dockerfile
+    container_name: studio-recipe
+  #env_file:
+  #  - ./.env # .env 파일의 모든 변수가 컨테이너로 주입된다.
+    ports:
+      - "8080:8080"
+    environment:
+      #Docker Compose network
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/${DB_DATABASE_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_MAIL_HOST: ${MAIL_HOST}
+      SPRING_MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET_KEY}
+      JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
+      JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS: ${JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
+
+volumes:
+  mariadb_data:
+  redis_data:

@@ -1,0 +1,22 @@
+version: 0.0
+os: linux
+files:
+  - source: / # 전체 배포 번들을 복사 (scripts, ECR_IMAGE_VALUE.txt 포함)
+    destination: /opt/codedeploy-deployment # EC2 인스턴스의 임시 디렉토리
+hooks:
+  BeforeInstall:
+    - location: scripts/clean_old_images.sh
+      timeout: 300
+      runas: root
+    - location: scripts/stop_container.sh
+      timeout: 180
+      runas: root
+  ApplicationStart:
+    - location: scripts/start_container.sh
+      timeout: 360
+      runas: root
+  ValidateService:
+    - location: scripts/validate_service.sh
+      timeout: 300
+      runas: root
+

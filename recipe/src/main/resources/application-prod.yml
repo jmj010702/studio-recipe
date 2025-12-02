@@ -1,0 +1,83 @@
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+        defer-datasource-initialization: true
+
+  batch:
+    jdbc:
+      # Spring Batch 메타데이터 테이블 자동 생성
+      initialize-schema: always
+    job:
+      # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
+      enabled: false
+      # 존재하지 않는 이름 지정하여 아무 잡도 실행되지 않게 함
+      job-names: NON_EXISTENT_JOB
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
+
+  data:
+    redis:
+      cluster:
+        nodes:
+          - ${SPRING_DATA_REDIS_CLUSTER_NODES} 
+      timeout: 5000ms
+          
+      # AWS ElastiCache Redis (Key-Value) 기본 형태 (단일 엔드포인트 방식)
+      # host: ${SPRING_DATA_REDIS_HOST}
+      # port: ${SPRING_DATA_REDIS_PORT}
+      # timeout: 5000ms
+
+      # 만약 ElastiCache를 "Cluster mode enabled" 로 쓴다면
+      # cluster:
+      #   nodes:
+      #     - ${SPRING_DATA_REDIS_CLUSTER_NODES}  # 예: my-redis.abc123.apn2.cache.amazonaws.com:6379
+
+      # 커넥션 풀 설정 예시
+      # lettuce:
+      #   pool:
+      #     max-active: 8
+      #     max-idle: 8
+      #     min-idle: 0
+
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-validity-in-seconds: 3600       # 1시간
+  refresh-token-validity-in-seconds: 604800    # 7일
+
+server:
+  port: 8080
+  servlet:
+    context-path: /studio-recipe
+
+front:
+  # 나중에 S3/CloudFront 도메인으로 변경 예정
+  url: http://localhost:5173
