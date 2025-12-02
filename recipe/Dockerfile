@@ -5,7 +5,7 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-COPY app.jar app.jar 
+COPY app.jar app.jar
 
 RUN ls -al /app
 
