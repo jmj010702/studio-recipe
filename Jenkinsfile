@@ -181,7 +181,7 @@ pipeline {
 
                     echo "--- Monitoring CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status ---"
                     timeout(time: 30, unit: 'MINUTES') {
-                        def deploymentStatus = "" // <-- 여기서 deploymentStatus를 한 번만 선언
+                        def deploymentStatus = "" 
                         def loopCount = 0
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
@@ -196,7 +196,7 @@ pipeline {
                                         --output json \
                                         --region ${AWS_REGION}
                                 """).trim()
-                                deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson) // <-- 'def' 제거
+                                deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson) 
                                 echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus} (Checked ${loopCount} times)"
                             } catch (e) {
                                 echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying in ${currentSleep} seconds... Error: ${e.message}"
@@ -212,18 +212,18 @@ pipeline {
                 }
             }
         }
-
-        post {
-            always {
-                script {
-                    if (currentBuild.result != 'SUCCESS') {
-                        echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
-                    } else {
-                        echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
-                    }
+    } // stages 블록 닫는 괄호
+    
+    post {
+        always {
+            script {
+                if (currentBuild.result != 'SUCCESS') {
+                    echo "CI/CD Pipeline failed for build ${currentBuild.number}. Check Jenkins logs and AWS CodeDeploy console for details."
+                } else {
+                    echo "CI/CD Pipeline succeeded for build ${currentBuild.number}!"
                 }
-                cleanWs()
             }
+            cleanWs()
         }
     }
-}
+} // pipeline 블록 닫는 괄호
