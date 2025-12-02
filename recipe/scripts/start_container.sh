@@ -33,8 +33,7 @@ JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET')
 SPRING_DATASOURCE_URL="jdbc:mariadb://recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com:3306/recipe_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
 SPRING_MAIL_HOST="smtp.naver.com"
 SPRING_MAIL_PORT="465"
-SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com"
-SPRING_DATA_REDIS_PORT="6379"
+SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379"
 
 echo "Logging in to ECR: 516175389011.dkr.ecr.ap-northeast-2.amazonaws.com"
 aws ecr get-login-password --region ap-northeast-2 \
@@ -57,7 +56,6 @@ docker run -d \
   -e SPRING_MAIL_USERNAME="${SPRING_MAIL_USERNAME}" \
   -e SPRING_MAIL_PASSWORD="${SPRING_MAIL_PASSWORD}" \
   -e SPRING_DATA_REDIS_HOST="${SPRING_DATA_REDIS_HOST}" \
-  -e SPRING_DATA_REDIS_PORT="${SPRING_DATA_REDIS_PORT}" \
   -e JWT_SECRET="${JWT_SECRET}" \
   -e JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true" \
   "${ECR_IMAGE}"
