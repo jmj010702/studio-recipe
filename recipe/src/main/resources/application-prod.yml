@@ -41,10 +41,14 @@ spring:
 
   data:
     redis:
+      cluster:
+        nodes:
+          - ${SPRING_DATA_REDIS_CLUSTER_NODES} 
+          
       # AWS ElastiCache Redis (Key-Value) 기본 형태 (단일 엔드포인트 방식)
-      host: ${SPRING_DATA_REDIS_HOST}
-      port: ${SPRING_DATA_REDIS_PORT}
-      timeout: 5000ms
+      # host: ${SPRING_DATA_REDIS_HOST}
+      # port: ${SPRING_DATA_REDIS_PORT}
+      # timeout: 5000ms
 
       # 만약 ElastiCache를 "Cluster mode enabled" 로 쓴다면
       # cluster:
