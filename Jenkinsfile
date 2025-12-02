@@ -109,9 +109,12 @@ pipeline {
                     sh "cat appspec.yml" // Jenkins workspace root에 있는 appspec.yml 출력
                     echo "--- END appspec.yml VERIFICATION ---"
 
-                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 ---
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 오류 수정 및 디버깅 강화) ---
                     def activeDeploymentsToStop = []
-                    def checkStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
+                    // CodeDeploy list-deployments API 문서에 명시된 유효한 상태만 사용
+                    def checkStatuses = ['Created', 'Queued', 'In Progress', 'Ready'] 
+                    // 각 상태를 따옴표로 묶고 공백으로 구분하여 전달
+                    def statusArgs = checkStatuses.collect { "'${it}'" }.join(' ')
 
                     echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP}..."
                     
@@ -120,12 +123,14 @@ pipeline {
                             aws deploy list-deployments \
                                 --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
                                 --deployment-group-name ''' + CODEDEPLOY_DEPLOYMENT_GROUP + ''' \
-                                --include-only-statuses \'''' + checkStatuses.join(',') + '''\' \
+                                --include-only-statuses ''' + statusArgs + ''' \
                                 --query "deployments" \
                                 --output json \
                                 --region ''' + AWS_REGION + '''
                         ''').trim()
 
+                        echo "DEBUG: Raw output from list-deployments: ${deploymentsJson}"
+                        
                         def deploymentIds = new groovy.json.JsonSlurper().parseText(deploymentsJson)
                         
                         if (deploymentIds && !deploymentIds.isEmpty()) {
