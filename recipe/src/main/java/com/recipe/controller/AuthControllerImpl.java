@@ -26,49 +26,81 @@ public class AuthControllerImpl implements AuthController {
     private final TokenService tokenService;
     private final UserService userService;
 
+    // (로그인 - 수정 없음)
     @PostMapping("/login")
     public ResponseEntity<TokenResponseDTO> login(@RequestBody @Valid UserLoginRequestDTO request) {
         TokenResponseDTO tokenResponse = authService.login(request);
         return ResponseEntity.ok(tokenResponse);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<Void> register(@RequestBody @Valid UserRegisterRequestDTO request) {
-        log.info("================ register ================");
+    // ▼▼▼ [수정 1] React가 /auth/signup을 호출하므로 경로 수정 ▼▼▼
+    @Override 
+    @PostMapping("/signup") // 👈 /register에서 /signup으로 변경
+    public ResponseEntity<Void> signup(@RequestBody @Valid UserRegisterRequestDTO request) {
+        log.info("================ signup (was register) ================");
         log.info("request = {}", request);
 
         authService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+    // ▲▲▲ [수정 1] ▲▲▲
 
 
-    @GetMapping("/check-nickname")
-    public ResponseEntity<NicknameAvailabilityResponse> checkNickname(
-            @RequestParam String nickname){
+    // ▼▼▼ [수정 2] React의 /auth/check/{type}?value=... 요청에 맞게 메서드 수정 ▼▼▼
+    @Override 
+    @GetMapping("/check/{type}") // 👈 /check-nickname에서 /check/{type}으로 변경
+    public ResponseEntity<NicknameAvailabilityResponse> checkDuplication(
+            @PathVariable String type,
+            @RequestParam String value) { // 👈 파라미터를 'value'로 받음
 
-        boolean isAvailable = authService.checkExistsNickname(nickname);
-        String message = isAvailable ?  "현재 사용중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
-        NicknameAvailabilityResponse response = NicknameAvailabilityResponse.builder()
-                .isAvailable(isAvailable)
-                .message(message)
-                .build();
-        return  ResponseEntity.ok(response);
+        boolean isAvailable = false;
+        String message = "";
+
+        // 1. 'id' (username) 중복 확인
+        if ("id".equals(type)) {
+            // (AuthService에 checkExistsId가 구현되어 있어야 함)
+            isAvailable = authService.checkExistsId(value); 
+            message = isAvailable ? "현재 사용중인 아이디입니다." : "사용 가능한 아이디입니다.";
+        } 
+        // 2. 'nickname' 중복 확인
+        else if ("nickname".equals(type)) {
+            isAvailable = authService.checkExistsNickname(value);
+            message = isAvailable ? "현재 사용중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
+        } 
+        else {
+            return ResponseEntity.badRequest().build(); // 400 Bad Request
+        }
+
+        // 3. React에 409(중복) 또는 200(성공) 응답
+        if (isAvailable) {
+            // 409 Conflict (중복됨)
+            NicknameAvailabilityResponse response = NicknameAvailabilityResponse.builder()
+                    .isAvailable(true)
+                    .message(message)
+                    .build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response); 
+        } else {
+            // 200 OK (사용 가능)
+            NicknameAvailabilityResponse response = NicknameAvailabilityResponse.builder()
+                    .isAvailable(false)
+                    .message(message)
+                    .build();
+            return ResponseEntity.ok(response);
+        }
     }
+    // ▲▲▲ [수정 2] ▲▲▲
+    
 
-    //이메일 인증 번호 발송 요청
-    //Swagger 작성 나중에
+    // --- (이하 비밀번호 찾기 등은 수정하지 않음) ---
+
     @PostMapping("/send-verification")
     public ResponseEntity<String> sendVerificationCode(@RequestBody EmailRequest request) {
-        //User 테이블에 이메일이 존재하는지 검증해야 함
         userService.isUserExistsByEmail(request.getEmail());
-
         String code = verificationCodeService.generateAndSaveCode(request.getEmail());
         mailService.sendVerificationEmail(request.getEmail(), code);
         return ResponseEntity.ok("인증 번호 성공적으로 발송되었습니다.");
     }
 
-    //이메일 인증 번호 검증
-    //Swagger 작성 나중에
     @PostMapping("/verify-code")
     public ResponseEntity<ResetProcessResponse> verifyCode(@RequestBody VerifyCodeRequest request) {
         boolean isVerified = verificationCodeService
@@ -84,8 +116,6 @@ public class AuthControllerImpl implements AuthController {
         }
     }
 
-    //아이디 찾기
-    //Swagger 작성 필요
     @PostMapping("/find-id")
     public ResponseEntity<String> findId(@RequestBody TokenRequest request) {
         Optional<String> emailOptional =
@@ -94,7 +124,6 @@ public class AuthControllerImpl implements AuthController {
         if(emailOptional.isPresent()) {
             String email = emailOptional.get();
             tokenService.invalidateToken(request.getToken());
-
             String userId = userService.findUserIdByEmail(email);
             return ResponseEntity.ok(userId);
         }else{
@@ -102,9 +131,6 @@ public class AuthControllerImpl implements AuthController {
         }
     }
 
-
-    //비밀번호 재설정
-    //Swagger 필요
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
         Optional<String> emailOptional =
@@ -114,7 +140,6 @@ public class AuthControllerImpl implements AuthController {
         if(emailOptional.isPresent()) {
             String email = emailOptional.get();
             tokenService.invalidateToken(request.getToken());
-
             userService.resetPassword(email, request.getNewPassword());
             return ResponseEntity.ok("비밀번호가 성공적으로 재설정되었습니다.");
         }else{

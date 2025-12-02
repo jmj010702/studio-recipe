@@ -15,8 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,15 +25,13 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // @PreAuthorize, @PostAuthorize 등 메서드 보안
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    // @Value("${front.url}")
-    private String frontUrl = "http://localhost:5173";
-//     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-//     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    @Value("${front.url}")
+    private String frontUrl;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -52,12 +48,9 @@ public class SecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.setAllowedOriginPatterns(List.of(frontUrl));
-//	   corsConfiguration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
-
-        //클라이언트가 접근할 수 있도록 노출할 헤더
         corsConfiguration.setExposedHeaders(Arrays.asList("Authorization", "Refresh-Token"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -72,34 +65,48 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                
                 .authorizeHttpRequests(authorize ->
                         authorize
-								.requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
+                                       .requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
+                                // ✅ 인증 필요한 엔드포인트 (먼저 선언)
+                                .requestMatchers("/api/details/likes").authenticated()
+                                .requestMatchers("/api/details/completion").authenticated()
+                                
+                                // ✅ 인증 불필요한 엔드포인트
                                 .requestMatchers(
-					"/batch/run-recipe-csv",
-                                        "/auth/**",
-                                        "/swagger-ui/**",
-                                        "/v3/api-docs/**",
-                                        "/v3/api-docs",
-                                        "/error",
-                                        "/test/**",
+                                    // 메인 페이지 관련
+                                    "/",
+                                    "/api/mainPages",
+                                    "/api/recipes/**",
+                                    "/api/details/**",      // ✅ 추가! (레시피 상세 조회는 누구나 가능)
+                                    "/api/admin/**",
+                                    
+                                    // 인증 관련
+                                    "/auth/**",
+                                    
+                                    // Batch 관련
+                                    "/batch/run-recipe-csv",
+                                    
+                                    // Swagger 문서
+                                    "/swagger-ui/**",
+                                    "/v3/api-docs/**",
+                                    "/v3/api-docs",
+                                    
+                                    // 기타
+                                    "/error",
+                                    "/test/**",
                                         "/actuator/**",
-									    "/aws-test/**"
-                                ).permitAll() // 위의 경로들은 인증 없이 접근 허용
-
+                                  "/aws-test/**"
+                                  
+                                ).permitAll()
                                 // 나머지 모든 요청은 인증된 사용자만 허용
                                 .anyRequest().authenticated()
                 )
-                // 예외 처리 핸들러는 다음 단계에서 구현 예정
-                // .exceptionHandling(exceptionHandling -> exceptionHandling
-                //     .authenticationEntryPoint(jwtAuthenticationEntryPoint) // 인증 실패 시
-                //     .accessDeniedHandler(jwtAccessDeniedHandler) // 인가 실패 시
-                // )
-                // JWT 필터 적용: UsernamePasswordAuthenticationFilter 전에 JWT 필터를 추가하여 토큰 검증
+                
+                // JWT 필터 적용
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 }
-
-

@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @Setter
 public class Recipe {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "RCP_SNO")
     private Long rcpSno;
 
