@@ -85,82 +85,117 @@ pipeline {
             }
         }
 
-stage('Prepare and Deploy to CodeDeploy') {
+   stage('Prepare and Deploy to CodeDeploy') {
             steps {
                 script {
                     echo "--- Preparing appspec.yml and creating CodeDeploy deployment ---"
 
-                    // appspec.yml 치환 및 ECR_IMAGE_VALUE.txt 생성 (생략: 기존 코드와 동일)
-                    def appspecContent = readFile('appspec.yml')
-                    appspecContent = appspecContent.replace('${BUILD_NUMBER}', env.BUILD_NUMBER)
-                    writeFile(file: 'appspec.yml', text: appspecContent)
-                    
-                    def ecrImageFullPath = "${ECR_REPOSITORY_URI}:${env.BUILD_NUMBER}"
-                    echo "Generating ECR_IMAGE_VALUE.txt with: ${ecrImageFullPath}"
-                    writeFile(file: 'ECR_IMAGE_VALUE.txt', text: ecrImageFullPath)
-
-                    echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
+                    // appspec.yml, scripts, app.jar 파일을 Jenkins 워크스페이스 루트로 복사
+                    sh "cp appspec.yml ."
                     sh "cp -r ${BACKEND_DIR}/scripts ."
-                    sh "test -d scripts/ && test -f scripts/clean_old_images.sh || error 'scripts directory or clean_old_images.sh not found after copy!'"
-                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ."
-                    sh "test -f app.jar || error 'app.jar not found after copy!'"
-                    echo "DEBUG: All artifacts copied to Jenkins workspace root."
+                    sh "cp ${BACKEND_DIR}/build/libs/app.jar ." 
 
-                    // CodeDeploy 배포 번들 (deployment.zip) 생성
-                    sh """
-                    zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt
-                    """
+                    writeFile file: 'ECR_IMAGE_VALUE.txt', text: "${ECR_IMAGE}"
                     
-                    // S3 업로드
-                    sh """
-                    aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip
-                    """
-                    
-                    // --- 여기서부터 수정된 코드 시작 (반복 오류 해결) ---
-                    echo "--- Checking for and stopping any active CodeDeploy deployments ---"
-                    def activeDeploymentIds = sh(returnStdout: true, script: """
-                    aws deploy list-deployments \\
-                                                 --application-name ${CODEDEPLOY_APPLICATION} \\
-                                                 --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
-                                                 --query 'deployments' \\
-                                                 --status-filter 'InProgress,Queued' \\
-                                                 --output text \\
-                                                 --region ${AWS_REGION}
-                                                 """).trim()
+                    echo "DEBUG: Zipping deployment artifacts..."
+                    sh "zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt"
 
-                    // AWS CLI의 text 출력은 줄 바꿈(\n)이나 탭(\t)으로 분리될 수 있습니다.
-                    // Groovy에서 trim() 후 공백 기준으로 분리하여 배열로 만듭니다.
+                    echo "DEBUG: Uploading deployment.zip to S3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
+                    sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
+                    
                     def activeDeployments = []
-                    if (activeDeploymentIds) {
-                        activeDeployments = activeDeploymentIds.split('\\s+').findAll { it != '' }
+                    def activeStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
+
+                    try {
+                        echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION}..."
+                        def allDeploymentIdsJson = sh(returnStdout: true, script: """
+                            aws deploy list-deployments-by-application \
+                                --application-name ${CODEDEPLOY_APPLICATION} \
+                                --query 'deployments' \
+                                --output json \
+                                --region ${AWS_REGION}
+                            """).trim()
+
+                        def deploymentIdList = new groovy.json.JsonSlurper().parseText(allDeploymentIdsJson)
+
+                        if (deploymentIdList && !deploymentIdList.isEmpty()) {
+                            deploymentIdList.each { deploymentId ->
+                                try {
+                                    def deploymentStatusJson = sh(returnStdout: true, script: """
+                                        aws deploy get-deployment \
+                                            --deployment-id ${deploymentId} \
+                                            --query 'deploymentInfo.status' \
+                                            --output json \
+                                            --region ${AWS_REGION}
+                                        """).trim()
+                                    def deploymentStatus = new groovy.json.JsonSlurper().parseText(deploymentStatusJson)
+
+                                    if (activeStatuses.contains(deploymentStatus)) {
+                                        activeDeployments.add(deploymentId)
+                                    }
+                                } catch (e) {
+                                    echo "WARNING: Could not get status for deployment ID ${deploymentId}. It might be too old or invalid. Error: ${e.message}"
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        echo "WARNING: Failed to list or parse existing deployments. Proceeding with new deployment without stopping any. Error: ${e.message}"
                     }
 
-                    if (activeDeployments) {
-                        echo "Found active deployment(s): ${activeDeployments.join(', ')}. Attempting to stop them."
-                        // 각 활성 배포에 대해 중지 명령 실행
+                    if (!activeDeployments.isEmpty()) {
+                        echo "Found active deployment(s): ${activeDeployments.join(', ')}. Attempting to stop them before proceeding."
                         activeDeployments.each { deploymentId ->
-                            echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
+                            sleep 5
                         }
-                        // CodeDeploy가 배포를 중지하는 데 시간이 걸릴 수 있으므로 잠시 대기
                         sleep 10
-                        echo "Active deployments stopped or being stopped. Proceeding with new deployment."
-                    } else {
-                        echo "No active CodeDeploy deployments found. Proceeding with new deployment."
                     }
-                    
-                    // --- 수정된 코드 끝 ---
-                    
-                    // AWS CodeDeploy API를 호출하여 새 배포 시작
-                    sh """
+
+                    echo "--- Initiating new CodeDeploy deployment ---"
+                    def deploymentResultJson = sh(returnStdout: true, script: """
                     aws deploy create-deployment \\
-                      --application-name ${CODEDEPLOY_APPLICATION} \\
-                      --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
-                      --deployment-config-name CodeDeployDefault.OneAtATime \\
-                      --description "Blue/Green Deployment triggered by Jenkins build ${env.BUILD_NUMBER}" \\
-                      --s3-location bucket=${S3_BUCKET},key=recipe-app/${env.BUILD_NUMBER}.zip,bundleType=zip \\
-                      --region ${AWS_REGION}
-                    """
+                        --application-name ${CODEDEPLOY_APPLICATION} \\
+                        --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
+                        --deployment-config-name CodeDeployDefault.OneAtATime \\
+                        --description "Blue/Green Deployment triggered by Jenkins build ${env.BUILD_NUMBER}" \\
+                        --s3-location bucket=${S3_BUCKET},key=recipe-app/${env.BUILD_NUMBER}.zip,bundleType=zip \\
+                        --region ${AWS_REGION}
+                    """).trim()
+
+                    def newDeploymentId = ""
+                    try {
+                        newDeploymentId = new groovy.json.JsonSlurper().parseText(deploymentResultJson).deploymentId
+                        env.CODEDEPLOY_DEPLOYMENT_ID = newDeploymentId
+                    } catch (e) {
+                        error "Failed to parse CodeDeploy deployment ID from create-deployment result: ${e.message}. Raw output: ${deploymentResultJson}"
+                    }
+
+                    echo "--- Monitoring CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status ---"
+                    timeout(time: 30, unit: 'MINUTES') {
+                        def deploymentStatus = ""
+                        while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
+                            sleep 30
+                            try {
+                                def statusCheckResultJson = sh(returnStdout: true, script: """
+                                    aws deploy get-deployment \
+                                        --deployment-id ${env.CODEDEPLOY_DEPLOYMENT_ID} \
+                                        --query 'deploymentInfo.status' \
+                                        --output json \
+                                        --region ${AWS_REGION}
+                                    """).trim()
+                                deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson)
+                                echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus}"
+                            } catch (e) {
+                                echo "WARNING: Failed to get deployment status for ${env.CODEDEPLOY_DEPLOYMENT_ID}. Retrying... Error: ${e.message}"
+                            }
+                        }
+
+                        if (deploymentStatus == "Failed" || deploymentStatus == "Stopped" || deploymentStatus == "Skipped") {
+                            error "CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} failed or was stopped. Current status: ${deploymentStatus}"
+                        } else {
+                            echo "CodeDeploy deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} succeeded!"
+                        }
+                    }
                 }
             }
         }
