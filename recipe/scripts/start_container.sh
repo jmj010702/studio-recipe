@@ -1,115 +1,110 @@
 #!/bin/bash
 
-# Define constants
-CONTAINER_NAME="recipe-app-container"
-ECR_IMAGE="${IMAGE_URI}" # Jenkinsfile 또는 CodeDeploy AppSpec.yml에서 넘어온 IMAGE_URI 변수를 사용합니다.
+# --- 0. 필요 툴 설치 확인
+# apt-get을 사용하기 전에 업데이트를 수행
+sudo apt update -y
 
-# ECR 로그인
+# jq가 설치되어 있지 않으면 설치
+if ! command -v jq &> /dev/null
+then
+    echo "jq is not installed. Installing jq..."
+    sudo apt install -y jq
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to install jq. Please install it manually."
+        exit 1
+    fi
+else
+    echo "jq is already installed."
+fi
+
+# --- 1. 상수 정의 ---
+CONTAINER_NAME="recipe-app-container"
+ECR_REGION="ap-northeast-2" # ECR 리전 지정
+SECRET_ID="recipe-app-secrets"
+
+# 2. ECR 이미지 URI 추출
+SCRIPT_FULL_PATH=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_FULL_PATH")
+APP_ROOT_DIR=$(dirname "$SCRIPT_DIR")
+ECR_IMAGE_FILE_PATH="${APP_ROOT_DIR}/ECR_IMAGE_VALUE.txt"
+
+if [ -f "${ECR_IMAGE_FILE_PATH}" ]; then
+    ECR_IMAGE=$(cat "${ECR_IMAGE_FILE_PATH}")
+else
+    echo "ERROR: ECR_IMAGE_VALUE.txt not found at expected path: ${ECR_IMAGE_FILE_PATH}!"
+    exit 1
+fi
 ECR_REGISTRY=$(echo "${ECR_IMAGE}" | cut -d'/' -f1)
+
+# 3. Secrets Manager에서 비밀값 가져오기 및 파싱
+echo "Fetching secrets from AWS Secrets Manager: ${SECRET_ID}"
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${SECRET_ID}" --region "${ECR_REGION}" --query SecretString --output text)
+
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to retrieve secrets from Secrets Manager. Check IAM permissions and secret ID."
+    exit 1
+fi
+
+# jq를 사용하여 JSON에서 필요한 값 추출
+DB_USERNAME=$(echo "${SECRET_JSON}" | jq -r '.DB_USERNAME')
+DB_PASSWORD=$(echo "${SECRET_JSON}" | jq -r '.DB_PASSWORD')
+DB_HOST=$(echo "${SECRET_JSON}" | jq -r '.DB_HOST')
+DB_NAME=$(echo "${SECRET_JSON}" | jq -r '.DB_NAME')
+
+MAIL_USERNAME=$(echo "${SECRET_JSON}" | jq -r '.MAIL_USERNAME')
+MAIL_PASSWORD=$(echo "${SECRET_JSON}" | jq -r '.MAIL_PASSWORD')
+MAIL_HOST=$(echo "${SECRET_JSON}" | jq -r '.MAIL_HOST')
+MAIL_PORT=$(echo "${SECRET_JSON}" | jq -r '.MAIL_PORT')
+
+MY_APP_SECRET=$(echo "${SECRET_JSON}" | jq -r '.MY_APP_SECRET')
+
+# 환경 변수가 제대로 추출되었는지 간단한 검증
+if [ -z "${DB_USERNAME}" ] || [ -z "${DB_PASSWORD}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_NAME}" ] || \
+   [ -z "${MAIL_USERNAME}" ] || [ -z "${MAIL_PASSWORD}" ] || [ -z "${MAIL_HOST}" ] || [ -z "${MAIL_PORT}" ] || \
+   [ -z "${MY_APP_SECRET}" ]; then
+    echo "ERROR: One or more required secret values could not be extracted or are empty. Check Secrets Manager JSON structure."
+    echo "DEBUG INFO: DB_USERNAME=[${DB_USERNAME}], MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}]]"
+    exit 1
+fi
+
+echo "Secrets fetched successfully. DEBUG INFO: MAIL_USERNAME=[${MAIL_USERNAME}], MY_APP_SECRET=[${MY_APP_SECRET}]]"
+
+# --- 4. ECR 로그인 ---
 echo "Logging in to ECR: ${ECR_REGISTRY}"
-aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+aws ecr get-login-password --region "${ECR_REGION}" | sudo docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 if [ $? -ne 0 ]; then
     echo "ERROR: ECR login failed."
     exit 1
 fi
 echo "ECR login successful."
 
-# 이전 컨테이너가 실행 중이면 중지 및 삭제
-if sudo docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q .; then
-    echo "Stopping existing container: ${CONTAINER_NAME}"
-    sudo docker stop ${CONTAINER_NAME}
-    echo "Removing existing container: ${CONTAINER_NAME}"
-    sudo docker rm ${CONTAINER_NAME}
-fi
+# 5. 도커 컨테이너 실행
+# echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
+# sudo docker run -d \
+#   --name "${CONTAINER_NAME}" \
+#   --network host \
+#   -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" \
+#   -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
+#   -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
+#   -e SPRING_MAIL_HOST="${MAIL_HOST}" \
+#   -e SPRING_MAIL_PORT="${MAIL_PORT}" \
+#   -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" \
+#   -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" \
+#   -e MY_APP_SECRET="${MY_APP_SECRET}" \
+#   -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com" \
+#   -e SPRING_DATA_REDIS_PORT="6379" \
+#   -v /var/lib/docker/data:/app/data \
+#   --entrypoint bash \
+#   "${ECR_IMAGE}" \ 
+#   -c "java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true -jar /app/app.jar"
+  # Redis Cluster Ipv6로 찾아서 문제, JVM이 Ipv4 우선적으로 찾게 함
 
-# ==============================================================================
-# SECRET_ID="recipe-app-secrets"
-# Secrets Manager가 위치한 AWS 리전
-# REGION="ap-northeast-2" 
-
-# echo "Fetching secrets from AWS Secrets Manager for ${SECRET_ID} in ${REGION}..."
-# SECRET_STRING=$(aws secretsmanager get-secret-value --secret-id ${SECRET_ID} --region ${REGION} --query SecretString --output text)
-
-# if [ $? -ne 0 ]; then
-#     echo "ERROR: Failed to retrieve secrets from Secrets Manager. Check AWS CLI configuration and permissions."
-#     exit 1
-# fi
-
-# # Secrets Manager JSON 파싱 및 개별 변수 할당
-# DB_HOST=$(echo "$SECRET_STRING" | jq -r '.DATABASE_HOST')
-# DB_PORT=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PORT')
-# DB_USER=$(echo "$SECRET_STRING" | jq -r '.DATABASE_USER')
-# DB_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.DATABASE_PASSWORD')
-
-# MAIL_USERNAME=$(echo "$SECRET_STRING" | jq -r '.MAIL_USERNAME')
-# MAIL_PASSWORD=$(echo "$SECRET_STRING" | jq -r '.MAIL_PASSWORD')
-
-# REDIS_HOST=$(echo "$SECRET_STRING" | jq -r '.REDIS_HOST')
-# REDIS_PORT=$(echo "$SECRET_STRING" | jq -r '.REDIS_PORT')
-
-# MY_APP_SECRET=$(echo "$SECRET_STRING" | jq -r '.MY_APP_SECRET')
-
-
-# ==============================================================================
-# 하드코딩된 값으로 DB/Redis/Mail/APP_SECRET 변수 할당 (Secrets Manager 우회)
-
-
-echo "DEBUG: Using hardcoded DB/Redis/Mail/APP_SECRET values for testing."
-
-DB_HOST="recipe-app-db.c1w8qmkce4t6.ap-northeast-2.rds.amazonaws.com" 
-DB_PORT="3306"
-DB_USER="admin"   
-DB_PASSWORD="tlwkrdmldkdlA!" 
-
-REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com:6379" 
-REDIS_PORT="6379"
-
-MAIL_USERNAME="stay_on_track@naver.com"
-MAIL_PASSWORD="KVRG8UGYM9ZJ"
-
-
-MY_APP_SECRET="dI5pBjrtgy9xFHiZtMs3fM7P8OR/wvxrexu/mybWcKc=" 
-
-# ==============================================================================
-
-
-# Debugging: 개별 DB/Redis/Mail/APP_SECRET 변수들이 제대로 할당되었는지 확인
-echo "DEBUG: Assigned DB_HOST=${DB_HOST}, DB_PORT=${DB_PORT}, DB_USER=${DB_USER}"
-echo "DEBUG: Assigned REDIS_HOST=${REDIS_HOST}, REDIS_PORT=${REDIS_PORT}"
-echo "DEBUG: Assigned MAIL_USERNAME=${MAIL_USERNAME}, MAIL_PASSWORD=${MAIL_PASSWORD}"
-echo "DEBUG: Assigned MY_APP_SECRET=${MY_APP_SECRET}"
-
-
-# Docker 컨테이너에 전달할 환경 변수 문자열 빌드
-ENV_ARGS=""
-ENV_ARGS+=" -e DRIVER_URL='jdbc:mariadb://${DB_HOST}:${DB_PORT}/recipe_db?useSSL=false&allowPublicKeyRetrieval=true'"
-ENV_ARGS+=" -e DRIVER_USER_NAME=${DB_USER}"
-ENV_ARGS+=" -e DRIVER_PASSWORD=${DB_PASSWORD}"
-
-ENV_ARGS+=" -e MAIL_USERNAME=${MAIL_USERNAME}"
-ENV_ARGS+=" -e MAIL_PASSWORD=${MAIL_PASSWORD}"
-
-ENV_ARGS+=" -e SPRING_REDIS_HOST=${REDIS_HOST}" 
-ENV_ARGS+=" -e SPRING_REDIS_PORT=${REDIS_PORT}"
-
-ENV_ARGS+=" -e MY_APP_SECRET=${MY_APP_SECRET}"
-ENV_ARGS+=" -e SPRING_PROFILES_ACTIVE=prod"
-
-# Debugging: 최종 Docker run 명령에 전달될 ENV_ARGS 확인
-echo "DEBUG: Final ENV_ARGS for Docker: ${ENV_ARGS}"
-
-# Docker 컨테이너 실행
-echo "Starting Docker container: ${CONTAINER_NAME} with image ${ECR_IMAGE}"
-sudo docker run -d \
-  -p 8080:8080 \
-  -p 50000:50000 \
-  --name ${CONTAINER_NAME} \
-  ${ENV_ARGS} \
-  "${ECR_IMAGE}"
+# 공백 문제? 가능성 두고 한 줄 작성
+echo "Starting Docker container ${CONTAINER_NAME} with image ${ECR_IMAGE}"
+sudo docker run -d --name "${CONTAINER_NAME}" --network host -e SPRING_DATASOURCE_URL="jdbc:mariadb://${DB_HOST}:3306/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC" -e SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" -e SPRING_MAIL_HOST="${MAIL_HOST}" -e SPRING_MAIL_PORT="${MAIL_PORT}" -e SPRING_MAIL_USERNAME="${MAIL_USERNAME}" -e SPRING_MAIL_PASSWORD="${MAIL_PASSWORD}" -e MY_APP_SECRET="${MY_APP_SECRET}" -e SPRING_DATA_REDIS_HOST="clustercfg.recipe-app-cache.yyo014.apn2.cache.amazonaws.com" -e SPRING_DATA_REDIS_PORT="6379" -v /var/lib/docker/data:/app/data --entrypoint java "${ECR_IMAGE}" -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false -Dio.netty.resolver.useNativeCache=false -Dio.netty.resolver.noCache=true -jar /app/app.jar
 
 if [ $? -ne 0 ]; then
-    echo "ERROR: Docker container failed to start."
+    echo "ERROR: Failed to run Docker container."
     exit 1
 fi
-
 echo "Docker container ${CONTAINER_NAME} started successfully."
