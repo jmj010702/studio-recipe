@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011' // 실제 S3 버킷 이름
         CODEDEPLOY_APPLICATION = 'recipe-app-codedeploy' // 실제 CodeDeploy 애플리케이션 이름
-        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webserver-tg' // 실제 CodeDeploy 배포 그룹 이름
+        CODEDEPLOY_DEPLOYMENT_GROUP = 'recipe-app-webdeploy-group' // 실제 CodeDeploy 배포 그룹 이름
 
         ECR_REGISTRY = '516175389011.dkr.ecr.ap-northeast-2.amazonaws.com/recipe-app'
         ECR_REGION = 'ap-northeast-2'
@@ -17,12 +17,16 @@ pipeline {
     }
 
     stages {
-        stage('Initialize & Clean & SCM Checkout') {
+        stage('Initialize & Force Git Sync') { // 스테이지 이름 변경 및 SCM 강제 동기화 추가
             steps {
-                echo "--- Initializing workspace and forcing SCM checkout ---"
-                // 명시적으로 SCM에서 최신 코드를 체크아웃하고, 필요한 경우 워크스페이스를 정리합니다.
-                // Jenkins UI에서 'Clean workspace before checkout' 옵션을 활성화했어야 합니다.
-                checkout scm
+                script {
+                    echo "--- Initializing workspace and forcing latest Git synchronization ---"
+                    // Jenkins 기본 SCM Checkout 이후, 최신 내용을 다시 강제로 가져와 워크스페이스에 반영
+                    sh 'git fetch origin' // 원격 저장소의 모든 변경사항을 가져옵니다.
+                    sh 'git reset --hard origin/main' // 로컬 워크스페이스를 원격 main 브랜치와 완전히 일치시킵니다.
+                    sh 'git clean -dfx' // untracked 파일 및 디렉토리까지 삭제하여 워크스페이스를 깨끗하게 만듭니다.
+                    echo "--- Forced Git synchronization complete ---"
+                }
             }
         }
 
@@ -30,9 +34,9 @@ pipeline {
             steps {
                 script {
                     echo "--- Building application with Gradle ---"
-                    // Gradle wrapper 권한 부여 및 빌드 (애플리케이션이 'studio-recipe-main/recipe' 안에 있음)
-                    sh 'chmod +x studio-recipe-main/recipe/gradlew'
-                    sh 'cd studio-recipe-main/recipe && ./gradlew clean build -x test' // 테스트 생략
+                    // Gradle wrapper 권한 부여 및 빌드 (애플리케이션이 'recipe' 안에 있음)
+                    sh 'chmod +x recipe/gradlew' // 경로 수정: studio-recipe-main/recipe/gradlew -> recipe/gradlew
+                    sh 'cd recipe && ./gradlew clean build -x test' // 경로 수정: cd studio-recipe-main/recipe -> cd recipe
                     echo "BUILD SUCCESSFUL"
                 }
             }
@@ -42,28 +46,30 @@ pipeline {
             steps {
                 script {
                     echo "--- Renaming JAR file to app.jar ---"
-                    def jarDirPath = "studio-recipe-main/recipe/build/libs"
-                    def originalJarNameOutput = sh(returnStdout: true, script: "ls ${jarDirPath}/*.jar").trim()
-
-                    // 기존에는 'recipe-0.0.1-SNAPSHOT-plain.jar' 또는 'recipe-0.0.1-SNAPSHOT.jar' 이 두 개 중 하나였으나
-                    // 명확히 '-plain'이 붙지 않은 jar가 메인 jar인 경우가 많으므로 이를 기본으로 고려
-                    // 만약 plain.jar가 없다면 일반 jar를 사용
-                    def plainJar = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim()
-                    def mainJar = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim()
-
-                    if (plainJar) {
-                        sh "mv ${plainJar} ${jarDirPath}/app.jar"
-                        echo "Renamed ${plainJar} to ${jarDirPath}/app.jar."
-                    } else if (mainJar) {
-                        sh "mv ${mainJar} ${jarDirPath}/app.jar"
-                        echo "Renamed ${mainJar} to ${jarDirPath}/app.jar."
+                    def jarDirPath = "recipe/build/libs" // 경로 수정: studio-recipe-main/recipe/build/libs -> recipe/build/libs
+                    
+                    // 정확히 *-plain.jar을 찾고 없으면 일반 .jar를 찾도록 수정
+                    def plainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim().split('\n')
+                    def mainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim().split('\n')
+                    
+                    def jarToRename = ""
+                    if (plainJarCandidates.size() == 1 && plainJarCandidates[0] != "") {
+                        jarToRename = plainJarCandidates[0]
+                    } else if (mainJarCandidates.size() == 1 && mainJarCandidates[0] != "") {
+                        jarToRename = mainJarCandidates[0]
                     } else {
-                        error "No JAR file found in ${jarDirPath} directory."
+                        error "Could not uniquely determine JAR file to rename in ${jarDirPath}. Found: Plain: ${plainJarCandidates}, Main: ${mainJarCandidates}"
+                    }
+
+                    if (jarToRename) {
+                        sh "mv ${jarToRename} ${jarDirPath}/app.jar"
+                        echo "Renamed ${jarToRename} to ${jarDirPath}/app.jar."
+                    } else {
+                        error "No suitable JAR file found to rename in ${jarDirPath} directory."
                     }
                 }
             }
         }
-
 
         stage('Docker Build & Push to ECR') {
             steps {
@@ -73,12 +79,12 @@ pipeline {
 
                     echo "--- VERIFYING Dockerfile content BEFORE Docker build ---"
                     // Jenkins가 빌드에 사용할 Dockerfile 내용을 직접 출력하여 확인합니다.
-                    sh "cat studio-recipe-main/recipe/Dockerfile"
+                    sh "cat recipe/Dockerfile" // 경로 수정: studio-recipe-main/recipe/Dockerfile -> recipe/Dockerfile
                     echo "--- END VERIFICATION ---"
 
-                    // Dockerfile이 'studio-recipe-main/recipe' 디렉토리 안에 있고, 빌드 컨텍스트도 해당 디렉토리로 설정
-                    sh "docker build -t ${ECR_IMAGE} -f studio-recipe-main/recipe/Dockerfile studio-recipe-main/recipe"
-
+                    // Dockerfile이 'recipe' 디렉토리 안에 있고, 빌드 컨텍스트도 해당 디렉토리로 설정
+                    sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe" // 경로 수정
+                    
                     sh "docker push ${ECR_IMAGE}"
                 }
             }
@@ -96,10 +102,10 @@ pipeline {
                     echo "ECR_IMAGE_VALUE.txt generated with: ${ECR_IMAGE}"
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
-                    // 'scripts' 디렉토리와 'app.jar'는 'studio-recipe-main/recipe' 아래에 있습니다.
+                    // 'scripts' 디렉토리와 'app.jar'는 'recipe' 아래에 있습니다.
                     // 따라서 CodeDeploy 배포 패키지에 포함하기 위해 Jenkins 워크스페이스 루트로 복사해야 합니다.
-                    sh "cp -r studio-recipe-main/recipe/scripts ."
-                    sh "cp studio-recipe-main/recipe/build/libs/app.jar ."
+                    sh "cp -r recipe/scripts ." // 경로 수정
+                    sh "cp recipe/build/libs/app.jar ." // 경로 수정
                     echo "DEBUG: All artifacts copied to Jenkins workspace root."
 
                     echo "DEBUG: Zipping deployment artifacts..."
