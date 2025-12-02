@@ -16,7 +16,7 @@ pipeline {
         REDIS_PORT_PROBLEM = '6379'
     }
 
-    stages { // <--- stages 블록 시작
+    stages {
         stage('Initialize & Force Git Sync') {
             steps {
                 script {
@@ -153,7 +153,7 @@ pipeline {
                         activeDeployments.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
                             sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                            sleep 10 // 시간을 10초로 단축
+                            sleep 10
                         }
                         echo "Active deployments stop commands issued. Waiting 10 seconds for stabilization."
                         sleep 10
@@ -187,7 +187,7 @@ pipeline {
                         def loopCount = 0
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
-                            def currentSleep = (loopCount <= 6) ? 5 : 10 // 처음 30초는 5초 간격, 그 이후부터 10초 간격
+                            def currentSleep = (loopCount <= 6) ? 5 : 10
                             sleep currentSleep
 
                             try {
@@ -214,9 +214,8 @@ pipeline {
                 }
             }
         }
-    } // <--- stages 블록 끝
-
-    post {
+    }
+        post {
         always {
             script {
                 if (currentBuild.result != 'SUCCESS') {
@@ -228,4 +227,4 @@ pipeline {
             cleanWs() // 빌드가 끝난 후 워크스페이스 정리
         }
     }
-} // <--- pipeline 블록 끝
+}
