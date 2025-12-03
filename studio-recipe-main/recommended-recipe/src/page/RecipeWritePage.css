@@ -1,0 +1,156 @@
+/* src/page/RecipeWritePage.css */
+
+/* 1. 페이지 레이아웃 (login.css, signup.css와 유사) */
+.form-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 50px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #f9f9f9;
+}
+
+.form-box.recipe-form-box {
+  width: 100%;
+  max-width: 800px; /* 회원가입 폼보다 넓게 */
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.recipe-form-box h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #333;
+  /* (이미지에는 제목이 왼쪽 정렬) */
+  /* text-align: center; */
+}
+
+/* 2. 폼 그룹 (레이블 + 인풋) */
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+/* 기본 인풋, 텍스트영역 스타일 */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group textarea {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  padding: 12px 15px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+
+.form-group textarea {
+  resize: vertical; /* 세로 크기만 조절 가능 */
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #4CAF50; /* (메인 녹색) */
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.form-group small {
+  display: block;
+  font-size: 13px;
+  color: #777;
+  margin-top: 8px;
+}
+
+/* 3. 재료 정보 (동적 폼) */
+.ingredient-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+/* 재료 폼 내부 인풋 스타일 */
+.ingredient-row input {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+.ingredient-row input:focus {
+  border-color: #4CAF50;
+}
+
+/* 각 칸의 너비 조절 */
+.ingredient-row input[name="name"] { flex: 3; }
+.ingredient-row input[name="amount"] { flex: 1; }
+.ingredient-row input[name="unit"] { flex: 1; }
+.ingredient-row input[name="note"] { flex: 3; }
+
+/* 재료 추가/삭제 버튼 */
+.add-btn,
+.remove-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.add-btn {
+  background-color: #4CAF50; /* (메인 녹색) */
+  margin-top: 10px;
+}
+.add-btn:hover { background-color: #45a049; }
+
+.remove-btn {
+  background-color: #f44336; /* (삭제 빨간색) */
+  flex-shrink: 0;
+}
+.remove-btn:hover { background-color: #d32f2f; }
+.remove-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* 4. 등록하기 버튼 */
+.submit-btn {
+  width: 100%;
+  max-width: 200px; /* 너무 크지 않게 */
+  display: block;
+  margin: 30px auto 0 auto; /* 중앙 정렬 */
+  
+  padding: 14px;
+  border: none;
+  border-radius: 50px;
+  font-size: 17px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  background-color: #4CAF50; /* (메인 녹색) */
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  background-color: #45a049;
+}

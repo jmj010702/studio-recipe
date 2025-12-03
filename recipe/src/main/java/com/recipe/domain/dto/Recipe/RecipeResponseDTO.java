@@ -1,6 +1,8 @@
 package com.recipe.domain.dto.Recipe;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+//import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+//import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.recipe.domain.entity.Recipe;
 import lombok.*;
 
@@ -26,6 +28,7 @@ public class RecipeResponseDTO {
     private String ckgTimeNm;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+//    @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime firstRegDt;
     
     private String rcpImgUrl;

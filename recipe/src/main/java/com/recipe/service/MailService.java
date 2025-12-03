@@ -19,7 +19,7 @@ public class MailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine  templateEngine; //Thymeleaf 템플릿 엔진
 
-    @Value("${MAIL_USERNAME}")
+    @Value("${SPRING_MAIL_USERNAME}")
     private String fromEmail;
 
     /**

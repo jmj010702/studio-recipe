@@ -54,7 +54,6 @@ public class UserService {
                 .orElseThrow(UserExceptions.NOT_FOUND::getUserException);
     }
 
-    // 비밀번호 찾기 후 재설정
     @Transactional
     public void resetPassword(String email, String newPassword) {
         User user = userRepository.findByEmail(email)

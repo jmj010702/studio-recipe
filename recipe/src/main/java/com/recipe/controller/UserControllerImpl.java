@@ -12,6 +12,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.recipe.domain.dto.user.UserDeleteRequestDto;
+import com.recipe.service.UserService;
+import java.util.HashMap;
+import java.util.Map;
 
 @Log4j2
 @RestController
@@ -29,8 +33,9 @@ public class UserControllerImpl implements UserController {
 
     @Operation(summary = "회원 상세 페이지 수정",
             description = "회원이 수정한 데이터로 회원 테이블 수정")
+
     @PutMapping("/my-pages")
-    public ResponseEntity<Void> updateMyPage(/*@RequestBody*/) {
+    public ResponseEntity<Void> updateMyPage() {
         return ResponseEntity.ok().build();
     }
 

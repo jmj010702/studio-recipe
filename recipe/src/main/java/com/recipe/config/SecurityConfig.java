@@ -110,8 +110,16 @@ public class SecurityConfig {
                                 .requestMatchers("/api/user/**").authenticated()
                                 .requestMatchers("/api/mypages/**").authenticated()
                                 .requestMatchers("/api/mypage/**").authenticated()
-                                
-                                // 나머지 요청은 인증 필요
+                                .requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
+                                .requestMatchers(
+                                    // Batch 관련
+                                    "/batch/run-recipe-csv",
+                                    "/error",
+                                    "/test/**",
+                                    "/actuator/**",
+                                    "/aws-test/**"
+                                ).permitAll()
+                                // 나머지 모든 요청은 인증된 사용자만 허용
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
