@@ -1,73 +1,102 @@
-// src/page/MainPage.jsx
+// src/page/MyPage.jsx
 import React, { useState, useEffect } from 'react';
-import api from '../api/axios.js'; 
-import Navigation from '../components/Navigation.jsx';
-import RecipeSection from '../components/RecipeSection.jsx';
-import './MainPage.css'; // MainPage 전용 CSS
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  FaThList,
+  FaStar,
+  FaCommentDots,
+  FaBookOpen,
+  FaSearch,
+} from 'react-icons/fa';
+import api from '../api/axios';
+import './MyPage.css';
 
-// --- API 연동 전 임시 데이터 (디자인 확인용) ---
-const mockTodayRecipes = [
-  { id: 1, title: "명란마요초밥", description: "도시락에 빠질 수 없는 공유부초밥!", imageUrl: "https://via.placeholder.com/500x300.png?text=Mentaiko+Sushi" },
-  { id: 2, title: "아시안 닭꼬치", description: "저녁 술안주로 딱!", imageUrl: "https://via.placeholder.com/500x300.png?text=Asian+Chicken+Skewer" }
-];
-const mockTopRecipes = [
-  { id: 3, title: "불맛 잡채스테이크", description: "달콤짭짤한 소스의 매력!", imageUrl: "https://via.placeholder.com/500x300.png?text=Japchae+Steak" },
-  { id: 4, title: "호텔 파스타", description: "집에서 즐기는 호텔급 맛", imageUrl: "https://via.placeholder.com/500x300.png?text=Hotel+Pasta" }
-];
-// --- 임시 데이터 끝 ---
+function MyPage() {
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-function MainPage() {
-  // API 연동 시: useState([])
-  // 디자인 확인 시: useState(mockTodayRecipes)
-  const [todayRecipes, setTodayRecipes] = useState(mockTodayRecipes);
-  const [topRecipes, setTopRecipes] = useState(mockTopRecipes);
-  
-  // API 연동 로직 (현재는 주석 처리)
-  /*
+  // 1차: sessionStorage로 로그인 여부 체크
   useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        const todayResponse = await api.get('/api/recipes/today-recommendation');
-        setTodayRecipes(todayResponse.data);
+    const userSession = sessionStorage.getItem('logged_in_user');
+    if (userSession) {
+      setUser(JSON.parse(userSession));
+    } else {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+    }
+  }, [navigate]);
 
-        const topResponse = await api.get('/api/recipes/top-10');
-        setTopRecipes(topResponse.data);
+  // 2차: 백엔드에서 최신 유저 정보 가져와서 동기화
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await api.get('auth/me');
+        setUser(response.data);
+        sessionStorage.setItem(
+          'logged_in_user',
+          JSON.stringify(response.data),
+        );
       } catch (error) {
-        console.error("레시피 데이터를 불러오는 중 오류:", error);
+        console.error('유저 정보를 불러오는 중 오류:', error);
       }
     };
-    fetchRecipes();
+
+    fetchUser();
   }, []);
-  */
 
-  // return 문은 단 하나의 태그로 시작해야 합니다.
+  if (!user) {
+    return <div>로딩 중...</div>;
+  }
+
   return (
-    <div className="main-page-container">
-      
-      {/* 1. Navigation 컴포넌트 */}
-      <Navigation />
-      
-      {/* 2. RecipeSection 컴포넌트 (금일의 레시피) */}
-      <RecipeSection 
-        title="금일의 레시피 추천" 
-        recipes={todayRecipes} 
-        sectionId="today-recommend"
-      />
-      
-      {/* 3. 또 다른 RecipeSection (인기 Top 10) */}
-      <RecipeSection 
-        title="인기 Top 10 레시피" 
-        recipes={topRecipes}
-        sectionId="top-10"
-      />
-      
-      {/* 4. 구분선 */}
-      <div className="footer-divider-wrapper">
-        <div className="footer-divider"></div>
-      </div>
+    <div className="mypage-container">
+      <nav className="mypage-nav">
+        <button className="nav-item active">
+          <FaThList /> 레시피
+        </button>
+        <button className="nav-item">
+          <FaStar /> 나의 냉장고 등록하기
+        </button>
+        <button className="nav-item">
+          <FaCommentDots /> 댓글
+        </button>
+        <button className="nav-item">
+          <FaBookOpen /> 스토리
+        </button>
+      </nav>
 
-    </div> // <-- 모든 콘텐츠를 감싸는 최상위 div가 여기서 닫힙니다.
+      <div className="mypage-content">
+        <div className="tabs">
+          <span className="tab-item active">공개중</span>
+          <span className="tab-item">작성중</span>
+        </div>
+
+        <div className="empty-state">
+          <div className="profile-pic">
+            {user.nickname
+              ? user.nickname.charAt(0).toUpperCase()
+              : user.username
+              ? user.username.charAt(0).toUpperCase()
+              : 'N'}
+          </div>
+          <h3>레시피를 직접 올려보세요!</h3>
+          <p>
+            자랑하고 싶은 나만의 레시피! 공유하고 싶은 멋진 레시피를 올려 주세요.
+          </p>
+          <Link to="/recipe/write" className="register-btn">
+            레시피 등록하기
+          </Link>
+        </div>
+
+        <div className="recipe-search">
+          <input type="text" placeholder="레시피 검색" />
+          <button>
+            <FaSearch />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default MainPage;
+export default MyPage;

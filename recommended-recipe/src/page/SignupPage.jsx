@@ -1,142 +1,181 @@
 // src/page/SignupPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../api/axios.js'; // 1. src/api/axios.js 파일을 불러옵니다.
-import './signup.css'; // 2. src/page/signup.css 파일을 불러옵니다.
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axios.js';
+import './signup.css';
 
 function SignupPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    gender: '',
-    age: '',
-    email: '',
-    username: '',
+    userid: '',
     password: '',
     passwordConfirm: '',
-    nickname: ''
+    name: '',
+    nickname: '',
+    email: '',
+    gender: '',
+    age: '',
   });
-  
-  const [passwordError, setPasswordError] = useState(''); 
+
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const [passwordMsgClass, setPasswordMsgClass] = useState('');
+  const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
-  // 폼 입력 변경 핸들러
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  // 비밀번호 실시간 오류 검사
   useEffect(() => {
-    if (formData.passwordConfirm && formData.password !== formData.passwordConfirm) {
-      setPasswordError('비밀번호가 일치하지 않습니다.');
+    if (!formData.passwordConfirm) {
+      setPasswordMsg('');
+      setPasswordMsgClass('');
+      return;
+    }
+
+    if (formData.password && formData.password === formData.passwordConfirm) {
+      setPasswordMsg('비밀번호가 일치합니다.');
+      setPasswordMsgClass('success');
     } else {
-      setPasswordError('');
+      setPasswordMsg('비밀번호가 일치하지 않습니다.');
+      setPasswordMsgClass('error');
     }
   }, [formData.password, formData.passwordConfirm]);
 
-  // 회원가입 제출 핸들러
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    
-    if (passwordError) {
-      alert('비밀번호가 일치하지 않습니다. 확인해주세요.');
+  const handleCheckUserid = () => {
+    if (!formData.userid) {
+      alert('아이디를 입력해주세요.');
       return;
     }
 
-    // --- (Mock) 임시 회원가입 로직 ---
-    try {
-      const existingUsers = JSON.parse(localStorage.getItem('fake_users') || '[]');
-      
-      const isUsernameTaken = existingUsers.some(user => user.username === formData.username);
-      if (isUsernameTaken) {
-        alert('회원가입 중 오류가 발생했습니다. (예: 아이디 또는 이메일 중복)');
+    if (formData.userid === 'admin' || formData.userid === 'test') {
+      alert('이미 사용 중인 아이디입니다.');
+    } else {
+      alert('사용 가능한 아이디입니다. (임시)');
+    }
+  };
+
+  const handleCheckNickname = () => {
+    if (!formData.nickname) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+
+    if (formData.nickname === 'admin' || formData.nickname === 'test') {
+      alert('이미 사용 중인 닉네임입니다.');
+    } else {
+      alert('사용 가능한 닉네임입니다. (임시)');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    for (const key in formData) {
+      if (!formData[key]) {
+        setError('모든 필드를 입력해주세요.');
         return;
       }
-      
-      const { passwordConfirm, ...newUser } = formData;
-      const updatedUsers = [...existingUsers, newUser];
-      localStorage.setItem('fake_users', JSON.stringify(updatedUsers));
-      
-      alert(' (Mock) 회원가입이 완료되었습니다. 메인 페이지로 이동합니다.');
-      navigate('/'); // 메인 페이지로 이동
-
-    } catch (error) {
-      console.error('Mock 회원가입 실패:', error);
-      alert('임시 회원가입 중 로컬 스토리지 오류가 발생했습니다.');
     }
-    // --- (Mock) 로직 끝 ---
 
-
-    /*
-    // (실제 API 호출 로직은 주석 처리)
-    try {
-      const { passwordConfirm, ...signupData } = formData; 
-      await api.post('/api/auth/signup', signupData);
-      alert('회원가입이 완료되었습니다. 메인 페이지로 이동합니다.');
-      navigate('/');
-    } catch (error) {
-      console.error('회원가입 실패:', error);
-      alert('회원가입 중 오류가 발생했습니다. (예: 아이디 또는 이메일 중복)');
-    }
-    */
-  };
-
-  // 중복 확인 핸들러
-  const handleCheckDuplication = (type) => {
-    const value = formData[type];
-    if (!value) {
-      alert(`${type === 'username' ? '아이디' : '닉네임'}를 입력하세요.`);
+    if (formData.password !== formData.passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
-    alert(`'${value}'는 사용 가능한 ${type === 'username' ? '아이디' : '닉네임'}입니다. (임시)`);
+
+    try {
+      const { passwordConfirm, ...payload } = formData;
+      await api.post('auth/registry', payload);
+
+      alert('회원가입 완료!');
+      navigate('/login');
+    } catch (err) {
+      console.error('회원가입 실패:', err);
+      setError('회원가입 중 오류가 발생했습니다.');
+    }
   };
 
-
   return (
-    // ... (JSX 렌더링 부분은 동일) ...
-    <div className="signup-page-container">
-      <div className="signup-box">
+    <>
+      <div className="header">
+        <Link to="/">원룸 레시피</Link>
+      </div>
+
+      <div className="signup-container">
         <h2>회원가입</h2>
-        <form onSubmit={handleSignup}>
-          
+        {error && <div className="error-msg">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label htmlFor="name">이름</label>
-            <input type="text" id="name" name="name" onChange={handleChange} required />
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="input-group">
             <label htmlFor="gender">성별</label>
-            <select id="gender" name="gender" onChange={handleChange} required>
-              <option value="" disabled selected>선택</option>
-              <option value="MALE">남성</option>
-              <option value="FEMALE">여성</option>
-              <option value="OTHER">기타</option>
+            <select
+              id="gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="">선택</option>
+              <option value="남">남</option>
+              <option value="여">여</option>
             </select>
           </div>
 
           <div className="input-group">
             <label htmlFor="age">나이</label>
-            <input type="number" id="age" name="age" onChange={handleChange} required />
+            <input
+              type="number"
+              id="age"
+              name="age"
+              min="1"
+              max="120"
+              value={formData.age}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="input-group">
             <label htmlFor="email">이메일</label>
-            <input type="email" id="email" name="email" onChange={handleChange} required />
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
           </div>
 
-          <div className="input-group with-button">
-            <label htmlFor="username">아이디</label>
-            <div className="input-wrapper">
-              <input type="text" id="username" name="username" onChange={handleChange} required />
-              <button 
-                type="button" 
-                className="check-btn" 
-                onClick={() => handleCheckDuplication('username')}
-              >
+          <div className="input-group">
+            <label htmlFor="userid">아이디</label>
+            <div className="nickname-group">
+              <input
+                type="text"
+                id="userid"
+                name="userid"
+                value={formData.userid}
+                onChange={handleChange}
+                required
+              />
+              <button type="button" onClick={handleCheckUserid}>
                 중복확인
               </button>
             </div>
@@ -144,36 +183,54 @@ function SignupPage() {
 
           <div className="input-group">
             <label htmlFor="password">비밀번호</label>
-            <input type="password" id="password" name="password" onChange={handleChange} required />
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="input-group">
             <label htmlFor="passwordConfirm">비밀번호 확인</label>
-            <input type="password" id="passwordConfirm" name="passwordConfirm" onChange={handleChange} required />
-            {passwordError && <p className="error-message">{passwordError}</p>}
+            <input
+              type="password"
+              id="passwordConfirm"
+              name="passwordConfirm"
+              value={formData.passwordConfirm || ''}
+              onChange={handleChange}
+              required
+            />
+            {passwordMsg && (
+              <div className={passwordMsgClass}>{passwordMsg}</div>
+            )}
           </div>
 
-          <div className="input-group with-button">
+          <div className="input-group">
             <label htmlFor="nickname">닉네임</label>
-            <div className="input-wrapper">
-              <input type="text" id="nickname" name="nickname" onChange={handleChange} required />
-              <button 
-                type="button" 
-                className="check-btn" 
-                onClick={() => handleCheckDuplication('nickname')}
-              >
+            <div className="nickname-group">
+              <input
+                type="text"
+                id="nickname"
+                name="nickname"
+                value={formData.nickname}
+                onChange={handleChange}
+                required
+              />
+              <button type="button" onClick={handleCheckNickname}>
                 중복확인
               </button>
             </div>
           </div>
 
-          <button type="submit" className="signup-submit-btn">
+          <button type="submit" className="submit-btn">
             회원가입
           </button>
-
         </form>
       </div>
-    </div>
+    </>
   );
 }
 

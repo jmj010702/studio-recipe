@@ -79,5 +79,4 @@ server:
     context-path: /studio-recipe
 
 front:
-  # 나중에 S3/CloudFront 도메인으로 변경 예정
-  url: http://localhost:5173
+  urls: "http://localhost:5173,https://rapa8.shop,https://www.rapa8.shop"
