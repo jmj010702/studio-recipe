@@ -86,3 +86,36 @@
   color: #333;
   margin-bottom: 15px;
 }
+
+/* 찜 버튼 (오른쪽 상단 고정) */
+.bookmark-btn {
+  position: fixed;
+  top: 100px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  font-size: 32px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.bookmark-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bookmark-btn.bookmarked {
+  background: #fff3cd;
+  border-color: #ffc107;
+  animation: bookmarkPop 0.3s ease;
+}
+
+@keyframes bookmarkPop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}

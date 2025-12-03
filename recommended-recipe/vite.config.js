@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       
-      // 1. /api 경로 (MainPage 검색, RecipeWritePage 등)
+      // 1. /api 경로 (모든 API 요청)
       '/api': { 
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -20,26 +20,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/auth/, '/studio-recipe/auth')
       },
 
-      // 3. /mypages 경로 (마이페이지 데이터)
-      '/mypages': {
+      // 3. /images 경로 (정적 이미지 리소스)
+      '/images': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/mypages/, '/studio-recipe/mypages') 
-      },
-
-      // 4. /mainPages 경로 (메인페이지 데이터)
-      '/mainPages': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/mainPages/, '/studio-recipe/mainPages') 
-      },
-      
-      // 5. /details 경로 (레시피 상세페이지 데이터)
-      '/details': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/details/, '/studio-recipe/details') 
+        rewrite: (path) => path.replace(/^\/images/, '/studio-recipe/images')
       }
     }
   }
-}); 
+});

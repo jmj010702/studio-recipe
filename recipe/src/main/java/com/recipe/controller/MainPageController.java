@@ -3,7 +3,7 @@ package com.recipe.controller;
 import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import com.recipe.service.RecipeService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.log4j.Log4j2;  // ✅ 추가
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/mainPages")
 @RequiredArgsConstructor
-@Log4j2
+@Log4j2  // ✅ 추가
 public class MainPageController {
     
     private final RecipeService recipeService;
@@ -26,13 +26,9 @@ public class MainPageController {
         log.info("GET /api/mainPages - 메인 페이지 데이터 요청");
         
         try {
-            // 추천 레시피 10개 (최신순)
             List<RecipeResponseDTO> recommendedRecipes = recipeService.getRecommendedRecipes(10);
-            
-            // 인기 레시피 10개 (조회수 높은 순)
             List<RecipeResponseDTO> topRecipes = recipeService.getTopRecipes(10);
             
-            // 프론트엔드가 기대하는 형식으로 응답
             Map<String, Object> data = new HashMap<>();
             data.put("recommended-recipe", recommendedRecipes);
             data.put("recipe", topRecipes);

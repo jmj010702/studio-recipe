@@ -6,6 +6,7 @@ import com.recipe.domain.entity.Recipe;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -37,4 +38,14 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     void deleteByUserAndRecipe(User user, Recipe recipe);
 
     int countByRecipe(Recipe recipe);
+
+    // ▼▼▼ [추가됨] 회원 탈퇴 시 좋아요 기록 일괄 삭제 ▼▼▼
+    @Modifying
+    @Query("DELETE FROM Like l WHERE l.user.userId = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
+    
+    // ▼▼▼ [추가됨] 레시피 삭제 시 좋아요 기록 일괄 삭제 ▼▼▼
+    @Modifying
+    @Query("DELETE FROM Like l WHERE l.recipe.rcpSno = :recipeId")
+    int deleteByRecipeId(@Param("recipeId") Long recipeId);
 }

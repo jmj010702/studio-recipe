@@ -30,7 +30,7 @@ spring:
   data:
     redis:
       host: localhost
-      prot: 6379
+      port: 6379
   thymeleaf:
     cache: false
     prefix: classpath:/templates/
@@ -38,6 +38,18 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  web:
+    resources:
+      static-locations: 
+        - file:///C:/project/studio-recipe/recipe/uploads/
+        - classpath:/static/
+
+file:
+  upload-dir: C:/project/studio-recipe/recipe/uploads/images
     
 jwt:
   secret: VGhpc0lzQUR1bW15U2VjcmV0S2V5Rm9yTG9jYWxUZXN0aW5nMTIzNDU2Nzg5MEFCQ0RFRg==

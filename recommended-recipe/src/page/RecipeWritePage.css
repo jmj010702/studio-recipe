@@ -167,3 +167,207 @@
   transform: translateY(-2px);
   background-color: #45a049;
 }
+
+/* 이미지 업로드 컨테이너 */
+.image-upload-container {
+  margin-bottom: 20px;
+}
+
+.image-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.image-upload-label:hover {
+  border-color: #4CAF50;
+  background-color: #f0f8f0;
+}
+
+.image-upload-label .upload-icon {
+  font-size: 48px;
+  color: #999;
+  margin-bottom: 10px;
+}
+
+.image-upload-label span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.image-upload-label small {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+}
+
+/* 이미지 미리보기 */
+.image-preview-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.image-preview {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.image-remove-btn {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.image-remove-btn:hover {
+  background-color: #c82333;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .image-preview {
+    max-height: 300px;
+  }
+  
+  .image-upload-label {
+    padding: 30px 15px;
+  }
+  
+  .image-upload-label .upload-icon {
+    font-size: 36px;
+  }
+}
+
+/* 기존 스타일과 통합 */
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* 재료 입력 행 */
+.ingredient-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.ingredient-row input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.remove-btn {
+  padding: 10px 15px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.remove-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.add-btn {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.add-btn:hover {
+  background-color: #45a049;
+}
+
+/* 제출 버튼 */
+.submit-btn {
+  width: 100%;
+  padding: 15px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+}
+
+/* 모바일 재료 입력 최적화 */
+@media (max-width: 768px) {
+  .ingredient-row {
+    flex-wrap: wrap;
+  }
+  
+  .ingredient-row input {
+    flex-basis: calc(50% - 5px);
+  }
+  
+  .remove-btn {
+    flex-basis: 100%;
+    margin-top: 5px;
+  }
+}

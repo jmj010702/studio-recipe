@@ -13,51 +13,203 @@ function MainPage() {
   const [error, setError] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
-  // 로그인 상태 확인
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
-  }, []);
+  // 정렬 상태
+  const [sortType, setSortType] = useState('recommend');
   
+  // 날짜 기반 시드 생성 함수
+  const getDailySeed = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    return year * 10000 + month * 100 + day;
+  };
+
+  // 5일 주기 계산 함수
+  const get5DayCycle = () => {
+    const today = new Date();
+    const daysSinceEpoch = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+    return daysSinceEpoch % 5;
+  };
+
+  // 시드 기반 셔플 함수 (Fisher-Yates)
+  const shuffleWithSeed = (array, seed) => {
+    const shuffled = [...array];
+    let currentSeed = seed;
+    
+    const random = () => {
+      currentSeed = (currentSeed * 1103515245 + 12345) & 0x7fffffff;
+      return currentSeed / 0x7fffffff;
+    };
+    
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    return shuffled;
+  };
+
+  // ✅ 레시피 정렬 함수 (백엔드 필드명 사용)
+  const sortRecipes = (recipes, type) => {
+    if (!recipes || recipes.length === 0) return recipes;
+    
+    const sorted = [...recipes];
+    
+    switch(type) {
+      case 'views': // 조회수
+        console.log('📊 조회수(inqCnt)로 정렬 중...');
+        return sorted.sort((a, b) => (b.inqCnt || 0) - (a.inqCnt || 0));
+      
+      case 'likes': // 추천수
+        console.log('❤️ 추천수(rcmmCnt)로 정렬 중...');
+        return sorted.sort((a, b) => (b.rcmmCnt || 0) - (a.rcmmCnt || 0));
+      
+      case 'latest': // 최신순
+        console.log('🆕 최신순(firstRegDt)으로 정렬 중...');
+        return sorted.sort((a, b) => {
+          const dateA = new Date(a.firstRegDt || 0);
+          const dateB = new Date(b.firstRegDt || 0);
+          return dateB - dateA;
+        });
+      
+      case 'recommend': // 추천순 (기본)
+      default:
+        console.log('⭐ 추천순 (기본 - 셔플 상태 유지)');
+        return recipes;
+    }
+  };
+
+  // 5일 동안 겹치지 않는 레시피 선택 함수
+  const get5DayUniqueRecipes = (recipes, recipesPerDay = 10) => {
+    if (recipes.length === 0) {
+      return [];
+    }
+
+    const uniqueRecipes = recipes.reduce((acc, recipe) => {
+      // ✅ rcpSno를 ID로 사용
+      const id = recipe.rcpSno;
+      const exists = acc.find(r => r.rcpSno === id);
+      if (!exists) {
+        acc.push(recipe);
+      }
+      return acc;
+    }, []);
+
+    const dailySeed = getDailySeed();
+    const dayInCycle = get5DayCycle();
+    
+    const shuffled = shuffleWithSeed(uniqueRecipes, dailySeed);
+    
+    const neededRecipes = recipesPerDay * 5;
+    if (uniqueRecipes.length >= neededRecipes) {
+      const startIndex = dayInCycle * recipesPerDay;
+      const endIndex = startIndex + recipesPerDay;
+      return shuffled.slice(startIndex, endIndex);
+    }
+    
+    const offset = (dayInCycle * recipesPerDay) % uniqueRecipes.length;
+    const selected = [];
+    
+    for (let i = 0; i < recipesPerDay && selected.length < uniqueRecipes.length; i++) {
+      const index = (offset + i) % uniqueRecipes.length;
+      const recipe = shuffled[index];
+      
+      // ✅ rcpSno를 ID로 사용
+      const recipeId = recipe.rcpSno;
+      const isDuplicate = selected.find(r => r.rcpSno === recipeId);
+      
+      if (!isDuplicate) {
+        selected.push(recipe);
+      }
+    }
+    
+    return selected;
+  };
+
+  // ⭐ 로그인 상태 확인 useEffect 추가
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const loggedIn = isAuthenticated();
+      console.log('🔐 로그인 상태 확인:', loggedIn);
+      setIsLoggedIn(loggedIn);
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  // 레시피 데이터 로드
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // 기본 레시피 데이터 가져오기
+        console.log('🔍 API 호출 시작: /api/mainPages');
         const response = await api.get('/api/mainPages');
+        console.log('✅ API 응답 전체:', response.data);
+        
         const data = response.data?.data || {};
         const recommended = data['recommended-recipe'] || [];
         const top = data.recipe || [];
         
-        setTodayRecipes(recommended); 
+        console.log('📦 recommended 데이터 개수:', recommended.length);
+        console.log('📦 top 데이터 개수:', top.length);
+        
+        const todayUniqueRecipes = get5DayUniqueRecipes(recommended, 10);
+        
+        // 🔍 데이터 구조 상세 확인 (이미지 URL 집중 체크)
+        if (todayUniqueRecipes.length > 0) {
+          console.log('=== 첫 번째 레시피 데이터 상세 확인 ===');
+          const firstRecipe = todayUniqueRecipes[0];
+          console.log('전체 객체:', firstRecipe);
+          console.log('rcpSno (ID):', firstRecipe.rcpSno);
+          console.log('rcpTtl (제목):', firstRecipe.rcpTtl);
+          console.log('rcpImgUrl (이미지 URL):', firstRecipe.rcpImgUrl);
+          console.log('imageUrl 필드:', firstRecipe.imageUrl);
+          console.log('모든 키:', Object.keys(firstRecipe));
+        }
+
+        setTodayRecipes(todayUniqueRecipes); 
         setTopRecipes(top);
 
-        // 로그인 상태일 때만 추가 데이터 가져오기
+        // ⭐ 로그인 상태 체크 후 좋아요한 레시피 불러오기
         if (isLoggedIn) {
           try {
-            // 좋아요한 레시피 가져오기
+            console.log('🔍 좋아요한 레시피 조회 시작');
             const likedResponse = await api.get('/api/user/liked-recipes');
             const recipes = likedResponse.data?.data || likedResponse.data || [];
             
-            // 좋아요와 북마크 모두 같은 데이터로 설정
-            setLikedRecipes(recipes);
-            setBookmarkedRecipes(recipes); // 같은 데이터 사용
+            console.log('❤️ 좋아요한 레시피 개수:', recipes.length);
             
-            console.log('좋아요한 레시피:', recipes.length, '개');
+            // ⭐ 좋아요한 레시피 이미지 URL 확인
+            if (recipes.length > 0) {
+              console.log('=== 좋아요한 레시피 데이터 상세 확인 ===');
+              recipes.forEach((recipe, index) => {
+                console.log(`레시피 ${index + 1}:`, {
+                  rcpSno: recipe.rcpSno,
+                  rcpTtl: recipe.rcpTtl,
+                  rcpImgUrl: recipe.rcpImgUrl,
+                });
+              });
+            }
+            
+            setLikedRecipes(recipes);
+            setBookmarkedRecipes(recipes);
             
           } catch (likedError) {
-            console.warn("좋아요한 레시피 API 오류:", likedError.response?.status);
-            // 404 또는 500 에러는 무시 (API 미구현)
+            console.error('❌ 좋아요한 레시피 조회 실패:', likedError);
             if (likedError.response?.status === 404 || likedError.response?.status === 500) {
               setLikedRecipes([]);
               setBookmarkedRecipes([]);
             }
           }
+        } else {
+          console.log('❌ 로그인 상태가 아니므로 좋아요한 레시피를 불러오지 않습니다.');
         }
 
       } catch (error) {
-        console.error("레시피 데이터를 불러오는 중 오류:", error);
+        console.error("❌ 레시피 데이터를 불러오는 중 오류:", error);
         console.error("에러 상세:", error.response?.data);
         setError("레시피를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.");
       } finally {
@@ -66,9 +218,17 @@ function MainPage() {
     };
 
     fetchRecipes();
-  }, [isLoggedIn]); // isLoggedIn이 변경될 때마다 다시 로드
+  }, [isLoggedIn]);
 
-  // 로딩 중일 때
+  // 정렬 핸들러
+  const handleSortChange = (type) => {
+    console.log('🔀 MainPage에서 정렬 변경:', type);
+    setSortType(type);
+  };
+
+  // 정렬된 레시피 계산
+  const sortedTodayRecipes = sortRecipes(todayRecipes, sortType);
+
   if (loading) {
     return (
       <div className="main-page-container">
@@ -80,7 +240,6 @@ function MainPage() {
     );
   }
 
-  // 에러 발생 시
   if (error) {
     return (
       <div className="main-page-container">
@@ -95,7 +254,6 @@ function MainPage() {
     );
   }
 
-  // 데이터가 없을 때
   if (todayRecipes.length === 0 && topRecipes.length === 0) {
     return (
       <div className="main-page-container">
@@ -111,11 +269,12 @@ function MainPage() {
     <div className="main-page-container">
       <Navigation />
       
-      {/* 로그인 여부와 관계없이 항상 표시 */}
       <RecipeSection 
         title="금일의 레시피 추천" 
-        recipes={todayRecipes} 
+        recipes={sortedTodayRecipes} 
         sectionId="today-recommend"
+        sortType={sortType}
+        onSortChange={handleSortChange}
       />
       
       <RecipeSection 
@@ -124,7 +283,6 @@ function MainPage() {
         sectionId="top-10"
       />
       
-      {/* 로그인 상태일 때만 표시 */}
       {isLoggedIn && likedRecipes.length > 0 && (
         <>
           <div className="footer-divider-wrapper">

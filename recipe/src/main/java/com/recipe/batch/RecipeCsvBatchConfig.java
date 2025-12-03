@@ -4,7 +4,7 @@ import com.recipe.batch.RecipeCsvDto;
 import com.recipe.domain.entity.Recipe;
 import com.recipe.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
+@Log4j2
 @Configuration
 @RequiredArgsConstructor
 public class RecipeCsvBatchConfig {
@@ -68,7 +68,7 @@ public class RecipeCsvBatchConfig {
     public ItemProcessor<RecipeCsvDto, Recipe> csvProcessor() {
         return csvDto -> {
             Recipe recipe = new Recipe();
-            recipe.setRcpSno(csvDto.getRcpSno());
+            // ✅ ID는 null로 두어서 DB에서 자동 생성되도록 함
             recipe.setRcpTtl(csvDto.getRcpTtl());
             recipe.setCkgNm(csvDto.getCkgNm());
             recipe.setCkgDodfNm(csvDto.getCkgDodfNm());
@@ -95,18 +95,19 @@ public class RecipeCsvBatchConfig {
         };
     }
 
-    // 3️⃣ DB에 저장 (중복 체크 로직 추가)
+    // 3️⃣ DB에 저장 (중복 체크 로직 제거, ID 자동 생성)
     @Bean
     public ItemWriter<Recipe> csvWriter() {
         return items -> {
             List<Recipe> newRecipes = new ArrayList<>();
             
             for (Recipe recipe : items) {
-                // 이미 존재하는지 확인
-                if (!recipeRepository.existsById(recipe.getRcpSno())) {
+                try {
+                    // ✅ ID를 null로 설정하여 자동 생성되도록 함
+                    recipe.setRcpSno(null);
                     newRecipes.add(recipe);
-                } else {
-                    log.debug("⚠️ 이미 존재하는 레시피 스킵: {}", recipe.getRcpSno());
+                } catch (Exception e) {
+                    log.error("⚠️ 레시피 처리 중 오류: {}", e.getMessage());
                 }
             }
             
@@ -114,7 +115,7 @@ public class RecipeCsvBatchConfig {
                 recipeRepository.saveAll(newRecipes);
                 log.info("✅ 저장된 레시피 수: {}", newRecipes.size());
             } else {
-                log.info("⚠️ 새로 저장할 레시피 없음 (모두 중복)");
+                log.warn("⚠️ 저장할 레시피 없음");
             }
         };
     }

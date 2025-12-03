@@ -5,7 +5,9 @@ import lombok.Getter;
 @Getter
 public enum UserExceptions {
     NOT_FOUND("NOT_FOUND", 404),
-    CONFLICT("CONFLICT", 409);
+    CONFLICT("CONFLICT", 409),
+    INVALID_PASSWORD("INVALID_PASSWORD", 400),
+    UNAUTHORIZED("UNAUTHORIZED", 403);
 
     private String message;
     private int code;

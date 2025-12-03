@@ -12,7 +12,7 @@ import com.recipe.repository.RecipeRepository;
 import com.recipe.repository.UserReferencesRepository;
 import com.recipe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Slf4j
+@Log4j2
 @Service
 @RequiredArgsConstructor
 @Transactional

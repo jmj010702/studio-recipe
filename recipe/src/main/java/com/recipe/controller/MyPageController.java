@@ -1,34 +1,103 @@
 package com.recipe.controller;
 
-// [필수] API 명세에 맞는 DTO와 Service를 import 해야 합니다.
-import com.recipe.domain.dto.mypage.MyPageResponseDto; 
-import com.recipe.service.MyPageService; 
-
+import com.recipe.domain.dto.IngredientDto;
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
+import com.recipe.domain.dto.auth.CustomerDetails;
+import com.recipe.domain.dto.mypage.MyPageResponseDto;
+import com.recipe.service.MyPageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication; // 👈 토큰에서 유저 정보 가져오기
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+@Log4j2
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/mypages") // 👈 [핵심] /api/mypages 경로
+@RequestMapping("/api/mypages")
 public class MyPageController {
 
-    // 💡 [필수] 이 Service가 실제로 DB를 조회해야 합니다.
     private final MyPageService myPageService;
 
-    @GetMapping("/me") // 👈 [핵심] /me 경로 -> /api/mypages/me
-    public ResponseEntity<MyPageResponseDto> getMyPageData(Authentication authentication) {
-        
-        // 1. Spring Security가 토큰을 해석해서 넣어준 'authentication'에서 사용자 ID를 꺼냅니다.
-        String userId = authentication.getName(); // (예: "namgyu2001")
+    // 마이페이지 메인 정보 조회 (유저 정보 + 좋아요 목록)
+    @GetMapping("/me")
+    public ResponseEntity<MyPageResponseDto> getMyPage(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("마이페이지 조회 요청 - userId: {}", customer.getUserId());
+        MyPageResponseDto myPageInfo = myPageService.getMyPageInfo(customer.getUserId());
+        return ResponseEntity.ok(myPageInfo);
+    }
 
-        // 2. Service에게 사용자 ID를 전달하여 모든 데이터를 가져오게 합니다.
-        MyPageResponseDto myPageData = myPageService.getMyPageData(userId);
+    // 내가 작성한 레시피 목록 조회
+    @GetMapping("/my-recipes")
+    public ResponseEntity<List<RecipeResponseDTO>> getMyRecipes(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("내 레시피 목록 조회 요청 - userId: {}", customer.getUserId());
+        List<RecipeResponseDTO> myRecipes = myPageService.getMyRecipes(customer.getUserId());
+        return ResponseEntity.ok(myRecipes);
+    }
 
-        // 3. React에게 모든 데이터를 응답합니다.
-        return ResponseEntity.ok(myPageData);
+    // ✅ 좋아요 누른 레시피 목록 조회
+    @GetMapping("/liked-recipes")
+    public ResponseEntity<List<RecipeResponseDTO>> getLikedRecipes(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("좋아요 레시피 목록 조회 요청 - userId: {}", customer.getUserId());
+        List<RecipeResponseDTO> likedRecipes = myPageService.getLikedRecipesDTO(customer.getUserId());
+        return ResponseEntity.ok(likedRecipes);
+    }
+
+    // ✅ 찜한 레시피 목록 조회 (북마크)
+    @GetMapping("/bookmarked-recipes")
+    public ResponseEntity<List<RecipeResponseDTO>> getBookmarkedRecipes(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("찜한 레시피 목록 조회 요청 - userId: {}", customer.getUserId());
+        List<RecipeResponseDTO> bookmarkedRecipes = myPageService.getBookmarkedRecipes(customer.getUserId());
+        return ResponseEntity.ok(bookmarkedRecipes);
+    }
+
+    // ========================================
+    // ✅ 냉장고 재료 관련 엔드포인트 (신규 추가)
+    // ========================================
+
+    /**
+     * 냉장고 재료 조회
+     */
+    @GetMapping("/ingredients")
+    public ResponseEntity<List<IngredientDto>> getIngredients(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("냉장고 재료 조회 - userId: {}", customer.getUserId());
+        List<IngredientDto> ingredients = myPageService.getIngredients(customer.getUserId());
+        return ResponseEntity.ok(ingredients);
+    }
+
+    /**
+     * 냉장고 재료 추가
+     */
+    @PostMapping("/ingredients")
+    public ResponseEntity<IngredientDto> addIngredient(
+            @AuthenticationPrincipal CustomerDetails customer,
+            @RequestBody IngredientDto ingredientDto) {
+        log.info("냉장고 재료 추가 - userId: {}, ingredient: {}", customer.getUserId(), ingredientDto.getName());
+        IngredientDto saved = myPageService.addIngredient(customer.getUserId(), ingredientDto);
+        return ResponseEntity.ok(saved);
+    }
+
+    /**
+     * 냉장고 재료 삭제
+     */
+    @DeleteMapping("/ingredients/{ingredientId}")
+    public ResponseEntity<Void> deleteIngredient(
+            @AuthenticationPrincipal CustomerDetails customer,
+            @PathVariable Long ingredientId) {
+        log.info("냉장고 재료 삭제 - userId: {}, ingredientId: {}", customer.getUserId(), ingredientId);
+        myPageService.deleteIngredient(customer.getUserId(), ingredientId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 재료 기반 추천 레시피 조회
+     */
+    @GetMapping("/recommended-recipes")
+    public ResponseEntity<List<RecipeResponseDTO>> getRecommendedRecipes(@AuthenticationPrincipal CustomerDetails customer) {
+        log.info("재료 기반 추천 레시피 조회 - userId: {}", customer.getUserId());
+        List<RecipeResponseDTO> recipes = myPageService.getRecommendedRecipes(customer.getUserId());
+        return ResponseEntity.ok(recipes);
     }
 }

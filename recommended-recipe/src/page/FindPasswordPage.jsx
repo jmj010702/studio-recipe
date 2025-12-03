@@ -1,50 +1,53 @@
-// src/page/FindPasswordPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios'; 
 import './login.css'; 
 
 function FindPasswordPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   
   const [authKey, setAuthKey] = useState(''); 
   const [isKeySent, setIsKeySent] = useState(false); 
   const [isVerified, setIsVerified] = useState(false); 
+  
+  // 토큰 저장용 (비밀번호 변경 시 필요)
+  const [resetToken, setResetToken] = useState(''); 
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
-  // --- 💡 [수정] 비밀번호 실시간 유효성 검사 (길이 조건 제거) ---
+  // 비밀번호 일치 여부 검사
   useEffect(() => {
-    // "8자 이상" 조건을 제거하고, "일치" 여부만 확인합니다.
     if (isVerified && confirmPassword && newPassword !== confirmPassword) {
       setPasswordError('비밀번호가 일치하지 않습니다.');
     } else {
       setPasswordError('');
     }
-  }, [isVerified, newPassword, confirmPassword]); // 👈 [수정] 의존성 배열은 그대로 둠
+  }, [isVerified, newPassword, confirmPassword]);
 
   // --- 1. 인증번호 발송 핸들러 ---
   const handleSendKey = async (e) => {
     e.preventDefault();
-    if (!username || !name) {
-      alert('아이디(이메일)와 이름을 모두 입력해주세요.');
+    if (!email) {
+      alert('아이디(이메일)를 입력해주세요.');
       return;
     }
     
     try {
-      // 💡 TODO: 백엔드의 "인증키 발송" API 호출
-      await api.post('/api/password/send-key', { username, name });
+      // ✅ [수정] /auth -> /api/auth로 변경
+      await api.post('/api/auth/send-verification', { 
+        email: email 
+      });
       
       alert('인증번호가 발송되었습니다. 이메일을 확인해주세요.');
-      setIsKeySent(true); // 👈 2단계(인증키 입력) UI로 변경
+      setIsKeySent(true); 
 
     } catch (error) {
       console.error('인증키 발송 실패:', error);
-      alert('사용자 정보를 찾을 수 없습니다.');
+      alert('사용자 정보를 찾을 수 없거나 발송에 실패했습니다.');
     }
   };
 
@@ -57,15 +60,26 @@ function FindPasswordPage() {
     }
 
     try {
-      // 💡 TODO: 백엔드의 "인증키 확인" API 호출
-      await api.post('/api/password/verify-key', { username, authKey });
+      // ✅ [수정] /auth -> /api/auth로 변경
+      const response = await api.post('/api/auth/verify-code', { 
+        email: email, 
+        verificationCode: authKey,
+        purpose: 'RESET_PASSWORD'
+      });
       
-      alert('인증이 완료되었습니다. 새 비밀번호를 입력하세요.');
-      setIsVerified(true); // 👈 3단계(비밀번호 변경) UI로 변경
+      // 백엔드가 성공 시 resetToken을 줍니다.
+      const token = response.data.resetToken;
+      if (token) {
+        setResetToken(token);
+        alert('인증이 완료되었습니다. 새 비밀번호를 입력하세요.');
+        setIsVerified(true);
+      } else {
+        alert('인증은 되었으나 토큰을 받지 못했습니다.');
+      }
 
     } catch (error) {
       console.error('인증키 확인 실패:', error);
-      alert('인증키가 올바르지 않습니다.');
+      alert('인증키가 올바르지 않거나 만료되었습니다.');
     }
   };
 
@@ -78,12 +92,16 @@ function FindPasswordPage() {
       return;
     }
 
+    if (!resetToken) {
+      alert('인증 토큰이 없습니다. 처음부터 다시 시도해주세요.');
+      return;
+    }
+
     try {
-      // 💡 TODO: 백엔드의 "비밀번호 변경" API 호출
-      await api.post('/api/password/reset', {
-        username,
-        name,
-        newPassword
+      // ✅ [수정] /auth -> /api/auth로 변경
+      await api.post('/api/auth/reset-password', {
+        token: resetToken,
+        newPassword: newPassword
       });
 
       alert('비밀번호가 성공적으로 변경되었습니다. 로그인 페이지로 이동합니다.');
@@ -102,18 +120,19 @@ function FindPasswordPage() {
         
         <form onSubmit={handleSubmit}>
           
-          {/* --- 1단계: 사용자 정보 입력 (인증 전까지 보임) --- */}
+          {/* --- 1단계: 사용자 정보 입력 --- */}
           {!isVerified && (
             <>
               <div className="input-group">
-                <label htmlFor="username">아이디(이메일)</label>
+                <label htmlFor="username">e-mail</label>
                 <input 
                   type="text" 
                   id="username" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isKeySent} 
                   required 
+                  placeholder="예: aaa@aaa.com"
                 />
               </div>
               
@@ -125,7 +144,6 @@ function FindPasswordPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={isKeySent} 
-                  required 
                 />
               </div>
 
@@ -141,7 +159,7 @@ function FindPasswordPage() {
             </>
           )}
 
-          {/* --- 2단계: 인증키 입력 (키 발송 후 & 인증 전까지 보임) --- */}
+          {/* --- 2단계: 인증키 입력 --- */}
           {isKeySent && !isVerified && (
             <div className="input-group" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
               <label htmlFor="authKey">인증키 입력</label>
@@ -151,6 +169,7 @@ function FindPasswordPage() {
                 value={authKey}
                 onChange={(e) => setAuthKey(e.target.value)}
                 required 
+                placeholder="이메일로 받은 번호 입력"
               />
               <button 
                 type="button" 
@@ -163,6 +182,7 @@ function FindPasswordPage() {
             </div>
           )}
 
+          {/* --- 3단계: 새 비밀번호 입력 --- */}
           {isVerified && (
             <>
               <div className="input-group" style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>

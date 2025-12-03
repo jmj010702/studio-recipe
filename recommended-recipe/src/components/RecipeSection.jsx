@@ -1,29 +1,19 @@
-// src/components/RecipeSection.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RecipeCard from './RecipeCard.jsx';
 import SortFilters from './SortFilters.jsx';
 import './RecipeSection.css';
 
-function RecipeSection({ title, recipes, sectionId }) {
+function RecipeSection({ title, recipes, sectionId, sortType, onSortChange }) {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 4;
 
-  // 키보드 이벤트 핸들러
+  // recipes나 sortType이 변경되면 페이지를 첫 번째로 리셋
   useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === '>' || e.key === '.') {
-        handleNext();
-      } 
-      else if (e.key === '<' || e.key === ',') {
-        handlePrev();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentIndex, recipes?.length]);
+    console.log(`🔄 페이지 리셋 - ${title}`);
+    setCurrentIndex(0);
+  }, [recipes, sortType, title]);
 
   const handleNext = () => {
     if (!recipes || recipes.length === 0) return;
@@ -47,13 +37,19 @@ function RecipeSection({ title, recipes, sectionId }) {
     });
   };
 
-  const handleSortChange = (sortType) => {
-    console.log(`${title} 섹션 정렬 변경: ${sortType}`);
+  const handleSortChange = (sortTypeValue) => {
+    console.log(`📢 RecipeSection에서 정렬 호출: ${sortTypeValue}`);
+    console.log('onSortChange 함수 존재?', !!onSortChange);
+    console.log('onSortChange:', onSortChange);
+    if (onSortChange) {
+      console.log('✅ onSortChange 실행!');
+      onSortChange(sortTypeValue);
+    } else {
+      console.log('❌ onSortChange가 없습니다!');
+    }
   };
 
-  // 더보기 버튼 클릭 핸들러
   const handleSeeMore = () => {
-    // sectionId에 따라 다른 페이지로 이동
     if (sectionId === 'today-recommend') {
       navigate('/recipes/recommended');
     } else if (sectionId === 'top-10') {
@@ -76,7 +72,13 @@ function RecipeSection({ title, recipes, sectionId }) {
           <h2 className="section-title">{title}</h2>
           
           <div className="header-right">
-            <SortFilters onSortChange={handleSortChange} />
+            {/* sortType과 onSortChange가 있을 때만 정렬 필터 표시 */}
+            {sortType !== undefined && onSortChange && (
+              <SortFilters 
+                onSortChange={handleSortChange}
+                currentSort={sortType}
+              />
+            )}
             
             {recipes && recipes.length > itemsPerPage && (
               <div className="carousel-navigation">

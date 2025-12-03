@@ -1,12 +1,16 @@
 package com.recipe.controller;
 
-import com.recipe.controller.inter.AuthController;
 import com.recipe.controller.inter.UserController;
+import com.recipe.domain.dto.auth.CustomerDetails;
+import com.recipe.domain.dto.user.ChangePasswordRequestDTO;
+import com.recipe.domain.dto.user.UserDeleteRequestDto;
+import com.recipe.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.recipe.domain.dto.user.UserDeleteRequestDto;
 import com.recipe.service.UserService;
@@ -19,55 +23,45 @@ import java.util.Map;
 @RequestMapping("/user")
 public class UserControllerImpl implements UserController {
 
-    private final UserService userService;
-//    private final TokenService tokenService;
+    // ▼▼▼ [중요] 서비스가 연결되어 있어야 로직을 수행합니다. ▼▼▼
+    private final UserService userService; 
 
     @GetMapping("/my-pages/{userId}")
     public ResponseEntity<Void> myPage(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "회원 상세 페이지 수정",
+            description = "회원이 수정한 데이터로 회원 테이블 수정")
 
-    @Operation(summary = "회원 상세 페이지 수정", description = "회원이 수정한 데이터로 회원 테이블 수정")
     @PutMapping("/my-pages")
     public ResponseEntity<Void> updateMyPage() {
         return ResponseEntity.ok().build();
     }
 
-    //회원 탈퇴 (하드 딜리트)
-//    @Operation(summary = "회원 탈퇴", description = "JWT 토큰 검증 후 자신의 계정을 완전히 삭제합니다.")
-//    @DeleteMapping("/delete")
-//    public ResponseEntity<Map<String, String>> deleteUser(
-//            @RequestHeader("Authorization") String token,
-//            @RequestBody UserDeleteRequestDto request
-//    ) {
-//        Map<String, String> response = new HashMap<>();
-//
-//        try {
-//            // 1️⃣ Bearer 토큰에서 실제 JWT 부분 추출
-//            String jwt = token.replace("Bearer ", "");
-//
-//            // 2️⃣ 토큰에서 사용자 ID 추출
-//            String tokenUserId = tokenService.getUserIdFromToken(jwt);
-//
-//            // 3️⃣ 토큰의 사용자와 요청 ID 일치 여부 확인
-//            if (!tokenUserId.equals(request.getId())) {
-//                response.put("code", "403");
-//                response.put("message", "본인 계정만 삭제할 수 있습니다.");
-//                return ResponseEntity.status(403).body(response);
-//            }
-//
-//            // 4️⃣ 서비스 호출
-//            userService.deleteUser(request.getId(), request.getPwd());
-//            response.put("code", "200");
-//            response.put("message", "회원 탈퇴가 완료되었습니다.");
-//            return ResponseEntity.ok(response);
-//
-//        } catch (Exception e) {
-//            log.error("회원 탈퇴 중 오류 발생", e);
-//            response.put("code", "400");
-//            response.put("message", e.getMessage());
-//            return ResponseEntity.badRequest().body(response);
-//        }
-//    }
+    // ▼▼▼ [추가됨] 1. 비밀번호 변경 API ▼▼▼
+    @Operation(summary = "비밀번호 변경", description = "로그인한 사용자의 비밀번호를 변경합니다.")
+    @PatchMapping("/password")
+    public ResponseEntity<String> changePassword(
+            @AuthenticationPrincipal CustomerDetails customer,
+            @RequestBody @Valid ChangePasswordRequestDTO request) {
+        
+        userService.changePassword(customer.getUserId(), request);
+        return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+    }
+
+    // ▼▼▼ [추가됨] 2. 회원 탈퇴 API (이게 없어서 404가 떴음) ▼▼▼
+    @Operation(summary = "회원 탈퇴", description = "비밀번호 확인 후 회원 탈퇴를 진행합니다.")
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> deleteUser(
+            @AuthenticationPrincipal CustomerDetails customer,
+            @RequestBody @Valid UserDeleteRequestDto request) {
+        
+        log.info("회원 탈퇴 요청 - 사용자 ID(PK): {}", customer.getUserId());
+        
+        // CustomerDetails에서 로그인 ID(username)를 가져와서 삭제 요청
+        userService.deleteUser(customer.getUsername(), request.getPassword());
+
+        return ResponseEntity.noContent().build();
+    }
 }
