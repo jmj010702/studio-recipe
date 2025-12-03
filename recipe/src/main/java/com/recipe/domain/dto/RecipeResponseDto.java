@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecipeResponseDTO {
+class RecipeResponseDTO {
 
     private Long rcpSno;       // id -> rcpSno 변경
     private Long userId;       // 작성자 ID

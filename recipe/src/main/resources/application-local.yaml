@@ -1,9 +1,9 @@
 spring:
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/recipe_db
-    username: root
-    password: 1234
+    driver-class-name: ${DRIVER_NAME}
+    url: ${DRIVER_URL}
+    username: ${DRIVER_USER_NAME}
+    password: ${DRIVER_PASSWORD}
 
   jpa:
     hibernate:
@@ -40,7 +40,7 @@ spring:
       port: 6379
 
 jwt:
-  secret: ${JWT_SECRET_KEY}
+  secret: ${JWT_SECRET}
   access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
   refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS}
 
@@ -55,7 +55,7 @@ server:
     context-path: /studio-recipe
 
 front:
-  url: http://localhost:5173
+  urls: "http://localhost:5173,https://rapa8.shop,https://www.rapa8.shop"
 
 logging.level:
   org.hibernate.SQL: debug
