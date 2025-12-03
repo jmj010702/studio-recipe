@@ -15,39 +15,49 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@ToString/*(exclude = {"pwd"})*/
+@ToString
 @Getter
 public class User extends BaseEntityTime {
-    @Id@GeneratedValue
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "USER_ID")
     private Long userId;
 
-    @Column(name = "ID",unique = true, nullable = false, length = 50)
-    private String id;
-    @Column(name="PWD", nullable = false, length = 255)
+    @Column(name = "ID", unique = true, nullable = false, length = 50)
+    private String id;  // 로그인 ID (username)
+    
+    @Column(name = "PWD", nullable = false, length = 255)
     private String pwd;
-    @Column(name="NAME", nullable = false, length = 100)
+    
+    @Column(name = "NAME", nullable = false, length = 100)
     private String name;
-    @Column(name="NICKNAME" ,unique = true, nullable = false, length = 50)
+    
+    @Column(name = "NICKNAME", unique = true, nullable = false, length = 50)
     private String nickname;
-    @Column(name="EMAIL",unique = true, nullable = false, length = 50)
+    
+    @Column(name = "EMAIL", unique = true, nullable = false, length = 50)
     private String email;
 
-    @Column(name="BIRTH", nullable = false)
+    @Column(name = "BIRTH", nullable = false)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate birth;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="GENDER", nullable = false,
-    columnDefinition = "ENUM('F', 'M')")
+    @Column(name = "GENDER", nullable = false, columnDefinition = "ENUM('F', 'M')")
     private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ROLE", columnDefinition = "ENUM('ADMIN', 'GUEST') DEFAULT 'GUEST'")
     private Role role;
 
+    // ✅ 비즈니스 로직
     public void changePassword(String newPassword) {
         this.pwd = newPassword;
     }
-
+    
+    // ✅ 편의 메서드: Spring Security에서 username으로 id를 사용
+    public String getUsername() {
+        return this.id;
+    }
 }

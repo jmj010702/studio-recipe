@@ -1,35 +1,46 @@
-// src/components/SortFilters.jsx
-import React, { useState } from 'react';
-import './SortFilters.css'; // SortFilters CSS 임포트
+import React from 'react';
+import './SortFilters.css';
 
-function SortFilters({ onSortChange }) {
-  // 'views' (조회수), 'likes' (추천수), 'newest' (최신순) - 백엔드 API와 일치시킬 것
-  const [activeFilter, setActiveFilter] = useState('views'); 
-
+function SortFilters({ onSortChange, currentSort = 'recommend' }) {
   const handleClick = (filter) => {
-    setActiveFilter(filter);
-    onSortChange(filter); // 부모 컴포넌트에 알림
+    console.log(`🔀 정렬 버튼 클릭: ${filter}`);
+    onSortChange(filter);
   };
 
   return (
     <div className="sort-filters">
       <span 
-        className={`filter-item ${activeFilter === 'views' ? 'active' : ''}`}
+        className={`filter-item ${currentSort === 'recommend' ? 'active' : ''}`}
+        onClick={() => handleClick('recommend')}
+        role="button"
+        tabIndex={0}
+      >
+        추천순
+      </span>
+      <span className="divider">|</span>
+      <span 
+        className={`filter-item ${currentSort === 'views' ? 'active' : ''}`}
         onClick={() => handleClick('views')}
+        role="button"
+        tabIndex={0}
       >
         조회수
       </span>
       <span className="divider">|</span>
       <span 
-        className={`filter-item ${activeFilter === 'likes' ? 'active' : ''}`}
+        className={`filter-item ${currentSort === 'likes' ? 'active' : ''}`}
         onClick={() => handleClick('likes')}
+        role="button"
+        tabIndex={0}
       >
         추천수
       </span>
       <span className="divider">|</span>
       <span 
-        className={`filter-item ${activeFilter === 'newest' ? 'active' : ''}`}
-        onClick={() => handleClick('newest')}
+        className={`filter-item ${currentSort === 'latest' ? 'active' : ''}`}
+        onClick={() => handleClick('latest')}
+        role="button"
+        tabIndex={0}
       >
         최신순
       </span>

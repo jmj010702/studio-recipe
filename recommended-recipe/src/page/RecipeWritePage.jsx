@@ -1,9 +1,17 @@
 // src/page/RecipeWritePage.jsx
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 import './RecipeWritePage.css';
+=======
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import { FaPlus, FaTrash, FaImage } from 'react-icons/fa'; 
+import './RecipeWritePage.css'; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
 function RecipeWritePage() {
   const navigate = useNavigate();
@@ -11,10 +19,64 @@ function RecipeWritePage() {
   const [intro, setIntro] = useState('');
   const [url, setUrl] = useState('');
   const [tags, setTags] = useState('');
+<<<<<<< HEAD
+=======
+  
+  // ✅ 이미지 관련 state 추가
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   const [ingredients, setIngredients] = useState([
     { name: '', amount: '', unit: '', note: '' },
   ]);
 
+<<<<<<< HEAD
+=======
+  // 로그인 확인
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken'); 
+    if (!token) {
+      alert('로그인을 해주시기 바랍니다.');
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // ✅ 이미지 선택 핸들러
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file) {
+      // 파일 크기 체크 (예: 5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 크기는 5MB 이하로 업로드해주세요.');
+        return;
+      }
+
+      // 이미지 파일 타입 체크
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
+
+      setImageFile(file);
+
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // ✅ 이미지 삭제 핸들러
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   const handleIngredientChange = (index, event) => {
     const values = [...ingredients];
     values[index][event.target.name] = event.target.value;
@@ -29,12 +91,17 @@ function RecipeWritePage() {
   };
 
   const removeIngredientField = (index) => {
+<<<<<<< HEAD
     if (ingredients.length <= 1) return;
+=======
+    if (ingredients.length <= 1) return; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
     const values = [...ingredients];
     values.splice(index, 1);
     setIngredients(values);
   };
 
+<<<<<<< HEAD
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -45,6 +112,50 @@ function RecipeWritePage() {
       tags,
       ingredients,
     };
+=======
+  // ✅ 폼 제출 핸들러 (이미지 포함)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // 필수 입력 체크
+    if (!title.trim()) {
+      alert('레시피 제목을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // FormData 생성 (이미지 업로드를 위해)
+      const formData = new FormData();
+      
+      // 텍스트 데이터는 JSON으로 변환하여 추가
+      const recipeData = {
+        title,
+        introduction: intro,
+        videoUrl: url,
+        tags,
+        ingredients
+      };
+      
+      // JSON 데이터를 Blob으로 변환하여 추가
+      formData.append('recipe', new Blob([JSON.stringify(recipeData)], {
+        type: 'application/json'
+      }));
+      
+      // 이미지 파일 추가 (있는 경우에만)
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      // API 호출
+      await api.post('/api/recipes/write', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+      
+      alert('레시피가 성공적으로 등록되었습니다!');
+      navigate('/mypage');
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
     try {
       await api.post('recipes/new', recipeData);
@@ -52,7 +163,12 @@ function RecipeWritePage() {
       navigate('/mypage');
     } catch (error) {
       console.error('레시피 등록 실패:', error);
-      alert('레시피 등록 중 오류가 발생했습니다.');
+      
+      if (error.response) {
+        alert(error.response.data.message || '레시피 등록 중 오류가 발생했습니다.');
+      } else {
+        alert('레시피 등록 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -74,6 +190,48 @@ function RecipeWritePage() {
             />
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* ✅ 레시피 이미지 업로드 */}
+          <div className="form-group">
+            <label htmlFor="image">레시피 이미지</label>
+            
+            {/* 이미지 미리보기 */}
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img 
+                  src={imagePreview} 
+                  alt="레시피 미리보기" 
+                  className="image-preview"
+                />
+                <button 
+                  type="button" 
+                  className="image-remove-btn"
+                  onClick={handleImageRemove}
+                >
+                  <FaTrash /> 이미지 삭제
+                </button>
+              </div>
+            ) : (
+              <div className="image-upload-container">
+                <label htmlFor="image-input" className="image-upload-label">
+                  <FaImage className="upload-icon" />
+                  <span>이미지 선택하기</span>
+                  <small>PC 또는 모바일에서 이미지를 선택할 수 있습니다 (최대 5MB)</small>
+                </label>
+                <input 
+                  type="file" 
+                  id="image-input"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 레시피 소개 */}
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
           <div className="form-group">
             <label htmlFor="intro">레시피 소개</label>
             <textarea
@@ -89,6 +247,7 @@ function RecipeWritePage() {
             <label>재료 정보</label>
             {ingredients.map((field, index) => (
               <div className="ingredient-row" key={index}>
+<<<<<<< HEAD
                 <input
                   type="text"
                   name="name"
@@ -120,6 +279,39 @@ function RecipeWritePage() {
                 <button
                   type="button"
                   className="remove-btn"
+=======
+                <input 
+                  type="text" 
+                  name="name" 
+                  placeholder="재료 이름" 
+                  value={field.name} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="amount" 
+                  placeholder="수량" 
+                  value={field.amount} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="unit" 
+                  placeholder="단위" 
+                  value={field.unit} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <input 
+                  type="text" 
+                  name="note" 
+                  placeholder="비고" 
+                  value={field.note} 
+                  onChange={e => handleIngredientChange(index, e)} 
+                />
+                <button 
+                  type="button" 
+                  className="remove-btn" 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
                   onClick={() => removeIngredientField(index)}
                   disabled={ingredients.length <= 1}
                 >

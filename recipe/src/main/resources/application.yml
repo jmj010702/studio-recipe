@@ -3,6 +3,13 @@ management:
     web:
       exposure:
         include: health,info
+
   endpoint:
     health:
       show-details: never
+
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: false

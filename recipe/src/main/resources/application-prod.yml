@@ -17,8 +17,8 @@ spring:
 
   batch:
     jdbc:
-      # Spring Batch 메타데이터 테이블 자동 생성
-      initialize-schema: always
+      # Spring Batch 메타데이터 테이블 자동 생성 always
+      initialize-schema: never # 애플리케이션 동작 시 영향 없음
     job:
       # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
       enabled: false
@@ -26,24 +26,28 @@ spring:
       job-names: NON_EXISTENT_JOB
 
   mail:
-    host: smtp.gmail.com
-    port: 587
+    host: smtp.naver.com
+    port: 465
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
           auth: true
           ssl:
             enable: true
+            trust: smtp.naver.com
+            protocols: TLSv1.2
           starttls:
             enable: false
 
   data:
     redis:
-      cluster:
-        nodes:
-          - ${SPRING_DATA_REDIS_CLUSTER_NODES} 
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
       timeout: 5000ms
           
       # AWS ElastiCache Redis (Key-Value) 기본 형태 (단일 엔드포인트 방식)

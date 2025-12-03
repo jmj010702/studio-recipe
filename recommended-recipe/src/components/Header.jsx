@@ -2,42 +2,109 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaUserCircle, FaEdit, FaBell, FaSearch } from 'react-icons/fa';
 import { VscAccount, VscSignOut } from 'react-icons/vsc';
-import api from '../api/axios'; // (중요) API 임포트
+import api from '../api/axios'; 
 import './Header.css'; 
 
 function Header() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
 
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
-  
   const debounceTimerRef = useRef(null);
   const searchWrapperRef = useRef(null); 
 
-  const userSession = sessionStorage.getItem('logged_in_user');
-  const isLoggedIn = !!userSession; 
+  // 로그인 상태 관리
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    setIsLoggedIn(!!token);
+  }, [location]);
 
+  // ✅ [수정 1] 검색 제출 (엔터 or 돋보기 클릭)
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      console.log(`검색 실행: ${searchTerm}`);
+    const term = searchTerm.trim();
+    if (term) {
+      // 콤마(,)가 있으면 '재료 검색'으로, 없으면 '제목 검색'으로 이동
+      const searchType = term.includes(',') ? 'ingredients' : 'title';
+      
+      console.log(`🔍 검색 실행: "${term}" (타입: ${searchType})`);
+      
+      navigate(`/search?q=${encodeURIComponent(term)}&type=${searchType}`);
       setSearchResults([]);
       setSearchTerm('');
     }
   };
 
+  // ✅ [수정 2] 자동완성 검색 (스마트 감지)
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    if (searchTerm.trim() === '') {
+      setSearchResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const term = searchTerm.trim();
+        // 콤마가 있으면 재료 검색 API, 없으면 제목 검색 API 호출
+        const isIngredientSearch = term.includes(',');
+        const endpoint = isIngredientSearch ? '/api/search/ingredients' : '/api/search/title';
+        
+        console.log(`🔍 자동완성 API 호출 (${isIngredientSearch ? '재료' : '제목'}):`, term);
+        
+        const response = await api.get(endpoint, {
+          params: { 
+            q: term, 
+            page: 0,
+            size: 5 
+          }
+        });
+        
+        const recipes = response.data.content || [];
+        
+        setSearchResults(recipes.map(recipe => ({
+          id: recipe.rcpSno,
+          title: recipe.rcpTtl || '제목 없음',
+          type: recipe.ckgNm || ''
+        })));
+        
+      } catch (error) {
+        console.error("❌ 자동완성 검색 실패:", error);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimerRef.current);
+  }, [searchTerm]);
+
+  // 로그아웃
   const handleLogout = () => {
-    sessionStorage.removeItem('logged_in_user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    sessionStorage.clear();
+    
+    setIsLoggedIn(false);
     setIsDropdownOpen(false);
+    
+    alert('로그아웃되었습니다.');
     navigate('/');
   };
 
-  const handleProfileIconClick = () => {
+  // 프로필 아이콘 클릭
+  const handleProfileIconClick = (e) => {
+    e.stopPropagation();
     if (isLoggedIn) {
       setIsDropdownOpen(prev => !prev);
     } else {
@@ -45,6 +112,14 @@ function Header() {
     }
   };
 
+  // 자동완성 항목 클릭
+  const handleAutocompleteClick = (recipeId) => {
+    navigate(`/details/${recipeId}`);
+    setSearchResults([]);
+    setSearchTerm('');
+  };
+
+  // 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -56,63 +131,14 @@ function Header() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownRef, searchWrapperRef]);
+  }, []);
 
-  // 페이지 이동 시 검색창/결과창 초기화
+  // 페이지 이동 시 초기화
   useEffect(() => {
     setSearchTerm('');
     setSearchResults([]); 
+    setIsDropdownOpen(false);
   }, [location.pathname]);
-
-
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    if (searchTerm.trim() === '') {
-      setSearchResults([]);
-      setIsLoading(false);
-      return;
-    }
-
-    debounceTimerRef.current = setTimeout(async () => {
-      setIsLoading(true); 
-      try {
-        // (Mock) 임시 로직 (API 대신)
-        console.log(`(Mock) API 호출: /api/recipes/autocomplete?q=${searchTerm.trim()}`);
-        const MOCK_RESULTS = [
-          { id: 1, title: `${searchTerm} 관련 레시피 1` },
-          { id: 2, title: `${searchTerm} 관련 레시피 2 (긴 이름)` },
-          { id: 3, title: `맛있는 ${searchTerm}` },
-          { id: 4, title: `간단한 ${searchTerm} 요리` },
-          { id: 5, title: `초간단 ${searchTerm}` },
-          { id: 6, title: `스크롤 테스트용 ${searchTerm} 6` },
-          { id: 7, title: `스크롤 테스트용 ${searchTerm} 7` },
-        ];
-        setTimeout(() => {
-          setSearchResults(MOCK_RESULTS); 
-          setIsLoading(false);
-        }, 500);
-
-        /*
-        // (실제 API 호출 로직)
-        const response = await api.get('/api/recipes/autocomplete', {
-          params: { q: searchTerm.trim() }
-        });
-        setSearchResults(response.data); 
-        setIsLoading(false);
-        */
-      } catch (error) {
-        console.error("자동완성 검색 실패:", error);
-        setSearchResults([]); 
-        setIsLoading(false);
-      }
-    }, 300); // 300ms 딜레이
-
-    return () => clearTimeout(debounceTimerRef.current);
-
-  }, [searchTerm]); 
-
 
   return (
     <header className="header-container">
@@ -121,50 +147,66 @@ function Header() {
           원룸 레시피
         </Link>
         
-        {/* 검색창 + 자동완성 결과를 묶는 래퍼 (ref 추가) */}
         <div className="search-bar-wrapper" ref={searchWrapperRef}>
           <form className="search-bar" onSubmit={handleSearchSubmit}>
             <input 
               type="text" 
-              placeholder="검색어를 입력하세요" 
+              placeholder="레시피명 또는 재료(쉼표로 구분)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              // (추가) 검색창 클릭 시에도 결과가 있다면 보여주기 (선택적)
-              onClick={() => { if (searchTerm.trim()) setIsLoading(true); }}
+              autoComplete="off"
             />
             <button type="submit" className="search-submit-btn">
               <FaSearch />
             </button>
           </form>
 
-          {/* 자동완성 드롭다운 (검색어가 있거나, 로딩중일때) */}
-          {(searchTerm && (isLoading || searchResults.length > 0)) && (
+          {searchTerm && (isLoading || searchResults.length > 0) && (
             <div className="autocomplete-dropdown">
               {isLoading ? (
-                <div className="autocomplete-item loading">검색 중...</div>
-              ) : (
-                searchResults.length > 0 ? (
-                  searchResults.map(recipe => (
-                    <Link 
-                      to={`/recipe/${recipe.id}`} 
+                <div className="autocomplete-item loading">
+                  <div className="loading-spinner"></div>
+                  검색 중...
+                </div>
+              ) : searchResults.length > 0 ? (
+                <>
+                  {searchResults.map(recipe => (
+                    <div 
                       key={recipe.id}
                       className="autocomplete-item"
+                      onClick={() => handleAutocompleteClick(recipe.id)}
                     >
-                      {recipe.title}
-                    </Link>
-                  ))
-                ) : (
-                  // 로딩이 끝났는데 결과가 0개일 때
-                  <div className="autocomplete-item loading">검색 결과가 없습니다.</div>
-                )
-              )}
+                      <FaSearch className="search-icon" />
+                      <div className="recipe-info-autocomplete">
+                        <span className="recipe-title">{recipe.title}</span>
+                        {recipe.type && <span className="recipe-type-small">{recipe.type}</span>}
+                      </div>
+                    </div>
+                  ))}
+                  <div 
+                    className="autocomplete-item view-all"
+                    onClick={handleSearchSubmit}
+                  >
+                    <FaSearch className="search-icon" />
+                    <span className="view-all-text">
+                      "{searchTerm}" 전체 검색 결과 보기
+                    </span>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+          
+          {searchTerm && !isLoading && searchResults.length === 0 && (
+            <div className="autocomplete-dropdown">
+              <div className="autocomplete-item no-results">
+                "{searchTerm}" 검색 결과가 없습니다.
+              </div>
             </div>
           )}
         </div>
         
-        {/* 유저 메뉴 */}
         <div className="user-menu">
-          {/* 프로필 아이콘 + 드롭다운 영역 (ref 추가) */}
           <div className="profile-menu-container" ref={dropdownRef}>
             <button
               type="button"
@@ -175,16 +217,21 @@ function Header() {
               <FaUserCircle className="icon" />
             </button>
 
-            {/* 프로필 드롭다운 */}
             {isLoggedIn && isDropdownOpen && (
               <div className="profile-dropdown">
-                <Link 
-                  to="/mypage" 
+                <div 
                   className="dropdown-item" 
-                  onClick={() => setIsDropdownOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDropdownOpen(false);
+                    navigate('/mypage');
+                  }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <VscAccount /> My
-                </Link>
+                </div>
+                
                 <div className="dropdown-item disabled">
                   <FaBell /> 알림
                 </div>
@@ -199,7 +246,6 @@ function Header() {
             )}
           </div>
 
-          {/* 레시피 작성 아이콘 */}
           <Link 
             to="/recipe/write" 
             className="icon-link edit" 

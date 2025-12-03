@@ -1,11 +1,19 @@
 package com.recipe.domain.dto.user;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Getter
-@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
 public class UserDeleteRequestDto {
-    private String id;   // 로그인 아이디
-    private String pwd;  // 비밀번호
+
+    @Schema(description = "비밀번호 확인", example = "password123!")
+    @NotBlank(message = "비밀번호를 입력해주세요.")
+    private String password;
 }
