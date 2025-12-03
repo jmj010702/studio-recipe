@@ -1,6 +1,7 @@
 pipeline {
     agent any
 
+    //젠킨스 강제 트리거
     environment {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
