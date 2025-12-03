@@ -20,7 +20,14 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/auth/, '/studio-recipe/auth')
       },
 
-      // 3. /images 경로 (정적 이미지 리소스)
+      // 3. /user 경로 추가 (회원 탈퇴, 비밀번호 변경 등)
+      '/user': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/user/, '/studio-recipe/user')
+      },
+
+      // 4. /images 경로 (정적 이미지 리소스)
       '/images': {
         target: 'http://localhost:8080',
         changeOrigin: true,
