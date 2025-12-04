@@ -12,4 +12,10 @@ public class AWSTestController {
     public String awsTest(){
         return "AWS TEST COMPLETE";
     }
+
+    //현재 젠킨스 CI/CD AWS 테스트
+    @GetMapping("/lets")
+    public String cicdTest(){
+        return "CI/CD Complete";
+    }
 }
