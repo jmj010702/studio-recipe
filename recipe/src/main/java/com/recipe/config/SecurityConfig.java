@@ -32,7 +32,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    
     @Value("${front.urls}")
     private String frontUrl;
 

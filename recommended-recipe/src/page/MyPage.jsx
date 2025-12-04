@@ -1,9 +1,22 @@
+// src/page/MyPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
+import {
+  FaThList,
+  FaStar,
+  FaCommentDots,
+  FaBookOpen,
+  FaSearch,
+} from 'react-icons/fa';
+import api from '../api/axios';
+import './MyPage.css';
+=======
 import { FaThList, FaStar, FaCommentDots, FaBookOpen, FaSearch, FaHeart } from 'react-icons/fa';
 import api from '../api/axios'; 
 import DeleteModal from '../components/DeleteModal';
 import './MyPage.css'; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
 function MyPage() {
   const navigate = useNavigate();
@@ -33,6 +46,24 @@ function MyPage() {
       return; 
     }
 
+<<<<<<< HEAD
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await api.get('auth/me');
+        setUser(response.data);
+        sessionStorage.setItem('logged_in_user', JSON.stringify(response.data));
+      } catch (error) {
+        console.error('유저 정보를 불러오는 중 오류:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  if (!user) {
+    return <div>로딩 중...</div>;
+=======
     const fetchMyPageData = async () => {
       try {
         // 1. 기본 마이페이지 정보 조회
@@ -155,6 +186,7 @@ function MyPage() {
   
   if (!imageUrl) {
     return '/default-image.jpg';
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   }
   
   // 이미 완전한 URL인 경우
@@ -801,7 +833,38 @@ function MyPage() {
       </nav>
 
       <div className="mypage-content">
+<<<<<<< HEAD
+        <div className="tabs">
+          <span className="tab-item active">공개중</span>
+          <span className="tab-item">작성중</span>
+        </div>
+
+        <div className="empty-state">
+          <div className="profile-pic">
+            {user.nickname
+              ? user.nickname.charAt(0).toUpperCase()
+              : user.username
+              ? user.username.charAt(0).toUpperCase()
+              : 'N'}
+          </div>
+          <h3>레시피를 직접 올려보세요!</h3>
+          <p>
+            자랑하고 싶은 나만의 레시피! 공유하고 싶은 멋진 레시피를 올려 주세요.
+          </p>
+          <Link to="/recipe/write" className="register-btn">
+            레시피 등록하기
+          </Link>
+        </div>
+
+        <div className="recipe-search">
+          <input type="text" placeholder="레시피 검색" />
+          <button>
+            <FaSearch />
+          </button>
+        </div>
+=======
         {renderContent()}
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
       </div>
 
       <DeleteModal 

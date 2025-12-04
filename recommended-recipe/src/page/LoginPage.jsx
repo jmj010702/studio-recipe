@@ -1,12 +1,47 @@
 // src/page/LoginPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
+import api from '../api/axios';
+import './login.css';
+=======
 import api, { login } from '../api/axios'; // login 헬퍼 함수 import
 import './login.css'; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
 function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+<<<<<<< HEAD
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const inputUsername = username.trim();
+    const inputPassword = password.trim();
+
+    if (!inputUsername || !inputPassword) {
+      setError('아이디와 비밀번호를 모두 입력하세요.');
+      return;
+    }
+
+    try {
+      const response = await api.post('auth/login', {
+        username: inputUsername,
+        password: inputPassword,
+      });
+
+      const loggedInUser = response.data;
+      sessionStorage.setItem('logged_in_user', JSON.stringify(loggedInUser));
+
+      navigate('/');
+    } catch (err) {
+      console.error('로그인 요청 실패:', err);
+      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+=======
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -78,6 +113,7 @@ function LoginPage() {
       }
     } finally {
       setIsLoading(false);
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
     }
   };
 
@@ -85,26 +121,42 @@ function LoginPage() {
     <div className="login-page-container">
       <div className="login-box">
         <h2>로그인</h2>
+
+        {error && <div className="error-msg">{error}</div>}
+
         <form onSubmit={handleLogin}>
           <div className="input-group">
             <label htmlFor="username">아이디</label>
-            <input 
-              type="text" 
-              id="username" 
+            <input
+              type="text"
+              id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+<<<<<<< HEAD
+              required
+=======
               disabled={isLoading}
               required 
               autoComplete="username"
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
             />
           </div>
+
           <div className="input-group">
             <label htmlFor="password">비밀번호</label>
-            <input 
-              type="password" 
-              id="password" 
+            <input
+              type="password"
+              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+<<<<<<< HEAD
+              required
+            />
+          </div>
+
+          <button type="submit" className="login-btn">
+            로그인
+=======
               disabled={isLoading}
               required 
               autoComplete="current-password"
@@ -116,7 +168,9 @@ function LoginPage() {
             disabled={isLoading}
           >
             {isLoading ? '로그인 중...' : '로그인'}
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
           </button>
+
           <Link to="/signup" className="signup-btn-link">
             <button 
               type="button" 

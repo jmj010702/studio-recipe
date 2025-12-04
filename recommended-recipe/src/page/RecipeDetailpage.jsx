@@ -1,4 +1,72 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
+import { useParams } from 'react-router-dom';
+import './RecipeDetailPage.css';
+
+const MOCK_ALL_RECIPES = [
+  {
+    id: 1,
+    title: '명란마요초밥',
+    description: '도시락에 빠질 수 없는 공유부초밥!',
+    imageUrl: 'https://via.placeholder.com/800x450.png?text=Mentaiko+Sushi',
+    ingredients: [
+      { name: '명란', amount: '1개' },
+      { name: '밥', amount: '1공기' },
+    ],
+    steps: ['밥에 양념을 합니다.', '유부를 조립니다.', '명란마요를 올립니다.'],
+  },
+  {
+    id: 2,
+    title: '아시안 닭꼬치',
+    description: '저녁 술안주로 딱!',
+    imageUrl:
+      'https://via.placeholder.com/800x450.png?text=Asian+Chicken+Skewer',
+    ingredients: [
+      { name: '닭다리살', amount: '300g' },
+      { name: '간장', amount: '2큰술' },
+    ],
+    steps: ['닭을 손질합니다.', '꼬치에 꿰어 굽습니다.'],
+  },
+  {
+    id: 3,
+    title: '불맛 잡채스테이크',
+    description: '달콤짭짤한 소스의 매력!',
+    imageUrl: 'https://via.placeholder.com/800x450.png?text=Japchae+Steak',
+    ingredients: [
+      { name: '소고기', amount: '200g' },
+      { name: '당면', amount: '50g' },
+    ],
+    steps: ['고기를 굽습니다.', '야채와 당면을 볶습니다.'],
+  },
+  {
+    id: 4,
+    title: '호텔 파스타',
+    description: '집에서 즐기는 호텔급 맛',
+    imageUrl: 'https://via.placeholder.com/800x450.png?text=Hotel+Pasta',
+    ingredients: [
+      { name: '파스타면', amount: '100g' },
+      { name: '새우', amount: '5마리' },
+    ],
+    steps: ['면을 삶습니다.', '재료를 볶습니다.'],
+  },
+];
+
+function RecipeDetailPage() {
+  const { recipeId } = useParams();
+  const [recipe, setRecipe] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRecipe = () => {
+      setLoading(true);
+      const id = parseInt(recipeId, 10);
+      const foundRecipe = MOCK_ALL_RECIPES.find((r) => r.id === id);
+
+      setTimeout(() => {
+        setRecipe(foundRecipe || null);
+        setLoading(false);
+      }, 300);
+=======
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaHeart, FaStar, FaArrowLeft, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
@@ -81,10 +149,13 @@ function RecipeDetailPage() {
       } finally {
         setLoading(false);
       }
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
     };
 
     fetchRecipe();
   }, [recipeId]);
+<<<<<<< HEAD
+=======
 
   // 2. 찜하기 핸들러
   const handleBookmark = async () => {
@@ -187,10 +258,14 @@ function RecipeDetailPage() {
         alert(errorMessage);
     }
   };
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
   if (loading) {
     return (
       <div className="detail-page-container">
+<<<<<<< HEAD
+        <p>레시피를 불러오는 중...</p>
+=======
         <div className="loading-spinner">
           <p>레시피를 불러오는 중...</p>
         </div>
@@ -206,6 +281,7 @@ function RecipeDetailPage() {
           <p>{error}</p>
           <button onClick={() => navigate('/')}>홈으로 돌아가기</button>
         </div>
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
       </div>
     );
   }
@@ -213,6 +289,11 @@ function RecipeDetailPage() {
   if (!recipe) {
     return (
       <div className="detail-page-container">
+<<<<<<< HEAD
+        <p>해당 레시피를 찾을 수 없습니다.</p>
+      </div>
+    );
+=======
         <div className="error-message">
           <p>해당 레시피를 찾을 수 없습니다.</p>
           <button onClick={() => navigate('/')}>홈으로 돌아가기</button>
@@ -284,11 +365,15 @@ function RecipeDetailPage() {
   } else {
     console.warn('⚠️ 재료 데이터가 비어있거나 없습니다');
     console.warn('⚠️ 사용 가능한 모든 키:', Object.keys(recipe));
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   }
 
   return (
     <div className="detail-page-container">
+<<<<<<< HEAD
+=======
       
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
       <div className="recipe-header">
         <h1>{title}</h1>
         {cookingName && <p className="cooking-name">{cookingName}</p>}
@@ -300,6 +385,15 @@ function RecipeDetailPage() {
         </div>
       </div>
 
+<<<<<<< HEAD
+      {recipe.imageUrl && (
+        <img
+          src={recipe.imageUrl}
+          alt={recipe.title}
+          className="recipe-main-image"
+        />
+      )}
+=======
       <button 
         onClick={handleBookmark} 
         className={`bookmark-btn ${isBookmarked ? 'bookmarked' : ''}`}
@@ -346,10 +440,29 @@ function RecipeDetailPage() {
         
         <span className="view-count">조회수: {viewCount}</span>
       </div>
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
       <div className="recipe-content-box">
         <h2>재료</h2>
         <ul className="ingredient-list">
+<<<<<<< HEAD
+          {(recipe.ingredients || []).map((item, index) => (
+            <li key={index}>
+              <span className="ingredient-name">{item.name}</span>
+              <span className="ingredient-amount">{item.amount}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="recipe-content-box">
+        <h2>조리 순서</h2>
+        <ol className="step-list">
+          {(recipe.steps || []).map((step, index) => (
+            <li key={index}>{step}</li>
+          ))}
+        </ol>
+=======
           {ingredientList.length > 0 ? (
             ingredientList.map((item, index) => (
               <li key={index}>{item}</li>
@@ -392,6 +505,7 @@ function RecipeDetailPage() {
                 <FaTrash /> 삭제하기
             </button>
           )}
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
       </div>
     </div>
   );

@@ -1,9 +1,17 @@
 // src/page/RecipeWritePage.jsx
+<<<<<<< HEAD
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import { FaPlus, FaTrash } from 'react-icons/fa';
+import './RecipeWritePage.css';
+=======
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaTrash, FaImage } from 'react-icons/fa'; 
 import './RecipeWritePage.css'; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
 function RecipeWritePage() {
   const navigate = useNavigate();
@@ -11,15 +19,20 @@ function RecipeWritePage() {
   const [intro, setIntro] = useState('');
   const [url, setUrl] = useState('');
   const [tags, setTags] = useState('');
+<<<<<<< HEAD
+=======
   
   // ✅ 이미지 관련 state 추가
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   const [ingredients, setIngredients] = useState([
-    { name: '', amount: '', unit: '', note: '' }
+    { name: '', amount: '', unit: '', note: '' },
   ]);
 
+<<<<<<< HEAD
+=======
   // 로그인 확인
   useEffect(() => {
     const token = localStorage.getItem('accessToken'); 
@@ -63,6 +76,7 @@ function RecipeWritePage() {
     setImagePreview(null);
   };
 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   const handleIngredientChange = (index, event) => {
     const values = [...ingredients];
     values[index][event.target.name] = event.target.value;
@@ -70,16 +84,35 @@ function RecipeWritePage() {
   };
 
   const addIngredientField = () => {
-    setIngredients([...ingredients, { name: '', amount: '', unit: '', note: '' }]);
+    setIngredients([
+      ...ingredients,
+      { name: '', amount: '', unit: '', note: '' },
+    ]);
   };
 
   const removeIngredientField = (index) => {
+<<<<<<< HEAD
+    if (ingredients.length <= 1) return;
+=======
     if (ingredients.length <= 1) return; 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
     const values = [...ingredients];
     values.splice(index, 1);
     setIngredients(values);
   };
 
+<<<<<<< HEAD
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const recipeData = {
+      title,
+      introduction: intro,
+      videoUrl: url,
+      tags,
+      ingredients,
+    };
+=======
   // ✅ 폼 제출 핸들러 (이미지 포함)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,7 +155,12 @@ function RecipeWritePage() {
       
       alert('레시피가 성공적으로 등록되었습니다!');
       navigate('/mypage');
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
+    try {
+      await api.post('recipes/new', recipeData);
+      alert('레시피가 성공적으로 등록되었습니다!');
+      navigate('/mypage');
     } catch (error) {
       console.error('레시피 등록 실패:', error);
       
@@ -138,22 +176,22 @@ function RecipeWritePage() {
     <div className="form-page-container">
       <div className="form-box recipe-form-box">
         <h2>레시피 쓰기</h2>
-        
+
         <form onSubmit={handleSubmit}>
-          
-          {/* 레시피 제목 */}
           <div className="form-group">
             <label htmlFor="title">레시피 제목</label>
-            <input 
-              type="text" 
-              id="title" 
-              placeholder="예) 소고기 미역국 끓이기" 
+            <input
+              type="text"
+              id="title"
+              placeholder="예) 소고기 미역국 끓이기"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required 
+              required
             />
           </div>
 
+<<<<<<< HEAD
+=======
           {/* ✅ 레시피 이미지 업로드 */}
           <div className="form-group">
             <label htmlFor="image">레시피 이미지</label>
@@ -193,22 +231,55 @@ function RecipeWritePage() {
           </div>
 
           {/* 레시피 소개 */}
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
           <div className="form-group">
             <label htmlFor="intro">레시피 소개</label>
-            <textarea 
-              id="intro" 
+            <textarea
+              id="intro"
               placeholder="레시피가 생기게 된 이유를 설명해주세요!"
               rows="5"
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
-            ></textarea>
+            />
           </div>
 
-          {/* 재료 정보 (동적 폼) */}
           <div className="form-group">
             <label>재료 정보</label>
             {ingredients.map((field, index) => (
               <div className="ingredient-row" key={index}>
+<<<<<<< HEAD
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="재료 이름"
+                  value={field.name}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                />
+                <input
+                  type="text"
+                  name="amount"
+                  placeholder="수량"
+                  value={field.amount}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                />
+                <input
+                  type="text"
+                  name="unit"
+                  placeholder="단위"
+                  value={field.unit}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                />
+                <input
+                  type="text"
+                  name="note"
+                  placeholder="비고"
+                  value={field.note}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                />
+                <button
+                  type="button"
+                  className="remove-btn"
+=======
                 <input 
                   type="text" 
                   name="name" 
@@ -240,6 +311,7 @@ function RecipeWritePage() {
                 <button 
                   type="button" 
                   className="remove-btn" 
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
                   onClick={() => removeIngredientField(index)}
                   disabled={ingredients.length <= 1}
                 >
@@ -247,42 +319,46 @@ function RecipeWritePage() {
                 </button>
               </div>
             ))}
-            <button type="button" className="add-btn" onClick={addIngredientField}>
+            <button
+              type="button"
+              className="add-btn"
+              onClick={addIngredientField}
+            >
               <FaPlus /> 재료 추가
             </button>
           </div>
 
-          {/* 동영상 URL */}
           <div className="form-group">
             <label htmlFor="url">레시피 동영상 URL</label>
-            <input 
-              type="text" 
-              id="url" 
-              placeholder="https://" 
+            <input
+              type="text"
+              id="url"
+              placeholder="https://"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-            <small>레시피 동영상 등록은 Youtube, 인스타그램만 가능합니다.</small>
+            <small>
+              레시피 동영상 등록은 Youtube, 인스타그램만 가능합니다.
+            </small>
           </div>
-          
-          {/* 태그 */}
+
           <div className="form-group">
             <label htmlFor="tags">태그</label>
-            <input 
-              type="text" 
-              id="tags" 
-              placeholder="예) #소고기 #미역국" 
+            <input
+              type="text"
+              id="tags"
+              placeholder="예) #소고기 #미역국"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
             />
-            <small>주재료, 목적, 효능, 대상 등을 태그로 남겨주세요. (최대 10개)</small>
+            <small>
+              주재료, 목적, 효능, 대상 등을 태그로 남겨주세요. (최대 10개)
+            </small>
           </div>
 
-          {/* 등록하기 버튼 */}
           <button type="submit" className="submit-btn">
             등록하기
           </button>
-
         </form>
       </div>
     </div>

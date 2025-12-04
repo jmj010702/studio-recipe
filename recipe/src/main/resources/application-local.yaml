@@ -27,8 +27,8 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
-      #      mail.smtp.starttls.enable: true   # TLS 쓸 땐 587 포트 + 이 옵션 사용
-      #      mail.smtp.starttls.required: true
+#      mail.smtp.starttls.enable: true   # TLS 쓸 땐 587 포트 + 이 옵션 사용
+#      mail.smtp.starttls.required: true
 
       mail.smtp.timeout: 5000               # 연결 타임아웃
       mail.smtp.connectiontimeout: 5000     # 연결 타임아웃
@@ -57,8 +57,13 @@ server:
 front:
   urls: "http://localhost:5173,https://rapa8.shop,https://www.rapa8.shop"
 
-
 logging.level:
   org.hibernate.SQL: debug
   org.hibernate.orm.jdbc.bind: TRACE
   org.springframework.security.web: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"

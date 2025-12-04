@@ -2,13 +2,21 @@
 import axios from 'axios';
 
 const api = axios.create({
+<<<<<<< HEAD
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/',
+  withCredentials: true,
+=======
   // ✅ baseURL 제거 - Vite 프록시 사용
   timeout: 10000,
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+<<<<<<< HEAD
+export default api;
+=======
 // 요청 인터셉터: 모든 요청에 토큰 자동 추가 및 로깅
 api.interceptors.request.use(
   (config) => {
@@ -78,3 +86,4 @@ export const getUserInfo = () => {
 };
 
 export default api;
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a

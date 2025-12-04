@@ -4,10 +4,16 @@ import RecipeCard from './RecipeCard.jsx';
 import SortFilters from './SortFilters.jsx';
 import './RecipeSection.css';
 
+<<<<<<< HEAD
+function RecipeSection({ title, recipes, sectionId }) {
+  // ✅ recipes가 배열이 아닐 때 에러 방지
+  const safeRecipes = Array.isArray(recipes) ? recipes : [];
+=======
 function RecipeSection({ title, recipes, sectionId, sortType, onSortChange }) {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 4;
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
 
   // recipes나 sortType이 변경되면 페이지를 첫 번째로 리셋
   useEffect(() => {
@@ -70,7 +76,11 @@ function RecipeSection({ title, recipes, sectionId, sortType, onSortChange }) {
       <div className="recipe-section-content">
         <div className="section-header">
           <h2 className="section-title">{title}</h2>
+<<<<<<< HEAD
+
+=======
           
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
           <div className="header-right">
             {/* sortType과 onSortChange가 있을 때만 정렬 필터 표시 */}
             {sortType !== undefined && onSortChange && (
@@ -109,14 +119,19 @@ function RecipeSection({ title, recipes, sectionId, sortType, onSortChange }) {
         </div>
 
         <div className="recipe-list">
-          {!recipes || recipes.length === 0 ? (
+          {safeRecipes.length === 0 ? (
             <p className="no-recipes">표시할 레시피가 없습니다.</p>
           ) : (
+<<<<<<< HEAD
+            safeRecipes.map((recipe) => (
+              <RecipeCard key={recipe.id || recipe.recipeId} recipe={recipe} />
+=======
             visibleRecipes.map(recipe => (
               <RecipeCard 
                 key={recipe.recipeId || recipe.rcpSno} 
                 recipe={recipe} 
               />
+>>>>>>> bfe4f1237b34f8a6742385b0a168ca9cac5ed80a
             ))
           )}
         </div>
