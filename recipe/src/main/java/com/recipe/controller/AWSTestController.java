@@ -13,5 +13,8 @@ public class AWSTestController {
         return "AWS TEST COMPLETE";
     }
 
-    
+    @GetMapping("/jenkins-test")
+    public String jenkinsTest(){
+        return "Completed Jenkins!!";
+    }
 }
