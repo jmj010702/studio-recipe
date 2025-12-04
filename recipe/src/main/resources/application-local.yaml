@@ -1,9 +1,9 @@
 spring:
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/recipe_db
-    username: root
-    password: 1234
+    driver-class-name: ${DRIVER_NAME}
+    url: ${DRIVER_URL}
+    username: ${DRIVER_USER_NAME}
+    password: ${DRIVER_PASSWORD}
 
   jpa:
     hibernate:
@@ -27,8 +27,8 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
-#      mail.smtp.starttls.enable: true   # TLS 쓸 땐 587 포트 + 이 옵션 사용
-#      mail.smtp.starttls.required: true
+      #      mail.smtp.starttls.enable: true   # TLS 쓸 땐 587 포트 + 이 옵션 사용
+      #      mail.smtp.starttls.required: true
 
       mail.smtp.timeout: 5000               # 연결 타임아웃
       mail.smtp.connectiontimeout: 5000     # 연결 타임아웃
@@ -40,7 +40,7 @@ spring:
       port: 6379
 
 jwt:
-  secret: ${JWT_SECRET_KEY}
+  secret: ${JWT_SECRET}
   access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS}
   refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS}
 
@@ -55,15 +55,10 @@ server:
     context-path: /studio-recipe
 
 front:
-  url: http://localhost:5173
+  urls: "http://localhost:5173,https://rapa8.shop,https://www.rapa8.shop"
+
 
 logging.level:
   org.hibernate.SQL: debug
   org.hibernate.orm.jdbc.bind: TRACE
   org.springframework.security.web: TRACE
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "health"

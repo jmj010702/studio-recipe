@@ -27,11 +27,11 @@ public class WebConfig implements WebMvcConfigurer {
     }
     
     // ⭐ CORS 설정 (SecurityConfig와 중복될 수 있으므로 확인)
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:3000")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowCredentials(true);
-    }
+//    @Override
+//    public void addCorsMappings(CorsRegistry registry) {
+//        registry.addMapping("/**")
+//                .allowedOriginPatterns("http://localhost:3000")
+//                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+//                .allowCredentials(true);
+//    }
 }

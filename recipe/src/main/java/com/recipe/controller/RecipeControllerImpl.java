@@ -25,7 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Log4j2
 @RequestMapping("/api")
-public class RecipeControllerImpl implements RecipeController {
+public class RecipeControllerImpl implements com.recipe.controller.RecipeController {
 
     private final RecipeService recipeService;
     private final AuthService authService;

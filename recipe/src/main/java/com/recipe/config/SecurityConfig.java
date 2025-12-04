@@ -33,7 +33,7 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     
-    @Value("${front.url}")
+    @Value("${front.urls}")
     private String frontUrl;
 
     @Bean
