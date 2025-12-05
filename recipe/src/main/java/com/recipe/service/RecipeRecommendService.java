@@ -2,23 +2,33 @@ package com.recipe.service;
 
 import com.recipe.algorithm.RecipeRecommendAlgorithm;
 import com.recipe.algorithm.RecommendationResult;
-import com.recipe.domain.dto.RecipeResponseDto;
+import com.recipe.domain.dto.Recipe.RecipeResponseDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * 추천 알고리즘을 호출하여 DTO로 변환하는 서비스
- */
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class RecipeRecommendService {
 
     private final RecipeRecommendAlgorithm recommendAlgorithm;
 
-    public RecipeResponseDto getRecommendedRecipes(Long userId) {
+    // 반환 타입을 List<RecipeResponseDTO>로 변경
+    public List<RecipeResponseDTO> getRecommendedRecipes(Long userId) {
+        
+        log.info("Service: 추천 알고리즘 실행 요청 - userId: {}", userId);
+
         List<RecommendationResult> results = recommendAlgorithm.recommendRecipes(userId);
-        return RecipeResponseDto.of(results);
+        
+        log.info("Service: 알고리즘 결과 {}개 반환됨", results.size());
+
+        // RecommendationResult를 RecipeResponseDTO로 변환
+        return results.stream()
+                .map(result -> RecipeResponseDTO.fromEntity(result.getRecipe()))
+                .collect(Collectors.toList());
     }
 }

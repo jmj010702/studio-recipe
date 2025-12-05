@@ -1,6 +1,7 @@
 pipeline {
     agent any
 
+    //젠킨스 강제 트리거
     environment {
         AWS_REGION = 'ap-northeast-2'
         S3_BUCKET = 'recipe-app-codedeploy-artifacts-516175389011'
@@ -38,50 +39,66 @@ pipeline {
             }
         }
 
-        stage('Rename JAR file') {
+        stage('Rename JAR file and Prepare for Docker') {
             steps {
                 script {
-                    echo "--- Renaming JAR file to app.jar ---"
+                    echo "--- Preparing JAR file for Docker build ---"
                     def jarDirPath = "recipe/build/libs"
                     
-                    def plainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*-plain.jar'").trim().split('\n')
-                    def mainJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -name '*.jar' ! -name '*-plain.jar'").trim().split('\n')
+                    // -plain.jar을 제외한 모든 JAR 파일을 찾습니다. (실행 가능한 Fat JAR만 대상)
+                    def executableJarCandidates = sh(returnStdout: true, script: "find ${jarDirPath} -maxdepth 1 -name '*.jar' ! -name '*-plain.jar'").trim().split('\n').findAll { it.trim() != '' }
                     
-                    def jarToRename = ""
-                    if (plainJarCandidates.size() == 1 && plainJarCandidates[0] != "") {
-                        jarToRename = plainJarCandidates[0]
-                    } else if (mainJarCandidates.size() == 1 && mainJarCandidates[0] != "") {
-                        jarToRename = mainJarCandidates[0]
+                    def executableJar = ""
+                    if (executableJarCandidates.size() == 1) {
+                        executableJar = executableJarCandidates[0]
+                        echo "Found single executable Fat JAR: ${executableJar}"
+                    } else if (executableJarCandidates.size() > 1) {
+                        error "Multiple executable Fat JAR files found. Cannot determine which one to use: ${executableJarCandidates.join(', ')}. Please refine your Gradle build or specify manually."
                     } else {
-                        error "Could not uniquely determine JAR file to rename in ${jarDirPath}. Found: Plain: ${plainJarCandidates}, Main: ${mainJarCandidates}"
+                        // 실행 가능한 JAR 파일이 하나도 없는 경우 오류
+                        error "No executable Fat JAR file (non-plain.jar) found in ${jarDirPath}. Please check your Gradle build process. Ensure 'bootJar' is configured and producing a Fat JAR."
                     }
 
-                    if (jarToRename) {
-                        sh "mv ${jarToRename} ${jarDirPath}/app.jar"
-                        echo "Renamed ${jarToRename} to ${jarDirPath}/app.jar."
+                    if (executableJar) {
+                        sh "cp ${executableJar} recipe/app.jar"
+                        echo "Copied executable JAR (${executableJar}) to recipe/app.jar for Docker build."
+                        // 이곳에서 "file recipe/app.jar" 명령어를 제거했습니다.
                     } else {
-                        error "No suitable JAR file found to rename in ${jarDirPath} directory."
+                        error "Logical error: executableJar should have been set. Please re-check script logic."
                     }
                 }
             }
         }
-
+        
         stage('Docker Build & Push to ECR') {
-            steps {
-                script {
-                    echo "--- Building Docker image and pushing to ECR ---"
-                    sh "aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+    steps {
+        script {
+            echo "--- Logging into ECR ---"
+            sh """
+                aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            """
 
-                    echo "--- VERIFYING Dockerfile content BEFORE Docker build ---"
-                    sh "cat recipe/Dockerfile"
-                    echo "--- END VERIFICATION ---"
+            echo "--- Building Docker Image ---"
+            sh """
+                docker build -t recipe-app:${BUILD_NUMBER} recipe
+            """
 
-                    sh "docker build -t ${ECR_IMAGE} -f recipe/Dockerfile recipe"
-                    
-                    sh "docker push ${ECR_IMAGE}"
-                }
-            }
+            echo "--- Tagging Docker Image ---"
+            sh """
+                docker tag recipe-app:${BUILD_NUMBER} ${ECR_REGISTRY}:${BUILD_NUMBER}
+            """
+
+            echo "--- Pushing Docker Image to ECR ---"
+            sh """
+                docker push ${ECR_REGISTRY}:${BUILD_NUMBER}
+            """
+
+            echo "--- Docker Image Pushed: ${ECR_REGISTRY}:${BUILD_NUMBER} ---"
         }
+    }
+}
+
 
         stage('Prepare and Deploy to CodeDeploy') {
             steps {
@@ -93,10 +110,10 @@ pipeline {
 
                     echo "DEBUG: Copying deployment artifacts to Jenkins workspace root for zipping..."
                     sh "cp -r recipe/scripts ."
-                    sh "cp recipe/build/libs/app.jar ."
-                    echo "DEBUG: All artifacts copied to Jenkins workspace root."
+                    sh "cp recipe/app.jar ." // app.jar 다시 포함 (이번에는 올바른 JAR)
+                    echo "DEBUG: All deployment scripts, ECR image value, and app.jar prepared for zipping."
 
-                    echo "DEBUG: Zipping deployment artifacts..."
+                    echo "DEBUG: Zipping deployment artifacts (appspec.yml, scripts, app.jar, ECR_IMAGE_VALUE.txt)..."
                     sh "zip -r deployment.zip appspec.yml scripts app.jar ECR_IMAGE_VALUE.txt"
                     echo "DEBUG: deployment.zip created."
 
@@ -104,71 +121,86 @@ pipeline {
                     sh "aws s3 cp deployment.zip s3://${S3_BUCKET}/recipe-app/${env.BUILD_NUMBER}.zip"
                     echo "DEBUG: deployment.zip uploaded to S3."
 
-                    def activeDeployments = []
-                    def activeStatuses = ['Created', 'Queued', 'InProgress', 'Pending', 'Ready']
+                    // --- Debugging appspec.yml content ---
+                    echo "--- VERIFYING appspec.yml content for CodeDeploy ---"
+                    sh "cat appspec.yml"
+                    echo "--- END appspec.yml VERIFICATION ---"
 
+                    // --- CodeDeploy 활성 배포 감지 및 중지 로직 (AWS CLI 파라미터 오류 우회) ---
+                    def activeDeploymentsToStop = []
+                    def checkableStatuses = ['Created', 'Queued', 'InProgress', 'Deploying']
+                    
+                    echo "Checking for active CodeDeploy deployments in group ${CODEDEPLOY_DEPLOYMENT_GROUP} using a robust method..."
+                    
                     try {
-                        echo "Checking for active CodeDeploy deployments for application ${CODEDEPLOY_APPLICATION}..."
-                        def allDeploymentIdsJson = sh(returnStdout: true, script: """
+                        def allDeploymentsJson = sh(returnStdout: true, script: '''
                             aws deploy list-deployments \
-                                --application-name ${CODEDEPLOY_APPLICATION} \
-                                --query 'deployments' \
+                                --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
+                                --deployment-group-name ''' + CODEDEPLOY_DEPLOYMENT_GROUP + ''' \
+                                --query "deployments" \
                                 --output json \
-                                --region ${AWS_REGION}
-                        """).trim()
+                                --region ''' + AWS_REGION + '''
+                        ''').trim()
 
-                        def deploymentIdList = new groovy.json.JsonSlurper().parseText(allDeploymentIdsJson)
-
-                        if (deploymentIdList && !deploymentIdList.isEmpty()) {
-                            deploymentIdList.each { deploymentId ->
+                        echo "DEBUG: Raw output from list-deployments (all statuses) for group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${allDeploymentsJson}"
+                        
+                        def allDeploymentIds = new groovy.json.JsonSlurper().parseText(allDeploymentsJson)
+                        
+                        if (allDeploymentIds && !allDeploymentIds.isEmpty()) {
+                            allDeploymentIds.each { deploymentId ->
                                 try {
-                                    def deploymentStatusJson = sh(returnStdout: true, script: """
+                                    def deploymentInfoJson = sh(returnStdout: true, script: '''
                                         aws deploy get-deployment \
-                                            --deployment-id ${deploymentId} \
-                                            --query 'deploymentInfo.status' \
+                                            --deployment-id ''' + deploymentId + ''' \
+                                            --query "deploymentInfo.status" \
                                             --output json \
-                                            --region ${AWS_REGION}
-                                    """).trim()
-                                    def deploymentStatusInner = new groovy.json.JsonSlurper().parseText(deploymentStatusJson) // 이름 충돌 피함
+                                            --region ''' + AWS_REGION + '''
+                                    ''').trim()
+                                    def currentStatus = new groovy.json.JsonSlurper().parseText(deploymentInfoJson)
+                                    echo "DEBUG: Deployment ${deploymentId} has status: ${currentStatus}"
 
-                                    if (activeStatuses.contains(deploymentStatusInner)) {
-                                        activeDeployments.add(deploymentId)
+                                    if (checkableStatuses.contains(currentStatus)) {
+                                        activeDeploymentsToStop.add(deploymentId)
                                     }
                                 } catch (e) {
-                                    echo "WARNING: Could not get status for deployment ID ${deploymentId}. It might be too old or invalid. Error: ${e.message}"
+                                    echo "WARNING: Failed to get status for deployment ${deploymentId}. It might be invalid or already cleaned up. Error: ${e.message}"
                                 }
                             }
+                            echo "DEBUG: Identified active deployments to stop after filtering: ${activeDeploymentsToStop}"
                         } else {
-                            echo "No existing deployments found for application ${CODEDEPLOY_APPLICATION}."
+                            echo "No deployments found at all for application ${CODEDEPLOY_APPLICATION} in group ${CODEDEPLOY_DEPLOYMENT_GROUP}."
                         }
 
                     } catch (e) {
-                        echo "WARNING: Failed to list or parse existing deployments. Proceeding with new deployment without stopping any. Error: ${e.message}"
+                        echo "ERROR: Failed to list or process deployments for group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Error: ${e.message}"
+                        error "CodeDeploy deployment listing failed. Please ensure IAM permissions are correct and the deployment group exists."
                     }
 
-                    if (!activeDeployments.isEmpty()) {
-                        echo "Found active deployment(s): ${activeDeployments.join(', ')}. Attempting to stop them before proceeding."
-                        activeDeployments.each { deploymentId ->
+                    if (!activeDeploymentsToStop.isEmpty()) {
+                        echo "Found active deployment(s) in group ${CODEDEPLOY_DEPLOYMENT_GROUP}: ${activeDeploymentsToStop.join(', ')}. Attempting to stop them."
+                        activeDeploymentsToStop.each { deploymentId ->
                             echo "Stopping deployment ${deploymentId}..."
-                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION}"
-                            sleep 10
+                            sh "aws deploy stop-deployment --deployment-id ${deploymentId} --region ${AWS_REGION} || true"
+                            sleep 5
                         }
-                        echo "Active deployments stop commands issued. Waiting 10 seconds for stabilization."
-                        sleep 10
+                        echo "Active deployments stop commands issued. Waiting 30 seconds for stabilization before new deployment."
+                        sleep 30
                     } else {
-                        echo "No active CodeDeploy deployments to stop. Proceeding with new deployment."
+                        echo "No currently active CodeDeploy deployments to stop in group ${CODEDEPLOY_DEPLOYMENT_GROUP}. Proceeding with new deployment."
                     }
 
                     echo "--- Initiating new CodeDeploy deployment ---"
-                    def deploymentResultJson = sh(returnStdout: true, script: """
-                    aws deploy create-deployment \\
-                      --application-name ${CODEDEPLOY_APPLICATION} \\
-                      --deployment-group-name ${CODEDEPLOY_DEPLOYMENT_GROUP} \\
-                      --deployment-config-name CodeDeployDefault.OneAtATime \\
-                      --description "Blue/Green Deployment triggered by Jenkins build ${env.BUILD_NUMBER}" \\
-                      --s3-location bucket=${S3_BUCKET},key=recipe-app/${env.BUILD_NUMBER}.zip,bundleType=zip \\
-                      --region ${AWS_REGION}
-                    """).trim()
+                    def createDeploymentCommand = '''
+                        aws deploy create-deployment \
+                            --application-name ''' + CODEDEPLOY_APPLICATION + ''' \
+                            --deployment-group-name ''' + CODEDEPLOY_DEPLOYMENT_GROUP + ''' \
+                            --deployment-config-name CodeDeployDefault.OneAtATime \
+                            --description "Blue/Green Deployment triggered by Jenkins build ''' + env.BUILD_NUMBER + '''" \
+                            --s3-location bucket=''' + S3_BUCKET + ''',key=recipe-app/''' + env.BUILD_NUMBER + '''.zip,bundleType=zip \
+                            --region ''' + AWS_REGION + '''
+                    '''
+                    echo "DEBUG: Running create-deployment command: ${createDeploymentCommand}"
+                    def deploymentResultJson = sh(returnStdout: true, script: createDeploymentCommand).trim()
 
                     def newDeploymentId = ""
                     try {
@@ -185,17 +217,18 @@ pipeline {
                         def loopCount = 0
                         while (deploymentStatus != "Succeeded" && deploymentStatus != "Failed" && deploymentStatus != "Stopped" && deploymentStatus != "Skipped" && deploymentStatus != "Ready") {
                             loopCount++
-                            def currentSleep = (loopCount <= 6) ? 5 : 10
+                            def currentSleep = (loopCount <= 6) ? 5 : 10 
                             sleep currentSleep
 
                             try {
-                                def statusCheckResultJson = sh(returnStdout: true, script: """
+                                def getDeploymentStatusCommand = '''
                                     aws deploy get-deployment \
-                                        --deployment-id ${env.CODEDEPLOY_DEPLOYMENT_ID} \
-                                        --query 'deploymentInfo.status' \
+                                        --deployment-id ''' + env.CODEDEPLOY_DEPLOYMENT_ID + ''' \
+                                        --query "deploymentInfo.status" \
                                         --output json \
-                                        --region ${AWS_REGION}
-                                """).trim()
+                                        --region ''' + AWS_REGION + '''
+                                '''
+                                def statusCheckResultJson = sh(returnStdout: true, script: getDeploymentStatusCommand).trim()
                                 deploymentStatus = new groovy.json.JsonSlurper().parseText(statusCheckResultJson) 
                                 echo "Deployment ${env.CODEDEPLOY_DEPLOYMENT_ID} status: ${deploymentStatus} (Checked ${loopCount} times)"
                             } catch (e) {
@@ -212,7 +245,7 @@ pipeline {
                 }
             }
         }
-    } // stages 블록 닫는 괄호
+    } 
     
     post {
         always {
@@ -226,4 +259,4 @@ pipeline {
             cleanWs()
         }
     }
-} // pipeline 블록 닫는 괄호
+}

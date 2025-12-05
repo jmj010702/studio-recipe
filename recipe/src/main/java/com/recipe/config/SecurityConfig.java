@@ -1,9 +1,12 @@
 package com.recipe.config;
 
+import com.recipe.config.JwtAuthenticationFilter;
+import com.recipe.config.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -15,8 +18,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,18 +25,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // @PreAuthorize, @PostAuthorize 등 메서드 보안
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    // @Value("${front.url}")
-    private String frontUrl = "http://localhost:5173";
-//     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-//     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    @Value("${front.urls}")
+    private String frontUrl;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -50,14 +48,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-
+        
         corsConfiguration.setAllowedOriginPatterns(List.of(frontUrl));
-//	   corsConfiguration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
-
-        //클라이언트가 접근할 수 있도록 노출할 헤더
         corsConfiguration.setExposedHeaders(Arrays.asList("Authorization", "Refresh-Token"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -74,32 +69,60 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize ->
                         authorize
-								.requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
+                                // OPTIONS 요청 허용
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                
+                                // 정적 리소스 허용
+                                .requestMatchers("/images/**").permitAll()
+                                
+                                // 기본 페이지 허용
+                                .requestMatchers("/", "/error").permitAll()
+                                
+                                // 프론트엔드 라우트 허용 (추가)
+                                .requestMatchers("/details/**").permitAll()
+                                .requestMatchers("/search/**").permitAll()
+                                .requestMatchers("/mypage/**").permitAll()
+                                .requestMatchers("/write/**").permitAll()
+                                
+                                // 인증 관련 API
+                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers("/api/auth/**").permitAll()
+                                
+                                // 공개 API (GET)
+                                .requestMatchers(HttpMethod.GET, "/api/mainPages").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/details/**").permitAll()
+                                
+                                // 개발/테스트용
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                .requestMatchers("/api/admin/**", "/batch/**").permitAll()
+                                .requestMatchers("/test/**").permitAll()
+                                
+                                // 인증 필요 API (POST/PUT/DELETE)
+                                .requestMatchers(HttpMethod.POST, "/api/recipes/write").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/likes").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/bookmarks").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/api/details/completion").authenticated()
+                                .requestMatchers("/api/recommendations/**").authenticated()
+                                .requestMatchers("/api/users/**").authenticated()
+                                .requestMatchers("/api/user/**").authenticated()
+                                .requestMatchers("/api/mypages/**").authenticated()
+                                .requestMatchers("/api/mypage/**").authenticated()
+                                .requestMatchers("/batch/run-recipe-csv").hasRole("ADMIN")
                                 .requestMatchers(
-					"/batch/run-recipe-csv",
-                                        "/auth/**",
-                                        "/swagger-ui/**",
-                                        "/v3/api-docs/**",
-                                        "/v3/api-docs",
-                                        "/error",
-                                        "/test/**",
-                                        "/actuator/**",
-									    "/aws-test/**"
-                                ).permitAll() // 위의 경로들은 인증 없이 접근 허용
-
+                                    // Batch 관련
+                                    "/batch/run-recipe-csv",
+                                    "/error",
+                                    "/test/**",
+                                    "/actuator/**",
+                                    "/aws-test/**"
+                                ).permitAll()
                                 // 나머지 모든 요청은 인증된 사용자만 허용
                                 .anyRequest().authenticated()
                 )
-                // 예외 처리 핸들러는 다음 단계에서 구현 예정
-                // .exceptionHandling(exceptionHandling -> exceptionHandling
-                //     .authenticationEntryPoint(jwtAuthenticationEntryPoint) // 인증 실패 시
-                //     .accessDeniedHandler(jwtAccessDeniedHandler) // 인가 실패 시
-                // )
-                // JWT 필터 적용: UsernamePasswordAuthenticationFilter 전에 JWT 필터를 추가하여 토큰 검증
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 }
-
-

@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable; // 👈 [추가]
+import org.springframework.web.bind.annotation.RequestParam; // 👈 [추가]
 
 @Tag(name = "Auth", description = "인증 및 사용자 관련 API")
 public interface AuthController {
@@ -19,21 +21,25 @@ public interface AuthController {
             })
     ResponseEntity<TokenResponseDTO> login(UserLoginRequestDTO request);
 
+    
+    // ▼▼▼▼▼ [수정 1] React가 /signup을 호출하므로 메서드 이름을 변경 ▼▼▼▼▼
     @Operation(summary = "회원가입", description = "사용자 계정 생성",
             responses = {
                     @ApiResponse(responseCode = "201", description = "회원가입 성공"),
                     @ApiResponse(responseCode = "400", description = "잘못된 요청"),
                     @ApiResponse(responseCode = "409", description = "이미 존재하는...")
             })
-    ResponseEntity<Void> register(UserRegisterRequestDTO request);
+    ResponseEntity<Void> signup(UserRegisterRequestDTO request); // 👈 register -> signup
+    // ▲▲▲▲▲ [수정 1] ▲▲▲▲▲
 
 
-    @Operation(summary = "닉네임 중복 확인",
-            description = "닉네임이 중복되는지 확인하여 Boolean 타입과 메시지를 전달",
+    @Operation(summary = "아이디/닉네임 중복 확인",
+            description = "타입(id, nickname)과 값(value)을 받아 중복 여부 전달",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "성공")
+                    @ApiResponse(responseCode = "200", description = "사용 가능"),
+                    @ApiResponse(responseCode = "409", description = "이미 사용 중 (중복)")
             })
-    public ResponseEntity<NicknameAvailabilityResponse> checkNickname(String nickname);
-
+    ResponseEntity<NicknameAvailabilityResponse> checkDuplication(@PathVariable String type, 
+                                                                  @RequestParam String value);
 
 }

@@ -1,10 +1,22 @@
 #!/bin/bash
-set -eux 
+set -e
 
-echo "Cleaning up dangling Docker images and unused layers..."
+echo "--- clean_old_images.sh script initiated ---"
 
-# Docker 명령 앞에 sudo를 붙여 권한 문제를 회피하고,
-# 명령 실패 시에도 스크립트가 중단되지 않도록 || true 추가
-sudo docker image prune -f || true
+# 중지된 컨테이너 정리
+echo "INFO: Removing stopped containers..."
+docker container prune -f || true
 
-echo "Finished cleaning old Docker images. (If no images were to be pruned, it's normal.)"
+# 사용되지 않는 이미지 정리
+echo "INFO: Removing unused images..."
+docker image prune -a -f || true
+
+# 사용되지 않는 볼륨 정리
+echo "INFO: Removing unused volumes..."
+docker volume prune -f || true
+
+# 빌더 캐시 정리(선택)
+echo "INFO: Removing builder cache..."
+docker builder prune -a -f || true
+
+echo "--- clean_old_images.sh completed ---"

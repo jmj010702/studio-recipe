@@ -1,70 +1,86 @@
 spring:
-   datasource:
-     driver-class-name: org.mariadb.jdbc.Driver
-     url: ${SPRING_DATASOURCE_URL}
-     username: ${SPRING_DATASOURCE_USERNAME}
-     password: ${SPRING_DATASOURCE_PASSWORD}
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
-   jpa:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    properties:
       hibernate:
-         ddl-auto: update
-      database-platform: org.hibernate.dialect.MariaDBDialect
-      properties:
-         hibernate:
-            format_sql: true
-            show_sql: false
-            defer-datasource-initialization: true
+        format_sql: true
+        show_sql: false
+        defer-datasource-initialization: true
 
+  batch:
+    jdbc:
+      # Spring Batch 메타데이터 테이블 자동 생성 always
+      initialize-schema: never # 애플리케이션 동작 시 영향 없음
+    job:
+      # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
+      enabled: false
+      # 존재하지 않는 이름 지정하여 아무 잡도 실행되지 않게 함
+      job-names: NON_EXISTENT_JOB
 
-   batch:
-      jdbc:
-         initialize-schema: always # Spring Batch 메타데이터 테이블 자동 생성
-      job:
-         enabled: false # 애플리케이션 시작 시 Job 자동 실행 방지 (수동 실행 위함)
-         job-names: NON_EXISTENT_JOB #존재하지 않는 이름 지정하여 아무 잡도 실행되지 않게 함
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          auth: true
+          ssl:
+            enable: true
+            trust: smtp.naver.com
+            protocols: TLSv1.2
+          starttls:
+            enable: false
 
-   mail:
-     host: ${SPRING_MAIL_HOST}
-     port: ${SPRING_MAIL_PORT}
-     username: ${SPRING_MAIL_USERNAME} 
-     password: ${SPRING_MAIL_PASSWORD} 
-     properties:
-       mail.smtp.auth: true
-       # mail.smtp.ssl.enable: true
-        mail.smtp.ssl.enable: true
-        mail.smtp.debug: true # true라면 로그 확인 가
-#       mail.smtp.starttls.enable: true //TLS 사용 시 port 587로 바꾸고 사용
-#       mail.smtp.starttls.required: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+      timeout: 5000ms
+          
+      # AWS ElastiCache Redis (Key-Value) 기본 형태 (단일 엔드포인트 방식)
+      # host: ${SPRING_DATA_REDIS_HOST}
+      # port: ${SPRING_DATA_REDIS_PORT}
+      # timeout: 5000ms
 
-       mail.smtp.timeout: 5000               # 연결 타임아웃
-       mail.smtp.connectiontimeout: 5000     # 연결 타임아웃
-       mail.smtp.writetimeout: 5000          # 쓰기 타임아웃
+      # 만약 ElastiCache를 "Cluster mode enabled" 로 쓴다면
+      # cluster:
+      #   nodes:
+      #     - ${SPRING_DATA_REDIS_CLUSTER_NODES}  # 예: my-redis.abc123.apn2.cache.amazonaws.com:6379
 
-   data:
-     redis:
-       cluster:
-         nodes:
-           - ${SPRING_DATA_REDIS_HOST}
-       port: ${SPRING_DATA_REDIS_PORT} # 
-       timeout: 5000ms
-       
-jwt:
-  secret: ${MY_APP_SECRET}
-  access-token-validity-in-seconds: 3600
-  refresh-token-validity-in-seconds: 604800
+      # 커넥션 풀 설정 예시
+      # lettuce:
+      #   pool:
+      #     max-active: 8
+      #     max-idle: 8
+      #     min-idle: 0
 
   thymeleaf:
     cache: false
     prefix: classpath:/templates/
     suffix: .html
 
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-validity-in-seconds: 3600       # 1시간
+  refresh-token-validity-in-seconds: 604800    # 7일
+
 server:
   port: 8080
   servlet:
     context-path: /studio-recipe
 
-
 front:
-  url: http://localhost:5173
-
-
+  urls: "http://localhost:5173,https://rapa8.shop,https://www.rapa8.shop"
